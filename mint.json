@@ -1,0 +1,108 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Architect",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.png",
+  "colors": {
+    "primary": "#225560",
+    "light": "#76C870",
+    "dark": "#225560",
+    "anchors": { "from": "#225560", "to": "#478896" }
+  },
+  "topbarCtaButton": {
+    "name": "Get Started",
+    "url": "https://cloud.architect.io/signup?_ga=2.208614098.1970806937.1674680123-820127562.1674680123"
+  },
+  "topbarLinks": [
+    {
+      "name": "Log In",
+      "url": "https://cloud.architect.io/signup?_ga=2.239415747.1970806937.1674680123-820127562.1674680123"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/architect-team"
+    },
+    {
+      "name": "Blog",
+      "icon": "newspaper",
+      "url": "https://www.architect.io/blog/"
+    },
+    {
+      "name": "Contact Us",
+      "icon": "envelope",
+      "url": "https://www.architect.io/contact-us/"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Welcome",
+      "pages": ["home"]
+    },
+    {
+      "group": "Getting Started",
+      "pages": [
+        "getting-started/introduction",
+        "getting-started/best-practices",
+        "getting-started/clusters",
+        "getting-started/external-services",
+        "getting-started/working-with-tasks"
+      ]
+    },
+    {
+      "group": "Tutorial",
+      "pages": [
+        "tutorial/creating-a-component",
+        "tutorial/adding-additional-services"
+      ]
+    },
+    {
+      "group": "Components",
+      "pages": [
+        "components/architect-yml",
+        "components/services",
+        "components/service-discovery",
+        "components/dependencies",
+        "components/tasks",
+        "components/secrets",
+        "components/local-configuration",
+        "components/ingress-rules",
+        "components/component-registration"
+      ]
+    },
+    {
+      "group": "Deployments",
+      "pages": [
+        "deployments/local-environments",
+        "deployments/automated-previews",
+        "deployments/gitops-releases",
+        "deployments/secrets",
+        "deployments/custom-domains",
+        "deployments/pipeline-rollbacks",
+        "deployments/multi-tenant-deployments",
+        "deployments/observability",
+        "deployments/scaling"
+      ]
+    },
+    {
+      "group": "Reference",
+      "pages": [
+        "reference/cli",
+        "reference/contexts",
+        "reference/architect-yml",
+        "reference/templates"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "twitter": "https://twitter.com/architect_team",
+    "linkedin": "https://www.linkedin.com/company/architect-io/",
+    "github": "https://github.com/architect-team",
+    "website": "https://www.architect.io/"
+  }
+}

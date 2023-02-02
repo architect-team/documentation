@@ -1,0 +1,229 @@
+---
+title: "Automated Preview Environments"
+sidebarTitle: "Automated Previews"
+---
+
+One of the largest benefits of Architects framework is that provisioning new
+environments is **always** limited to a single step, `architect deploy`. No
+matter how complex the application is or how many
+[dependencies](/components/dependencies) it has, `architect deploy` is able to
+automatically provision it in a new environment.
+
+What this means is that not only can developers run the stack privately, but the
+stack can also be provisioned automatically whenever there is a new branch or
+pull request. This automation is perfect for creating _previews_ of impending
+code changes so that product managers can review and integration tests can be
+run end to end.
+
+## Github Actions
+
+### Create preview environment
+
+The workflow below can be pasted into a file in your repository in the
+`.github/workflows` folder to trigger automated preview environments via
+Architect. These previews will be created whenever a pull request is submitted
+that targets the master branch. Be sure to set values in Github Secrets for the
+architect fields: `ARCHITECT_EMAIL` and `ARCHITECT_PASSWORD`. Replace
+`<account-name>`, `<cluster-name>`, and `<component-file-path>` with the
+appropriate values. With the `--ttl` flag set to 1d, the environment will be
+destroyed automatically in a day after creation.
+
+<Warning>
+  `ARCHITECT_PASSWORD` must be a [personal access
+  token](https://cloud.architect.io/login).
+</Warning>
+
+```yaml
+name: Architect Preview
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
+
+env:
+  ARCHITECT_EMAIL: ${{ secrets.ARCHITECT_EMAIL }}
+  ARCHITECT_PASSWORD: ${{ secrets.ARCHITECT_PASSWORD }}
+  ARCHITECT_ACCOUNT: <account-name> # Change to your Architect account name
+  CLUSTER_NAME: <cluster-name> # Ex. "architect" to use the managed cluster
+  COMPONENT_FILE_PATH: <component-file-path> # Change to the path of your architect.yml
+  PREVIEW_TAG: preview-${{ github.event.number }}
+
+jobs:
+  architect_create_preview:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+      - uses: crazy-max/ghaction-github-runtime@v2 # Exports internal envs for Github Actions. Required for register caching to work.
+      - name: Install Architect CLI
+        run: npm install -g @architect-io/cli
+      - name: Login to Architect Cloud
+        run: architect login
+      - name: Create env if not exists
+        run:
+          architect environment:create ${{ env.PREVIEW_TAG }} --cluster ${{
+          env.CLUSTER_NAME }} --ttl=1d
+      - name: Register and deploy component
+        run:
+          architect deploy --auto-approve -e ${{ env.PREVIEW_TAG }} ${{
+          env.COMPONENT_FILE_PATH }}
+
+  architect_remove_preview:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+      - name: Install Architect CLI
+        run: npm install -g @architect-io/cli
+      - name: Login to Architect Cloud
+        run: architect login
+      - name: Remove preview environment
+        run:
+          architect environment:destroy ${{ env.PREVIEW_TAG }} --auto-approve -f
+```
+
+### Comment on pull request discussion
+
+Use the snippet below in GitHub workflows to automatically create a comment in
+the pull request discussion for reviewers to be able to quickly view either the
+preview environment or the running appplication created by Architect.
+
+```yaml
+---
+- name: Architect preview information PR comment
+  uses: actions/github-script@v3
+  env:
+    ACCOUNT: ${{ secrets.ARCHITECT_ACCOUNT }}
+    COMPONENT: ${{ secrets.ARCHITECT_COMPONENT }}
+  with:
+    script: |
+      const {data: comments} = await github.issues.listComments({
+        issue_number: ${{ github.event.number }},
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+      })
+      const architectComment = comments.find(comment => comment.body.startsWith('### Architect'));
+      if (architectComment) {
+        return;
+      }
+      github.issues.createComment({
+        issue_number: ${{ github.event.number }},
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        body: `### Architect
+        Preview environment: [${process.env.ENVIRONMENT}](https://cloud.architect.io/${process.env.ACCOUNT}/environments/${process.env.ENVIRONMENT})
+        Running application: [${process.env.COMPONENT}](https://hello.${process.env.ENVIRONMENT}.${process.env.ACCOUNT}.arc.domains)`
+      })
+```
+
+### Post to Slack
+
+Use the code below in a GitHub workflow to post to a Slack channel on specified
+events if collaborators on a feature or issue want to be notified when it is
+ready to be reviewed or tested.
+
+```yaml
+---
+- name: Post Architect preview information to Slack
+  id: slack
+  uses: slackapi/slack-github-action@v1.14.0
+  with:
+    payload:
+      '{"preview_env":"https://cloud.architect.io/${{ secrets.ARCHITECT_ACCOUNT
+      }}/environments/preview-${{ github.event.number
+      }}","app_endpoint":"https://hello.preview-${{ github.event.number }}.${{
+      secrets.ARCHITECT_ACCOUNT }}.arc.domains"}'
+  env:
+    SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+```
+
+### Caching between workflow runs
+
+The Architect CLI can take advantage of caching Docker image layers between
+workflow runs. This can dramatically speed up workflows that include registering
+a component as one of the steps. This is accomplished by using the Github
+Actions cache api directly. The only change is to add the following action
+`ghaction-github-runtime` before registering to expose the necessary environment
+variables.
+
+## Gitlab CI
+
+This job can be pasted into your `.gitlab-ci.yml` at the root of your
+repository. You are welcome to change the `stage` to whatever fits your needs to
+allow you to run tests before the preview is generated, and please be sure to
+assign correct values for the variables in the job. Additionally, you'll need to
+assign values for variables in the below config not prefixed with `$CI_` in your
+repository's CI variables configuration so that the architect commands will run
+successfully.
+
+This configuration takes advantage of GitLab environments in order to give you
+better control and visibility into what environments exist and what's deployed
+to them. On PR creation, both a GitLab and Architect environment will be
+created. The component specified in the repository will be registered with the
+Architect Cloud and deployed to the environment. When the PR is either merged or
+closed, the GitLab environment will be automatically deleted and the component
+deployed to the environment in the Architect Cloud will be destroyed.
+
+<Warning>
+  `ARCHITECT_PASSWORD` must be a [personal access
+  token](https://cloud.architect.io/login).
+</Warning>
+
+```yaml
+# this example assumes that the repo has ARCHITECT_ACCOUNT and ARCHITECT_CLUSTER set as CI/CD variables
+stages:
+  - preview
+
+variables:
+  ARCHITECT_ACCOUNT: <account-name>
+  ARCHITECT_CLUSTER: <cluster-name>
+  ARCHITECT_ENVIRONMENT: preview-$CI_MERGE_REQUEST_ID
+
+default:
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - apk add --update npm git
+    - apk add yq
+      --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
+    # Install architect cli and login
+    - npm install -g @architect-io/cli
+    - architect login -e $ARCHITECT_EMAIL -p $ARCHITECT_PASSWORD
+
+deploy_preview:
+  stage: preview
+  script: |
+    architect environment:create $ARCHITECT_ENVIRONMENT --cluster $ARCHITECT_CLUSTER
+    architect deploy architect.yml --auto-approve --environment $ARCHITECT_ENVIRONMENT
+  environment:
+    name: architect/preview-$CI_MERGE_REQUEST_ID
+    url: https://cloud.architect.io/$ARCHITECT_ACCOUNT/environments/preview-$CI_MERGE_REQUEST_ID/
+    on_stop: destroy_preview
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+
+destroy_preview:
+  stage: preview
+  variables:
+    ARCHITECT_ENVIRONMENT: preview-$CI_MERGE_REQUEST_ID
+  script: |
+    architect destroy --auto-approve --environment $ARCHITECT_ENVIRONMENT
+    architect environment:destroy --auto-approve $ARCHITECT_ENVIRONMENT
+  environment:
+    name: architect/preview-$CI_MERGE_REQUEST_ID
+    action: stop
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+      when: manual
+```
