@@ -1,0 +1,31 @@
+---
+title: "Component registration"
+---
+
+In most scenarios, an Architect component will be registered and deployed with
+the same `deploy` command. In cases where a component should be registered but
+not immediately deployed, Architect provides the `register` command.
+
+## Registering a component
+
+Registering a component will push a component's configuration and Docker image
+to the Architect Cloud. The component will then be ready to be deployed at any
+time. To register a component, just run a command similar to the one below which
+specifies the path of the Architect component configuration file. If no tag is
+specified with the `-t` or `--tag` flag, the tag `latest` will be used.
+
+```sh
+architect register ./architect.yml
+```
+
+## Tagging a component
+
+Components can be registered with different tags such as 0.0.1, preview-10, or
+latest in order to differentiate between versions. Tagging components is
+especially useful in cases where different versions of the component should be
+deployed to different environments such as a preview environment, staging, or
+production. An example of registering with a tag is below.
+
+```sh
+architect register ./architect.yml -t 0.0.1
+```

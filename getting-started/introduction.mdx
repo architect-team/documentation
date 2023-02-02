@@ -1,0 +1,251 @@
+---
+title: "Introduction"
+description:
+  "Architect.io centers the needs of developers to create deployment pipelines
+  without needing to know about the operational details of building and
+  maintining modern devops infrastructure."
+---
+
+Developers love Architect because it emulates tools they use and love already,
+like NPM, to describe their application architecture and declare its
+dependencies. DevOps engineers love Architect because our automation makes
+deployments flexible, dynamic, and secure so that DevOps can focus on other,
+value generating initiatives to support develoeprs rather than constrining them
+unnecessarily.
+
+How do we do this? -- Use Docker to make deployments portable -- Use a file
+(architect.yml) to describe your app's structure and dependency -- Provide a
+single command to deploy locally, to preview environments, or to production
+
+## First steps
+
+There are two ways to get started with Architect. First, you may create an
+account at Architect.io and connect a github repository and start deploying
+code, all through our web based UI. Second, you may install our CLI app to run
+'deploy' commands directly from your local machine. We'll guide you through the
+steps to get started using the second method (CLI).
+
+Before you do anything else, install Docker and NPM in case you haven't already.
+
+## Install the CLI
+
+The best way to install the CLI is via NPM:
+
+```bash
+$ npm install -g @architect-io/cli
+```
+
+Alternatively, you can download the binary for your system architecture from
+[Github](https://github.com/architect-team/architect-cli/releases/tag/v1.32.1).
+Just download the appropriate bundle, extract it, and link the included `bin`
+folder to your user home directory.
+
+## Run a sample component
+
+In order to help you get familiar with Architect, we've created several
+[example applications](https://github.com/architect-team/architect-cli/tree/rc/examples)
+for you to experiement with. In this walk through, we'll use the react demo
+application which comes with a frontend Next.js app, a backend Node.js API, and
+a postgres database – all of which will be deployed automatically via Architect:
+
+![](/images/introduction-react-demo.webp)
+
+### Clone the repository
+
+The examples live in a sub-folder of our CLI's repository, so go ahead and clone
+the repo locally:
+
+```sh
+$ git clone https://github.com/architect-team/architect-cli.git && cd ./architect-cli/
+```
+
+### Register the app locally
+
+Next you'll want to link the react application to your local registry. Linking
+helps the CLI find the component by name on the local file system, otherwise it
+would look to find the component in Architect's component registry.
+
+```sh
+$ architect link ./examples/react-app/
+```
+
+### Check out the architect.yml file
+
+The `architect.yml` file contains the component descriptors that power Architect
+deployments. Why don't you open up the file in the react-app example:
+
+```yaml
+name: react-app
+
+secrets:
+  world_text:
+    description: Default greeting text for the landing page
+    default: world
+  root_db_user:
+    description: Root user to assign to the generated database
+    default: postgres
+  root_db_pass:
+    description: Root password to assign to the generated database
+    default: architect
+  api_db_name:
+    description: Name of the database used by the API
+    default: test_database
+
+services:
+  # Describes the database service
+  api-db:
+    image: postgres:11
+    interfaces:
+      postgres:
+        port: 5432
+        protocol: postgres
+    environment:
+      POSTGRES_USER: ${{ secrets.root_db_user }}
+      POSTGRES_PASSWORD: ${{ secrets.root_db_pass }}
+      POSTGRES_DB: ${{ secrets.api_db_name }}
+
+  # Describes the Node.js backend API
+  api:
+    build:
+      context: ./backend
+    interfaces:
+      main: &api-port 8080
+    environment:
+      PORT: *api-port
+      DB_ADDR: ${{ services.api-db.interfaces.postgres.url }}
+      DB_USER: ${{ secrets.root_db_user }}
+      DB_PASS: ${{ secrets.root_db_pass }}
+      DB_NAME: ${{ secrets.api_db_name }}
+    # The debug block defines features only used for local deployments. In this
+    # case, we've mounted to src directory and instrumented a hot-reloading cmd
+    debug:
+      command: npm run start:dev
+      volumes:
+        src:
+          mount_path: /usr/src/app/src
+          host_path: ./backend/src
+
+  # Describes the Next.js frontend application
+  app:
+    build:
+      context: ./frontend
+    interfaces:
+      main:
+        port: &app-port 8080
+        ingress:
+          # Maps the frontend application to an external interface. Once running, it can
+          # be resolved at https://app.localhost.architect.sh
+          subdomain: app
+    environment:
+      PORT: *app-port
+      API_ADDR: ${{ services.api.interfaces.main.url }}
+      WORLD_TEXT: ${{ secrets.world_text }}
+    debug:
+      build:
+        dockerfile: Dockerfile.dev
+      volumes:
+        src:
+          mount_path: /usr/src/app/src
+          host_path: ./frontend/src
+```
+
+This `architect.yml` describes each of our three `services`, exposes the
+frontend externally via `interfaces`, and allows the root database credentials
+to be configured via `secrets`.
+
+### Run the component
+
+Now that you have a better understanding of what you're deploying, go ahead and
+start it up!
+
+```sh
+$ architect dev react-app
+
+Using locally linked react-app found at /architect-cli/examples/react-app
+https://app.localhost.architect.sh:443/ => react-app--app
+
+https://localhost:443/ => gateway:443
+https://localhost:8080/ => gateway:8080
+https://localhost:50000/ => react-app--api-db:5432
+https://localhost:50001/ => react-app--api:8080
+https://localhost:50002/ => react-app--app:8080
+# begin log stream...
+```
+
+The command above will transform the component into a fully enriched
+docker-compose template and then execute it automatically. After a few seconds
+you should see the each application indicate that its ready for traffic, and at
+that point you can open https://app.localhost.architect.sh in your browser!
+
+## Make your own changes
+
+As you may have noticed from the `architect.yml` file, there is a `debug` block
+that enables hot-reloading for each service. That means you can make changes to
+the source code for each project and the changes will be applied to the
+environment automatically.
+
+Why don't you try making some changes to
+`./frontend/src/components/NameComponent.jsx`? Find the line that says:
+
+```jsx
+Hello {this.state.changed_name}
+```
+
+and change it to say:
+
+```jsx
+Hi there {this.state.changed_name}
+```
+
+Once you save the file, you'll see the frontend service recompiling in the logs
+and then your browser window will update automatically.
+
+## Create a free Architect account
+
+Now that you've successfully run and edited a component locally, it's time to
+learn how to register the component and deploy it to cloud environments. Before
+you can do that however, you need to
+[sign up](https://cloud.architect.io/signup) for Architect and create an account
+that will house your components and environments.
+
+After you've signed up, you simply need to login via the CLI to allow for access
+to your account:
+
+Copy $ architect login
+
+## Register a component
+
+Before you can deploy to a cloud environment, you have to register and tag your
+component with Architect's component registry. Components are registered to the
+account indicated by the name prefix of each component. The component you've
+been using as an example is called `react-app`, but lets go ahead and change the
+account prefix before registering. Open up the `architect.yml` file and change
+the name to something of your choosing. Once that's complete, you can register
+the component with a single command:
+
+```sh
+$ architect register ./examples/react-app/architect.yml --tag latest --account <account-name>
+```
+
+The `register` command does three things: 1) builds any services with a `build`
+and replaces the field with an `image` field referencing the built artifact, 2)
+uploads any build artifacts to Architect's registry, and 3) registers the
+component itself with Architect. Once complete, you'll see a link to the newly
+registered component!
+
+## Deploy to the cloud
+
+Finally, you're ready to deploy! Each Architect account comes pre-registered
+with an environment named, `example-environment`, that leverages Architect as
+the hosting provider. Go ahead and deploy your component to it (be sure to
+replace `<account-name>` with the name of the account you where you registered
+your component):
+
+```sh
+$ architect deploy react-app:latest --account <account-name> --environment example-environment
+```
+
+Nice work! Now that you've gotten the hang of the deploy flow, you're probably
+ready to try it out with your own application. Head on over to the
+[configuration](/components/architect-yml) section to learn more about the
+`architect.yml` file and how to write one of your own!

@@ -1,0 +1,127 @@
+---
+title: "Local Environments"
+description:
+  "The first thing any developer wants to do when they're creating an app or
+  service is run it locally."
+---
+
+Architects open-source CLI was designed specifically to allow developers to
+write `architect.yml` files and provision the corresponding services on their
+own machine. Once you've
+[created an architect.yml file](/components/architect-yml), you can use the CLI
+to register the component locally and then deploy with ease.
+
+## Local registration
+
+One of the staple features of Architect,
+[dependency management](/components/dependencies), requires that components
+maintain a unique name by which they can be resolved. By default, the CLI will
+look for components by name in Architects cloud registry, but when developers
+are working locally they are unlikely to have published their work to the
+registry.
+
+In order to help developers take advantage of dependency management during
+active development, Architects CLI includes the means of simulating Architects
+cloud registry right on your personal machine. We've taken inspiration from NPM
+to instrument a `link` command that will register a path on your local machine
+as the location for a component. Whenever the component is referenced by name,
+the CLI will then find it on your machine instead of having to call out to the
+registry.
+
+```
+$ architect link ./examples/react-app/
+Successfully linked react-app to local system at /architect-cli/examples/react-app.
+```
+
+## Local deployment
+
+Once you've registered a component locally or remotely, that component can then
+be deployed with a single command:
+
+```sh
+$ architect dev react-app -s world_text="dude"
+
+Using locally linked react-app found at /architect-cli/examples/react-app
+https://app.localhost.architect.sh:443/ => react-app--app
+
+https://localhost:443/ => gateway:443
+https://localhost:8080/ => gateway:8080
+https://localhost:50000/ => react-app--api-db:5432
+https://localhost:50001/ => react-app--api:8080
+https://localhost:50002/ => react-app--app:8080
+```
+
+When running this command we are telling Architect to deploy the application to
+the local machine. Each component will run for the duration of the command.
+Whenever this commnad is used, the `debug` fields associated with each service
+will serve as override values for the service configuration.
+
+The next portion of the command to call attention to is the reference to the
+component and tag, `react-app:latest`. This refers to a component name and tag,
+and the CLI will first attempt to find it in the local registry before then
+trying to find it in the cloud registry. If the component is found locally, the
+CLI will inform you via the first line of the logs.
+
+### Running without debug
+
+To learn more about testing how your services will run remotely see
+[local configuration](/components/local-configuration).
+
+### Exposing services on localhost
+
+To learn about how to expose your services see
+[ingress rules](/components/ingress-rules).
+
+### SSL
+
+Local deployments created with the `architect dev` command will have SSL enabled
+by default. This is to ensure that local deployments used for testing and
+development mirror production deployments as closely as possible. If you'd like
+to disable this feature and run local deployments without SSL, add the
+`--ssl=false` flag when starting your deployment with the `architect dev`
+command.
+
+While this feature does enable SSL to work locally, it in no way, shape or form
+is considered to be a security measurement.
+
+Since this feature uses a live domain that points back to your local machine,
+please be aware that this does not enable you to share your local development
+environment with others. The wildcard domain \*.localhost.architect.sh points to
+127.0.0.1. If you find yourself in a situation without an active internet
+connection you can work offline without SSL using the --ssl=false flag as
+mentioned above.
+
+### Setting secret values
+
+Finally, the `-p` flag in the dev command allows you to specify values for
+secrets defined by the component.
+
+Additionally, environment variables found on the local machine prefixed with
+`ARC_` will be used to populate the secret values of any components being
+deployed. For example, if we wanted to set the `world_text` secret via
+environment parmeters, all we have to do is define a secret named
+`ARC_world_text`:
+
+```sh
+$ ARC_world_text="dude"
+$ architect dev react-app
+```
+
+<Note>
+  In order to streamline local development, we recommend creating a single
+  `.env` file checked into source control that includes a set of configuration
+  options for developers to use when developing locally. They can easily mount
+  the included secrets by running `source .env` before deploying.
+</Note>
+
+### HSTS issues
+
+Architect starts a load balancer for each local deployment to route traffic to
+your services over HTTP. Occasionally browsers such as Chrome will block
+requests to certain websites unless traffic is sent over HTTPS. If you attempt
+to navigate to a route exposed by your local deployment and see a message such
+as
+`You cannot visit app.localhost.architect.sh right now because the website uses HSTS`,
+you will need to turn off HSTS for `localhost` on your browser. In Chrome, for
+example, that can be done by navigating to `chrome://net-internals/#hsts` and
+deleting the security policy for `localhost` and its subdomains.
