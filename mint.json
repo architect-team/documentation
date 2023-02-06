@@ -12,6 +12,11 @@
     "dark": "#225560",
     "anchors": { "from": "#225560", "to": "#478896" }
   },
+  "analytics": {
+    "posthog": {
+      "apiKey": "phc_Wb11qMDWr6OX6Y7Y9jVsqDYSVagSLYOA8vluHkML9JV"
+    }
+  },
   "topbarCtaButton": {
     "name": "Get Started",
     "url": "https://cloud.architect.io/signup?_ga=2.208614098.1970806937.1674680123-820127562.1674680123"
