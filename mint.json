@@ -14,7 +14,8 @@
   },
   "analytics": {
     "posthog": {
-      "apiKey": "phc_Wb11qMDWr6OX6Y7Y9jVsqDYSVagSLYOA8vluHkML9JV"
+      "apiKey": "phc_Wb11qMDWr6OX6Y7Y9jVsqDYSVagSLYOA8vluHkML9JV",
+      "apiHost": "https://ph.architect.io"
     }
   },
   "topbarCtaButton": {
