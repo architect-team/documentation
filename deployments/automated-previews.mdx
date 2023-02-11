@@ -19,14 +19,7 @@ run end to end.
 
 ### Create preview environment
 
-The workflow below can be pasted into a file in your repository in the
-`.github/workflows` folder to trigger automated preview environments via
-Architect. These previews will be created whenever a pull request is submitted
-that targets the master branch. Be sure to set values in Github Secrets for the
-architect fields: `ARCHITECT_EMAIL` and `ARCHITECT_PASSWORD`. Replace
-`<account-name>`, `<cluster-name>`, and `<component-file-path>` with the
-appropriate values. With the `--ttl` flag set to 1d, the environment will be
-destroyed automatically in a day after creation.
+The workflow below can be pasted into a file in your repository in the `.github/workflows` folder to trigger automated preview environments via Architect. These previews will be created whenever a pull request is submitted that targets the master branch. Be sure to set values in Github Secrets for the architect fields: `ARCHITECT_EMAIL` and `ARCHITECT_PASSWORD`. Replace `<account-name>`, `<cluster-name>` with the appropriate values. 
 
 <Warning>
   `ARCHITECT_PASSWORD` must be a [personal access
@@ -42,119 +35,126 @@ on:
       - opened
       - synchronize
       - reopened
+
+env:
+  ARCHITECT_EMAIL: ${{ secrets.ARCHITECT_EMAIL }}
+  ARCHITECT_PASSWORD: ${{ secrets.ARCHITECT_PASSWORD }}
+  ARCHITECT_ACCOUNT: <account-name>
+
+jobs:
+  deploy_environment:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '19'
+      - name: Setup docker build caching
+        uses: crazy-max/ghaction-github-runtime@v2.1.0
+      - name: Install Architect CLI
+        run:  npm install -g @architect-io/cli
+      - name: Login to Architect Cloud
+        run: architect login
+      - name: Convert branch to environment name
+        shell: bash
+        run: echo "env_name=${GITHUB_HEAD_REF/\//-}" >> $GITHUB_OUTPUT
+        id: extract_branch
+      - name: Create env if not exists
+        run: architect environment:create ${{ steps.extract_branch.outputs.env_name }} --cluster <cluster-name>
+      - name: Register and deploy component
+        run: architect deploy --auto-approve -e ${{ steps.extract_branch.outputs.env_name }} ./architect.yml
+      - name: Get ingress routes
+        id: get_ingress_routes
+        run: echo "ingresses=\"$(architect environment:ingresses ${{ steps.extract_branch.outputs.env_name }})\"" >> $GITHUB_OUTPUT
+      - name: Architect preview information PR comment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Changes are live:
+              ${{ steps.get_ingress_routes.outputs.ingresses }}`
+            })
+```
+
+## Cleaning up the environment
+
+Once your PR is closed, either because it was merged in successfully or closed and rejected, you'll likely want to clean up the environment so that you don't incur continued costs. Github Actions and Architect make this easy, and you can just copy and paste the following workflow into another file in your `.github/workflows` folder:
+
+```yaml
+name: Clean up preview environment
+
+on:
+  pull_request:
+    types:
       - closed
 
 env:
   ARCHITECT_EMAIL: ${{ secrets.ARCHITECT_EMAIL }}
   ARCHITECT_PASSWORD: ${{ secrets.ARCHITECT_PASSWORD }}
-  ARCHITECT_ACCOUNT: <account-name> # Change to your Architect account name
-  CLUSTER_NAME: <cluster-name> # Ex. "architect" to use the managed cluster
-  COMPONENT_FILE_PATH: <component-file-path> # Change to the path of your architect.yml
-  PREVIEW_TAG: preview-${{ github.event.number }}
+  ARCHITECT_ACCOUNT: reach-demo
 
 jobs:
-  architect_create_preview:
-    if: github.event.action != 'closed'
+  remove_environment:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: "16"
-      - uses: crazy-max/ghaction-github-runtime@v2 # Exports internal envs for Github Actions. Required for register caching to work.
+          node-version: '19'
       - name: Install Architect CLI
-        run: npm install -g @architect-io/cli
+        run:  npm install -g @architect-io/cli
       - name: Login to Architect Cloud
         run: architect login
-      - name: Create env if not exists
-        run:
-          architect environment:create ${{ env.PREVIEW_TAG }} --cluster ${{
-          env.CLUSTER_NAME }} --ttl=1d
-      - name: Register and deploy component
-        run:
-          architect deploy --auto-approve -e ${{ env.PREVIEW_TAG }} ${{
-          env.COMPONENT_FILE_PATH }}
-
-  architect_remove_preview:
-    if: github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - name: Convert branch to environment name
+        shell: bash
+        run: echo "env_name=${GITHUB_HEAD_REF/\//-}" >> $GITHUB_OUTPUT
+        id: extract_branch
+      - name: Remove components from environment
+        run: architect destroy -e ${{ steps.extract_branch.outputs.env_name }} --auto-approve
+      - name: Remove environment
+        run: architect environment:destroy ${{ steps.extract_branch.outputs.env_name }} --auto-approve
+      - name: Architect preview information PR comment
+        uses: actions/github-script@v6
         with:
-          node-version: "16"
-      - name: Install Architect CLI
-        run: npm install -g @architect-io/cli
-      - name: Login to Architect Cloud
-        run: architect login
-      - name: Remove preview environment
-        run:
-          architect environment:destroy ${{ env.PREVIEW_TAG }} --auto-approve -f
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `PR environment cleaned up successfully`
+            })
 ```
 
-### Comment on pull request discussion
+## Post updates to slack
 
-Use the snippet below in GitHub workflows to automatically create a comment in
-the pull request discussion for reviewers to be able to quickly view either the
-preview environment or the running appplication created by Architect.
+Depending on the size of your application your PR environment might take a while to first boot up. If you want to receive notifications in slack when the deployments are done, use slacks github action as the last step in your PR workflows. Just replace `<slack-webhook-url>` with one you generate from your slack organization settings:
 
 ```yaml
----
-- name: Architect preview information PR comment
-  uses: actions/github-script@v3
-  env:
-    ACCOUNT: ${{ secrets.ARCHITECT_ACCOUNT }}
-    COMPONENT: ${{ secrets.ARCHITECT_COMPONENT }}
-  with:
-    script: |
-      const {data: comments} = await github.issues.listComments({
-        issue_number: ${{ github.event.number }},
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-      })
-      const architectComment = comments.find(comment => comment.body.startsWith('### Architect'));
-      if (architectComment) {
-        return;
-      }
-      github.issues.createComment({
-        issue_number: ${{ github.event.number }},
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        body: `### Architect
-        Preview environment: [${process.env.ENVIRONMENT}](https://cloud.architect.io/${process.env.ACCOUNT}/environments/${process.env.ENVIRONMENT})
-        Running application: [${process.env.COMPONENT}](https://hello.${process.env.ENVIRONMENT}.${process.env.ACCOUNT}.arc.domains)`
-      })
+# ...
+
+jobs:
+  deploy_environment:
+    steps:
+      # ...
+      - name: Post Architect preview information to Slack
+        id: slack
+        uses: slackapi/slack-github-action@v1.14.0
+        with:
+          payload: "{\"preview_env\":\"https://cloud.architect.io/${{ secrets.ARCHITECT_ACCOUNT }}/environments/${{ steps.extract_branch.outputs.env_name }}\",\"app_endpoints\":\"${{ steps.get_ingress_routes.outputs.ingresses }}\"}"
+        env:
+          SLACK_WEBHOOK_URL: <slack-webhook-url>
 ```
-
-### Post to Slack
-
-Use the code below in a GitHub workflow to post to a Slack channel on specified
-events if collaborators on a feature or issue want to be notified when it is
-ready to be reviewed or tested.
-
-```yaml
----
-- name: Post Architect preview information to Slack
-  id: slack
-  uses: slackapi/slack-github-action@v1.14.0
-  with:
-    payload:
-      '{"preview_env":"https://cloud.architect.io/${{ secrets.ARCHITECT_ACCOUNT
-      }}/environments/preview-${{ github.event.number
-      }}","app_endpoint":"https://hello.preview-${{ github.event.number }}.${{
-      secrets.ARCHITECT_ACCOUNT }}.arc.domains"}'
-  env:
-    SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-```
-
-### Caching between workflow runs
-
-The Architect CLI can take advantage of caching Docker image layers between
-workflow runs. This can dramatically speed up workflows that include registering
-a component as one of the steps. This is accomplished by using the Github
-Actions cache api directly. The only change is to add the following action
-`ghaction-github-runtime` before registering to expose the necessary environment
-variables.
 
 ## Gitlab CI
 
