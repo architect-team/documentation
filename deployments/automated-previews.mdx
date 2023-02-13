@@ -52,7 +52,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '19'
+          node-version: '18'
       - name: Setup docker build caching
         uses: crazy-max/ghaction-github-runtime@v2.1.0
       - name: Install Architect CLI
@@ -111,7 +111,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '19'
+          node-version: '18'
       - name: Install Architect CLI
         run:  npm install -g @architect-io/cli
       - name: Login to Architect Cloud
