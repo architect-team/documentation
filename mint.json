@@ -10,7 +10,10 @@
     "primary": "#225560",
     "light": "#76C870",
     "dark": "#225560",
-    "anchors": { "from": "#225560", "to": "#478896" }
+    "anchors": {
+      "from": "#225560",
+      "to": "#478896"
+    }
   },
   "analytics": {
     "posthog": {
@@ -48,7 +51,9 @@
   "navigation": [
     {
       "group": "Welcome",
-      "pages": ["home"]
+      "pages": [
+        "home"
+      ]
     },
     {
       "group": "Getting Started",
@@ -98,7 +103,8 @@
     {
       "group": "Reference",
       "pages": [
-        "reference/cli",
+        "reference/release-notes",
+        "reference/changelog",
         "reference/contexts",
         "reference/architect-yml",
         "reference/templates"

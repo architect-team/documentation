@@ -63,6 +63,31 @@ build:
 
 <Note>This field cannot be used in conjunction with the `image` field</Note>
 
+#### Using Buildpack
+
+> Buildpack is currently in alpha. While the feature should be stable, it may be changed or removed without prior notice. As such we do not recommend using this feature in any automated pipelines. During this time we greatly appreciate any feedback as we continue to finalize the implementation. You can reach us at support@architect.io.
+If a `Dockerfile` is not found in the directory in which the `context` field is set, the CLI by default will trigger a Cloud Native Buildpacks builder to build an [image](#image) of the service. A builder is an image that detects and converts source code into a runnable container image.
+
+If the application contains a `Dockerfile` but a builder should be used instead, set the field `buildpack` to `true`.
+
+```yaml
+build:
+  # The path to the directory containing the source code relative to the architect.yml file
+  context: ./
+  # Use buildpack to build the service
+  buildpack: true
+```
+
+Architect `buildpack` is in its early development stage and is currently an experimental feature. The version of the builder image is `heroku/buildpacks:20`. This builder version only supports languages such as Java, Go, Node.js, PHP, Python, Ruby, Scala, and Typescript. Learn more about [Heroku builder](https://github.com/heroku/builder).
+
+Depending on the language that the application is written in, there might be some requirements in order to build successfully. For example, if an application is written in Java, only these [supported Java versions](https://devcenter.heroku.com/articles/java-support#supported-java-versions) can be used. After selecting a Java version, a `system.properties` might be required at the root of the application for the builder to use the correct [Java runtime version](https://devcenter.heroku.com/articles/java-support#specifying-a-java-version).
+
+For more information on the language support of Heroku, please refer to [Heroku language support](https://devcenter.heroku.com/categories/language-support).
+
+<Note>This field cannot be used in conjunction with the `image` field</Note>
+
+### image
+
 image (optional) A string referencing the address of an existing docker image
 that powers this service.
 
