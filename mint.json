@@ -103,8 +103,8 @@
     {
       "group": "Reference",
       "pages": [
+        "reference/release-notes",
         "reference/changelog",
-        "reference/cli",
         "reference/contexts",
         "reference/architect-yml",
         "reference/templates"
