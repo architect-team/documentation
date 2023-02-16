@@ -1,80 +1,85 @@
+<!-- docs -->
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://cdn.architect.io/logo/horizontal-inverted.png"/>
+    <source media="(prefers-color-scheme: light)" srcset="https://cdn.architect.io/logo/horizontal.png"/>
+    <img width="320" alt="Architect Logo" src="https://cdn.architect.io/logo/horizontal.png"/>
+  </picture>
+</p>
+
+<p align="center">
+  <a href="https://oclif.io"><img src="https://img.shields.io/badge/cli-oclif-brightgreen.svg" alt="oclif" /></a>
+  <a href="https://github.com/architect-team/architect-cli/actions?query=workflow%3A%22CLI+-+Cut+Release+Candidate%22"><img src="https://img.shields.io/github/workflow/status/architect-team/architect-cli/CLI%20-%20Cut%20Release%20Candidate" alt="Build" /></a>
+  <a href="https://npmjs.org/package/@architect-io/cli"><img src="https://img.shields.io/npm/v/@architect-io/cli.svg" alt="Version" /></a>
+  <a href="https://github.com/architect-team/architect-cli/blob/main/package.json"><img src="https://img.shields.io/npm/l/@architect-io/cli.svg" alt="License" /></a>
+</p>
+
+<p align="center">
+  Self-service cloud environments for everyone. Achieve deployment, networking, and security automation all at once with Architect.
+</p>
+
 ---
-title: "CLI"
-description:
-  "Self-service cloud environments for everyone. Achieve deployment, networking,
-  and security automation all at once with Architect."
----
 
-![](/images/logo.png)
+Architect is the world's first [DevOps-as-a-Service](//architect.io/product) toolset designed to help democratize environment provisioning for engineers. With Architect, anyone can deploy any service, anywhere, for any reason with the push of a button.
 
-Architect is the world's first
-[DevOps-as-a-Service](https://www.architect.io/platform/) toolset designed to
-help democratize environment provisioning for engineers. With Architect, anyone
-can deploy any service, anywhere, for any reason with the push of a button.
+Our unique approach to continuous delivery is powered by an embedded dependency resolver. By simply asserting your microservice dependenies, Architect is able to build a graph of your application and deploy the entire stack to your favorite cloud provider.
 
-Our unique approach to continuous delivery is powered by an embedded dependency
-resolver. By simply asserting your microservice dependenies, Architect is able
-to build a graph of your application and deploy the entire stack to your
-favorite cloud provider.
-
-Architect's CLI, which provides the full developer experience needed to create
-[components](https://docs.architect.io/) and operate
-[local environments](/deployments/local-environments), is fully open-source. The
-CLI can deploy components locally using docker-compose, enrich the deployments
-with components found in Architect's Cloud registry, and allows developers to
-publish their own components to the registry both publicly and privately for
-free.
+Architect's CLI, which provides the full developer experience needed to create [components](//docs.architect.io) and operate local [environments](//docs.architect.io/deployments/local-environments), is fully open-source. The CLI can deploy components locally using docker-compose, enrich the deployments with components found in Architect's Cloud registry, and allows developers to publish their own components to the registry both publicly and privately for free.
 
 ## Requirements
-
-- Docker must be installed
-- Node.js `v12` or higher must be installed
+* [**Docker**](//docs.docker.com/get-docker/) must be installed
+* [**Node.js** `v12`](//nodejs.org/en/download/) or higher must be installed
 
 ## Usage
 
-```
+<!-- usage -->
+```sh-session
 $ npm install -g @architect-io/cli
 $ architect COMMAND
 running command...
 $ architect (--version)
-@architect-io/cli/1.32.1-rc.1 linux-x64 node-v16.19.0
+@architect-io/cli/1.33.0-rc.9 linux-x64 node-v16.19.0
 $ architect --help [COMMAND]
 USAGE
   $ architect COMMAND
 ...
 ```
+<!-- usagestop -->
 
 ## Commands
 
-- `architect autocomplete [SHELL]`
-- `architect components:versions [COMPONENT_NAME]`
-- `architect config:get OPTION`
-- `architect config:set OPTION VALUE`
-- `architect config:view`
-- `architect deploy [CONFIGS_OR_COMPONENTS]`
-- `architect destroy`
-- `architect dev [CONFIGS_OR_COMPONENTS]`
-- `architect dev:list`
-- `architect dev:stop [NAME]`
-- `architect doctor`
-- `architect environments:create [ENVIRONMENT]`
-- `architect environments:destroy [ENVIRONMENT]`
-- `architect exec [RESOURCE] [FLAGS] -- [COMMAND]`
-- `architect help [COMMAND]`
-- `architect init [NAME]`
-- `architect link [COMPONENTPATH]`
-- `architect link:list`
-- `architect login`
-- `architect logout`
-- `architect logs [RESOURCE]`
-- `architect register [COMPONENT]`
-- `architect scale [SERVICE]`
-- `architect secrets:download SECRETS_FILE`
-- `architect secrets:upload SECRETS_FILE`
-- `architect task COMPONENT TASK`
-- `architect unlink [COMPONENTPATHORNAME]`
+<!-- commands -->
+* [`architect autocomplete [SHELL]`](#architect-autocomplete-shell)
+* [`architect components:versions [COMPONENT_NAME]`](#architect-componentsversions-component_name)
+* [`architect config:get OPTION`](#architect-configget-option)
+* [`architect config:set OPTION VALUE`](#architect-configset-option-value)
+* [`architect config:view`](#architect-configview)
+* [`architect deploy [CONFIGS_OR_COMPONENTS]`](#architect-deploy-configs_or_components)
+* [`architect destroy`](#architect-destroy)
+* [`architect dev [CONFIGS_OR_COMPONENTS]`](#architect-dev-configs_or_components)
+* [`architect dev:list`](#architect-devlist)
+* [`architect dev:stop [NAME]`](#architect-devstop-name)
+* [`architect doctor`](#architect-doctor)
+* [`architect environments:create [ENVIRONMENT]`](#architect-environmentscreate-environment)
+* [`architect environments:destroy [ENVIRONMENT]`](#architect-environmentsdestroy-environment)
+* [`architect environments:ingresses [ENVIRONMENT]`](#architect-environmentsingresses-environment)
+* [`architect exec [RESOURCE] [FLAGS] -- [COMMAND]`](#architect-exec-resource-flags----command)
+* [`architect help [COMMAND]`](#architect-help-command)
+* [`architect init [NAME]`](#architect-init-name)
+* [`architect link [COMPONENTPATH]`](#architect-link-componentpath)
+* [`architect link:list`](#architect-linklist)
+* [`architect login`](#architect-login)
+* [`architect logout`](#architect-logout)
+* [`architect logs [RESOURCE]`](#architect-logs-resource)
+* [`architect register [COMPONENT]`](#architect-register-component)
+* [`architect scale [SERVICE]`](#architect-scale-service)
+* [`architect secrets:download SECRETS_FILE`](#architect-secretsdownload-secrets_file)
+* [`architect secrets:upload SECRETS_FILE`](#architect-secretsupload-secrets_file)
+* [`architect task COMPONENT TASK`](#architect-task-component-task)
+* [`architect unlink [COMPONENTPATHORNAME]`](#architect-unlink-componentpathorname)
 
-### `architect autocomplete [SHELL]`
+## `architect autocomplete [SHELL]`
 
 display autocomplete installation instructions
 
@@ -101,10 +106,9 @@ EXAMPLES
   $ architect autocomplete --refresh-cache
 ```
 
-_See code:
-[@oclif/plugin-autocomplete](https://github.com/oclif/plugin-autocomplete/blob/v1.2.0/src/commands/autocomplete/index.ts)_
+_See code: [@oclif/plugin-autocomplete](https://github.com/oclif/plugin-autocomplete/blob/v1.2.0/src/commands/autocomplete/index.ts)_
 
-### `architect components:versions [COMPONENT_NAME]`
+## `architect components:versions [COMPONENT_NAME]`
 
 Search component versions of a particular component
 
@@ -128,10 +132,9 @@ EXAMPLES
   $ architect component:versions --account=myaccount mycomponent
 ```
 
-_See code:
-[src/commands/components/versions.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/components/versions.ts)_
+_See code: [src/commands/components/versions.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/components/versions.ts)_
 
-### `architect config:get OPTION`
+## `architect config:get OPTION`
 
 Get the value of a CLI config option
 
@@ -149,10 +152,9 @@ EXAMPLES
   $ architect config:get log_level
 ```
 
-_See code:
-[src/commands/config/get.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/config/get.ts)_
+_See code: [src/commands/config/get.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/config/get.ts)_
 
-### `architect config:set OPTION VALUE`
+## `architect config:set OPTION VALUE`
 
 Set a new value for a CLI configuration option
 
@@ -171,10 +173,9 @@ EXAMPLES
   $ architect config:set log_level info
 ```
 
-_See code:
-[src/commands/config/set.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/config/set.ts)_
+_See code: [src/commands/config/set.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/config/set.ts)_
 
-### `architect config:view`
+## `architect config:view`
 
 View all the CLI configuration settings
 
@@ -192,9 +193,9 @@ EXAMPLES
   $ architect config
 ```
 
-_See code: [src/commands/config/view.ts]()_
+_See code: [src/commands/config/view.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/config/view.ts)_
 
-### `architect deploy [CONFIGS_OR_COMPONENTS]`
+## `architect deploy [CONFIGS_OR_COMPONENTS]`
 
 Create a deploy job on Architect Cloud
 
@@ -232,10 +233,9 @@ EXAMPLES
   $ architect deploy ./myfolder/architect.yml --secret-file=./mysecrets.yml --environment=myenvironment --account=myaccount --auto-approve
 ```
 
-_See code:
-[src/commands/deploy.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/deploy.ts)_
+_See code: [src/commands/deploy.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/deploy.ts)_
 
-### `architect destroy`
+## `architect destroy`
 
 Destroy components from an environment
 
@@ -259,10 +259,9 @@ EXAMPLES
   $ architect destroy --account=myaccount --environment=myenvironment --auto-approve
 ```
 
-_See code:
-[src/commands/destroy.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/destroy.ts)_
+_See code: [src/commands/destroy.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/destroy.ts)_
 
-### `architect dev [CONFIGS_OR_COMPONENTS]`
+## `architect dev [CONFIGS_OR_COMPONENTS]`
 
 Run your stack locally
 
@@ -302,10 +301,9 @@ EXAMPLES
   $ architect dev --port=81 --browser=false --debug=true --secret-file=./mycomponent/mysecrets.yml ./mycomponent/architect.yml
 ```
 
-_See code:
-[src/commands/dev/index.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/dev/index.ts)_
+_See code: [src/commands/dev/index.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/dev/index.ts)_
 
-### `architect dev:list`
+## `architect dev:list`
 
 List all running dev instances.
 
@@ -324,10 +322,9 @@ EXAMPLES
   $ architect dev:list
 ```
 
-_See code:
-[src/commands/dev/list.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/dev/list.ts)_
+_See code: [src/commands/dev/list.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/dev/list.ts)_
 
-### `architect dev:stop [NAME]`
+## `architect dev:stop [NAME]`
 
 Stop a local deployment
 
@@ -345,10 +342,9 @@ EXAMPLES
   $ architect dev:stop <local-environment-name>
 ```
 
-_See code:
-[src/commands/dev/stop.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/dev/stop.ts)_
+_See code: [src/commands/dev/stop.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/dev/stop.ts)_
 
-### `architect doctor`
+## `architect doctor`
 
 Get debugging information for troubleshooting
 
@@ -368,10 +364,9 @@ EXAMPLES
   $ architect doctor -o ./myoutput.yml
 ```
 
-_See code:
-[src/commands/doctor.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/doctor.ts)_
+_See code: [src/commands/doctor.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/doctor.ts)_
 
-### `architect environments:create [ENVIRONMENT]`
+## `architect environments:create [ENVIRONMENT]`
 
 Register a new environment with Architect Cloud
 
@@ -404,10 +399,9 @@ EXAMPLES
   environment:create --account=myaccount --ttl=5days --description="My new temporary Architect environment" myenvironment
 ```
 
-_See code:
-[src/commands/environments/create.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/environments/create.ts)_
+_See code: [src/commands/environments/create.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/environments/create.ts)_
 
-### `architect environments:destroy [ENVIRONMENT]`
+## `architect environments:destroy [ENVIRONMENT]`
 
 Deregister an environment
 
@@ -439,10 +433,34 @@ EXAMPLES
   $ architect environment:deregister --account=myaccount --auto-approve --force myenvironment
 ```
 
-_See code:
-[src/commands/environments/destroy.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/environments/destroy.ts)_
+_See code: [src/commands/environments/destroy.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/environments/destroy.ts)_
 
-### `architect exec [RESOURCE] [FLAGS] -- [COMMAND]`
+## `architect environments:ingresses [ENVIRONMENT]`
+
+List the resolvable URLs for services exposed by your environment
+
+```
+USAGE
+  $ architect environments:ingresses [ENVIRONMENT] [-a <value>]
+
+ARGUMENTS
+  ENVIRONMENT  Name to give the environment
+
+FLAGS
+  -a, --account=<value>  Architect account
+
+DESCRIPTION
+  List the resolvable URLs for services exposed by your environment
+
+ALIASES
+  $ architect environment:ingresses
+  $ architect envs:ingresses
+  $ architect env:ingresses
+```
+
+_See code: [src/commands/environments/ingresses.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/environments/ingresses.ts)_
+
+## `architect exec [RESOURCE] [FLAGS] -- [COMMAND]`
 
 Exec into service instances
 
@@ -476,10 +494,9 @@ EXAMPLES
   $ architect exec --account myaccount --environment myenvironment --replica 0 -- /bin/sh
 ```
 
-_See code:
-[src/commands/exec.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/exec.ts)_
+_See code: [src/commands/exec.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/exec.ts)_
 
-### `architect help [COMMAND]`
+## `architect help [COMMAND]`
 
 Display help for architect.
 
@@ -497,13 +514,11 @@ DESCRIPTION
   Display help for architect.
 ```
 
-_See code:
-[@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v5.1.11/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v5.1.11/src/commands/help.ts)_
 
-### `architect init [NAME]`
+## `architect init [NAME]`
 
-Initialize an architect component from an existing docker-compose file or create
-a project from Architect starter projects.
+Initialize an architect component from an existing docker-compose file or create a project from Architect starter projects.
 
 ```
 USAGE
@@ -529,10 +544,9 @@ EXAMPLES
   $ architect init --from-compose=mycompose.yml --component-file=architect.yml
 ```
 
-_See code:
-[src/commands/init.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/init.ts)_
+_See code: [src/commands/init.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/init.ts)_
 
-### `architect link [COMPONENTPATH]`
+## `architect link [COMPONENTPATH]`
 
 Link a local component to the host to be used to power local deployments.
 
@@ -552,10 +566,9 @@ EXAMPLES
   $ architect link -p ./mycomponent/architect.yml
 ```
 
-_See code:
-[src/commands/link/index.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/link/index.ts)_
+_See code: [src/commands/link/index.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/link/index.ts)_
 
-### `architect link:list`
+## `architect link:list`
 
 List all linked components.
 
@@ -570,10 +583,9 @@ EXAMPLES
   $ architect link:list
 ```
 
-_See code:
-[src/commands/link/list.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/link/list.ts)_
+_See code: [src/commands/link/list.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/link/list.ts)_
 
-### `architect login`
+## `architect login`
 
 Login to the Architect Cloud platform
 
@@ -594,10 +606,9 @@ EXAMPLES
   $ architect login -e my-email-address@my-email-domain.com
 ```
 
-_See code:
-[src/commands/login.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/login.ts)_
+_See code: [src/commands/login.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/login.ts)_
 
-### `architect logout`
+## `architect logout`
 
 Logout from the Architect registry
 
@@ -612,10 +623,9 @@ EXAMPLES
   $ architect logout
 ```
 
-_See code:
-[src/commands/logout.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/logout.ts)_
+_See code: [src/commands/logout.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/logout.ts)_
 
-### `architect logs [RESOURCE]`
+## `architect logs [RESOURCE]`
 
 Get logs from services both locally and remote
 
@@ -647,14 +657,11 @@ EXAMPLES
   $ architect logs --follow --raw --timestamps
 ```
 
-_See code:
-[src/commands/logs.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/logs.ts)_
+_See code: [src/commands/logs.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/logs.ts)_
 
-### `architect register [COMPONENT]`
+## `architect register [COMPONENT]`
 
-Register a new Component with Architect Cloud. Multiple components are accepted.
-If multiple components are specified, the same command arg(s) and flag(s) will
-be applied to each component.
+Register a new Component with Architect Cloud. Multiple components are accepted. If multiple components are specified, the same command arg(s) and flag(s) will be applied to each component.
 
 ```
 USAGE
@@ -692,10 +699,9 @@ EXAMPLES
   $ architect register -a myaccount -t latest --arg NODE_ENV=dev ./architect.yml
 ```
 
-_See code:
-[src/commands/register.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/register.ts)_
+_See code: [src/commands/register.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/register.ts)_
 
-### `architect scale [SERVICE]`
+## `architect scale [SERVICE]`
 
 Scale a service to a specified number of replicas.
 
@@ -724,10 +730,9 @@ EXAMPLES
   $ architect scale api --component my-component --clear
 ```
 
-_See code:
-[src/commands/scale.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/scale.ts)_
+_See code: [src/commands/scale.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/scale.ts)_
 
-### `architect secrets:download SECRETS_FILE`
+## `architect secrets:download SECRETS_FILE`
 
 Download secrets from an account or an environment
 
@@ -758,10 +763,9 @@ EXAMPLES
   $ architect secrets --account=myaccount --environment=myenvironment ./mysecrets.yml
 ```
 
-_See code:
-[src/commands/secrets/download.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/secrets/download.ts)_
+_See code: [src/commands/secrets/download.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/secrets/download.ts)_
 
-### `architect secrets:upload SECRETS_FILE`
+## `architect secrets:upload SECRETS_FILE`
 
 Upload secrets from a file to an account or an environment
 
@@ -798,10 +802,9 @@ EXAMPLES
   $ architect secrets:set --account=myaccount --environment=myenvironment --override ./mysecrets.yml
 ```
 
-_See code:
-[src/commands/secrets/upload.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/secrets/upload.ts)_
+_See code: [src/commands/secrets/upload.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/secrets/upload.ts)_
 
-### `architect task COMPONENT TASK`
+## `architect task COMPONENT TASK`
 
 Execute a task in the given environment
 
@@ -829,10 +832,9 @@ EXAMPLES
   $ architect task --account=myaccount --environment=myenvironment mycomponent:latest mytask
 ```
 
-_See code:
-[src/commands/task.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/task.ts)_
+_See code: [src/commands/task.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/task.ts)_
 
-### `architect unlink [COMPONENTPATHORNAME]`
+## `architect unlink [COMPONENTPATHORNAME]`
 
 Unlink a component from the host by path or name
 
@@ -854,5 +856,5 @@ EXAMPLES
   $ architect unlink -p mycomponent
 ```
 
-_See code:
-[src/commands/unlink.ts](https://github.com/architect-team/architect-cli/blob/v1.32.1-rc.1/src/commands/unlink.ts)_
+_See code: [src/commands/unlink.ts](https://github.com/architect-team/architect-cli/blob/v1.33.0-rc.9/src/commands/unlink.ts)_
+<!-- commandsstop -->
