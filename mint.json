@@ -51,9 +51,7 @@
   "navigation": [
     {
       "group": "Welcome",
-      "pages": [
-        "home"
-      ]
+      "pages": ["home"]
     },
     {
       "group": "Getting Started",
@@ -116,5 +114,8 @@
     "linkedin": "https://www.linkedin.com/company/architect-io/",
     "github": "https://github.com/architect-team",
     "website": "https://www.architect.io/"
+  },
+  "modeToggle": {
+    "default": "dark"
   }
 }
