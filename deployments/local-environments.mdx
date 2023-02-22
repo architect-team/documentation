@@ -62,6 +62,68 @@ and the CLI will first attempt to find it in the local registry before then
 trying to find it in the cloud registry. If the component is found locally, the
 CLI will inform you via the first line of the logs.
 
+### Managing local deployments
+
+List all running dev instances.
+
+```sh
+$ architect dev:list
+```
+
+Stop a running dev instance.
+
+```sh
+$ architect dev:stop <env>
+```
+
+### Debugging local deployments
+
+#### Logs
+
+You can view the logs for an individual service:
+
+```sh
+$ architect logs
+? Select an account (Use arrow keys or type to search)
+❯ dev (Local Machine)
+
+# Optional flags
+$ architect logs --tail
+$ architect logs --since 5m
+$ architect logs --timestamps
+$ architect logs --raw
+```
+
+If you want to target a specific local environment and service:
+
+```sh
+# Use architect dev:list to see available local environments
+$ architect logs --environment <env> <component>.services.<service-name>
+
+# Example
+$ architect logs --environment architect hello-world.services.api
+```
+
+#### Exec
+
+You can run commands inside of the running containers:
+
+```sh
+$ architect exec
+? Select an account (Use arrow keys or type to search)
+❯ dev (Local Machine)
+```
+
+If you want to target a specific local environment and service:
+
+```sh
+# Use architect dev:list to see available local environments
+$ architect exec --environment <env> <component>.services.<service-name> -- <cmd>
+
+# Example
+$ architect exec --environment architect hello-world.services.api -- ls
+```
+
 ### Running without debug
 
 To learn more about testing how your services will run remotely see
