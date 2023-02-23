@@ -105,7 +105,8 @@
         "reference/changelog",
         "reference/contexts",
         "reference/architect-yml",
-        "reference/templates"
+        "reference/templates",
+        "reference/cli"
       ]
     }
   ],
