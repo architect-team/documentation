@@ -1,59 +1,65 @@
 ---
-title: "Creating a Component"
-description:
-  "This tutorial covers how you can quickly get started using Architect."
+title: "Create a Component"
+
 ---
+This tutorial covers how you can quickly get started using Architect.
 
 ### Prerequisites
 
 The following prerequisites are required for a smooth introduction to Architect:
 
-- An application that can be run in a container
-  - If you're just curious what Architect has to offer, you can clone one of our
-    [Templates](https://github.com/architect-templates/) and use that to get
+- An application that can be run in a container. If you're just curious about what Architect has to offer,
+  you can clone one of our [Starter Projects](https://github.com/architect-templates/) and use that to get
     started.
 - Some familiarity with running applications using Docker (or any other similar
   container engine)
 
-It isn't necessary to know how to use Kubernetes or how to deploy an application
+You don't need to know how to use Kubernetes or how to deploy an application
 into a cloud environment - Architect handles that for you.
 
-## Getting Started
+## Get Started
 
-Creating a new component that can be run on the Architect Cloud involves:
+A component includes all the services and dependencies that comprise your application.
+Creating a new component that can be run in Architect's community cloud as well as any external
+clusters you add involves the following steps:
 
 - Writing an `architect.yml` file
 - Running and testing the component locally with `architect dev`
 - Using the `architect register` command to register this component with your
-  Architect account.
+  Architect account
 
 If you don't yet have the Architect CLI installed,
 [see our instructions on how to do that](/getting-started/introduction/#install-the-cli).
 
 You can create your own component with a pre-existing app you've built, clone
-our React Template to follow along, or use our init command to create a project
-from our templates.
+one of our [Starter Projects](https://github.com/architect-templates/) yourself, or use our `init` command to clone it for you.
 
-### Creating a project using `init` command
+### Create a project using `architect init`
 
-To create a project from our
-[Templates](https://github.com/architect-templates/) without having to clone our
-repositories or writing an `architect.yml`, use our `init` command as follow:
+You can use the `architect init` command to clone one of our
+[Starter Projects](https://github.com/architect-templates/) locally. A drop-down list of Starter Projects is
+displayed for you to select from. The tutorial follows along with the
+[React Starter Project](https://github.com/architect-templates/react), but you can
+follow with whichever Starter Project you choose. We recommend selecting one that includes an frontend.
 
+```bash
+%architect init
+? What is the name of your project? my-starter-project
+? Please select a framework/language for your project React
+
+######################################
+##### Let's set up your project! #####
+######################################
+
+Creating project directory... ✓
+Pulling down GitHub repository... ✓ react
+
+Successfully created project my-starter-project.
+
+Your project is ready to be deployed by Architect!
+To deploy locally, run:
+	architect dev my-starter-project/architect.yml
 ```
-$ architect init <project-name>
-```
-
-For this tutorial, we recommend selecting Full Stack for your application type.
-After that, choose your favorite framework for the front-end and the back-end.
-Once the command finishes pulling down the repos and linking them, you can jump
-down to
-[Defining a component](/tutorial/create-component/#defining-a-component).
-
-The tutorial follows along with the
-[React Template](https://github.com/architect-templates/react), but you can
-follow with whatever front-end you choose.
-
 ### Create a component with a pre-existing app
 
 Suppose we are working within a repository for a simple React app with the
@@ -68,7 +74,7 @@ package-lock.json
 ```
 
 We can create an `architect.yml` file for this repo so that we can easily run
-our application locally **and** on the cloud with Architect.
+our application locally **and** in the cloud with Architect.
 
 ## Defining a Component
 
