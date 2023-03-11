@@ -23,12 +23,12 @@
   },
   "topbarCtaButton": {
     "name": "Get Started",
-    "url": "https://cloud.architect.io/signup?_ga=2.208614098.1970806937.1674680123-820127562.1674680123"
+    "url": "https://cloud.architect.io/signup"
   },
   "topbarLinks": [
     {
       "name": "Log In",
-      "url": "https://cloud.architect.io/signup?_ga=2.239415747.1970806937.1674680123-820127562.1674680123"
+      "url": "https://cloud.architect.io/login"
     }
   ],
   "anchors": [
@@ -50,10 +50,6 @@
   ],
   "navigation": [
     {
-      "group": "Welcome",
-      "pages": ["home"]
-    },
-    {
       "group": "Getting Started",
       "pages": [
         "getting-started/introduction",
@@ -64,24 +60,65 @@
       ]
     },
     {
-      "group": "Tutorial",
+      "group": "Guides",
       "pages": [
-        "tutorial/create-a-component",
-        "tutorial/adding-additional-services"
+        "guides/full-stack-apps",
+        "guides/microservices",
+        "guides/cors",
+        "guides/tracing",
+        {
+          "group": "Hot reloading",
+          "pages": [
+            "guides/hot-reloading/overview",
+            "guides/hot-reloading/next-js",
+            "guides/hot-reloading/vite-js",
+            "guides/hot-reloading/spring-boot"
+          ]
+        }
       ]
     },
     {
       "group": "Components",
       "pages": [
-        "components/architect-yml",
+        "components/overview",
         "components/services",
+        "components/ingress-rules",
+        "components/architect-yml",
         "components/service-discovery",
         "components/dependencies",
         "components/tasks",
         "components/secrets",
         "components/local-configuration",
-        "components/ingress-rules",
         "components/component-registration"
+      ]
+    },
+    {
+      "group": "Environments",
+      "pages": [
+        "environments/overview",
+        "environments/local",
+        "environments/remote",
+        "environments/logs",
+        "environments/scaling",
+        "environments/pull-request",
+        {
+          "group": "Branch environments",
+          "pages": [
+            "environments/branch/overview",
+            "environments/branch/github-actions",
+            "environments/branch/gitlab-ci",
+            "environments/branch/circle-ci"
+          ]
+        },
+        {
+          "group": "Release environments",
+          "pages": [
+            "environments/release/overview",
+            "environments/release/github-actions",
+            "environments/release/gitlab-ci",
+            "environments/release/circle-ci"
+          ]
+        }
       ]
     },
     {

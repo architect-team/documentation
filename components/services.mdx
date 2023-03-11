@@ -1,155 +1,228 @@
 ---
-title: "Services"
-description: "Services describe the runtimes that power your application."
+title: Services
+description: What is a service and when do you need one?
 ---
 
-Each service described in an `architect.yml` file will automatically be deployed
-to its own horizontally scaling replica with load balancing seamlessly between
-instances.
+Services represent any containerized application that you want to run as part of your component. This
+includes APIs, webapps, and even some cloud workers.
 
-```yaml
-name: my-component
+For anyone familiar with [Docker Compose](https://docs.docker.com/compose/), the syntax of a service
+will look exceedingly familiar. The main difference is the usage of Architect's expression syntax to
+refer to peer APIs and databases to power both local and remote environments.
 
+```yaml architect.yml
 services:
-  my-api:
+  api1:
     build:
-      context: ./path/to/docker/build/context
-      dockerfile: ./relative/to/context/Dockerfile
-    command: npm start
-    entrypoint: entrypoint override for dockerfile ENTRYPOINT
-    environment:
-      DB_ADDR: rds.amazonwebservices.com/db-name
-      DB_USER: postgres
-      DB_PASS: password
+      context: ./
     interfaces:
-      public:
+      main:
         port: 8080
-        protocol: http
-      admin: 8081
-    labels:
-      architect.io/environment: dev
-      architect.io/service: api
-    liveness_probe:
-      command: curl --fail localhost:8080/health
-    replicas: 2
-    cpu: 1
-    memory: 512mb
-    # Local configuration for my-api service
+  api2:
+    image: my-docker-image:latest
+    interfaces:
+      main:
+        port: 8080
+    environment:
+      API1_URL: ${{ services.api1.interfaces.main.url }}
+```
+
+## Building from source code
+
+More often than not, you'll want to have Architect build the containers for your service to make it
+easier to run local dev environments and to minimize manual steps you'd otherwise have to do yourself.
+
+<Note>
+  When building from source you do not need an `image` field. Architect will automatically build and
+  publish the container to the same registry as the component and then replace the `build` block with
+  the new `image` value before completing registration or deployment.
+</Note>
+
+```yaml architect.yml
+services:
+  api:
+    build:
+      context: ./path/to/source/code
+```
+
+### Custom Dockerfile name
+
+By default, Architect will assume that you have a file named `Dockerfile` in the same directory cited in
+the build `context` field. However, you can always override that to point to whatever filename you wish
+with the `dockerfile` field.
+
+```yaml architect.yml
+services:
+  api:
+    build:
+      context: ./
+      dockerfile: Dockerfile.prod
+```
+
+### Using buildpack
+
+<Warning>
+  Buildpack support is currently an **alpha** feature. While the feature should be stable, it may be
+  changed without prior notice.
+</Warning>
+
+Don't know how to build a Dockerfile? No problem! Architect is uses [Cloud Native Buildpacks](https://buildpacks.io/)
+to automatically build containers directly from source code.
+
+If a Dockerfile isn't found, Architect will automatically attempt to use a suitable buildpack to
+produce a functional. If you DO have a Dockerfile but want to test out buildpack anyway, you can
+turn it on manually with the `buildpack` flag.
+
+```yaml architect.yml
+services:
+  api:
+    build:
+      context: ./
+      buildpack: true
+```
+
+The version of the builder image is `heroku/buildpacks:20`. This builder version only supports
+languages such as Java, Go, Node.js, PHP, Python, Ruby, Scala, and Typescript. Learn more about
+[Heroku builder](https://github.com/heroku/builder).
+
+Depending on the language that the application is written in, there might be some requirements in
+order to build successfully. For example, if an application is written in Java, only these
+[supported Java versions](https://devcenter.heroku.com/articles/java-support#supported-java-versions)
+can be used. After selecting a Java version, a `system.properties` might be required at the root of
+the application for the builder to use the correct [Java runtime version](https://devcenter.heroku.com/articles/java-support#specifying-a-java-version).
+
+## Environment variables
+
+One of the most common ways to configure cloud applications with unique runtime values is through
+environment variables. Environment variables allow an application to receive input unique to the
+environment its running in, and are often used for things like credentials and addresses for other
+APIs and databases.
+
+```yaml architect.yml
+services:
+  api:
+    image: my-api:latest
+    environment:
+      DB_HOST: rds.amazonwebservices.com/....
+      DB_USER: username
+      DB_PASS: password
+      DB_NAME: my-db
+```
+
+As you can see from the example above, some environment variable values are sensitive and you certainly don't
+want them checked in to version control with your `architect.yml` file. For this reason, Architect allows
+you to declare environment variables without hardcoding their values. This allows them to be enriched securely
+whenever the component gets deployed to an environment.
+
+```yaml architect.yml
+services:
+  api:
+    image: my-api:latest
+    environment:
+      DB_HOST:
+        description: Hostname of the APIs database
+        required: true
+      DB_USER:
+        description: Username used to login to the database
+        required: true
+      DB_PASS:
+        description: Password used to login to the database
+        required: true
+      DB_NAME:
+        description: Name of the database the application stores content in
+        default: my-db
+```
+
+Want to learn how to configure values for these variables? Head over to the [environment docs](/environments/)
+and check out how to configure values for [local environments](/environments/local) and
+[remote environments](/environments/remote) respectively.
+
+## Integrating services
+
+If you're working with multiple services, you'll probably want them to be able to talk to one another.
+Frontends need to talk to backends, microservices need to make API calls to one another, etc. Architect
+allows services to communicate with one another via `interfaces`.
+
+### Exposing an interface
+
+Declaring an interface for your application is the first step in making sure that other applications can
+connect to it. The only required value for an interfaces is the `port` that the application listens on, and
+everything else Architect can take care of for you.
+
+```yaml architect.yml
+services:
+  api:
+    image: my-api:latest
+    interfaces:
+      main:
+        port: 8080
+```
+
+### Integrating with an interface
+
+Now that you know how to declare a service interface, you're ready to connect to that interface from another
+service. Architect makes this easy by letting you inject the interface address by reference so that the value
+will be correct in every environment you deploy to. 
+
+```yaml architect.yml
+services:
+  api:
+    image: my-api:latest
+    interfaces:
+      main:
+        port: 8080
+  app:
+    image: my-app:latest
+    environment:
+      API_ADDR: ${{ services.api.interfaces.main.url }}
+```
+
+Take note of the `API_ADDR` environment variable value. Any usage of `${{ ... }}` opening and closing braces
+uses Architect's [expression syntax for Components](/components/expressions) to refer to values that won't be
+known until the component is deployed.
+
+In this case, the reference to `services.api` refers to the api service in our component, and `interfaces.main`
+refers to it's main interface. From there, you can cite values like `host`, `port`, and `url`, and Architect
+will inject the correct values every time the component gets deployed to a new environment.
+
+## Local-only configuration
+
+The nature of services is usually to be portable, reusable, and unchanging, but that's only true when you're
+done coding. When you're actively working on your services, you often need to use specific tools, tactics, or
+commands to facilitate hot-reloading that you don't need to use once you're feature complete.
+
+For features like this, Architect services support a `debug` block. The `debug` block allows you to extend the
+functionality of your service with details that will only be triggered when you run the `architect dev` command.
+
+```yaml architect.yml
+services:
+  api:
+    build:
+      context: ./
+    interfaces:
+      main:
+        port: 3000
     debug:
       command: npm run dev
       volumes:
         src:
-          host_path: ./src/
-          mount_path: /usr/app/src/
+          description: Mounts the src folder to the container so the application will refresh when I edit my code
+          mount_path: /app/src
+          host_path: ./src
 ```
+
+Running `architect deploy` or `architect register` would ignore the configuration inside the `debug` block, but
+running `architect dev` would merge the debug values in with the rest of the service configuration.
+
+Want to learn how to setup hot-reloading for your component? We've got some great guides for a variety of languages.
+
+[Learn more about hot-reloading](/guides/hot-reloading/overview)
+
+## Volumes
 
 ## Configuration options
 
-### build
-
-(optional) An object containing the details necessary for Architect to build the
-service via Docker. Whenever a service that specifies a `build` field is
-registered with Architect, the CLI will trigger a `docker build` and replace the
-`build` field with a resolvable [image](/components/services/#image).
-
-```yaml
-build:
-  # The path to the directory containing the source code relative to the architect.yml file
-  context: ./
-
-  # The path to the Dockerfile relative to the build.context (default: Dockerfile)
-  dockerfile: Dockerfile
-```
-
-<Note>This field cannot be used in conjunction with the `image` field</Note>
-
-#### Using Buildpack
-
-> Buildpack is currently in alpha. While the feature should be stable, it may be changed or removed without prior notice. As such we do not recommend using this feature in any automated pipelines. During this time we greatly appreciate any feedback as we continue to finalize the implementation. You can reach us at support@architect.io.
-If a `Dockerfile` is not found in the directory in which the `context` field is set, the CLI by default will trigger a Cloud Native Buildpacks builder to build an [image](#image) of the service. A builder is an image that detects and converts source code into a runnable container image.
-
-If the application contains a `Dockerfile` but a builder should be used instead, set the field `buildpack` to `true`.
-
-```yaml
-build:
-  # The path to the directory containing the source code relative to the architect.yml file
-  context: ./
-  # Use buildpack to build the service
-  buildpack: true
-```
-
-Architect `buildpack` is in its early development stage and is currently an experimental feature. The version of the builder image is `heroku/buildpacks:20`. This builder version only supports languages such as Java, Go, Node.js, PHP, Python, Ruby, Scala, and Typescript. Learn more about [Heroku builder](https://github.com/heroku/builder).
-
-Depending on the language that the application is written in, there might be some requirements in order to build successfully. For example, if an application is written in Java, only these [supported Java versions](https://devcenter.heroku.com/articles/java-support#supported-java-versions) can be used. After selecting a Java version, a `system.properties` might be required at the root of the application for the builder to use the correct [Java runtime version](https://devcenter.heroku.com/articles/java-support#specifying-a-java-version).
-
-For more information on the language support of Heroku, please refer to [Heroku language support](https://devcenter.heroku.com/categories/language-support).
-
-<Note>This field cannot be used in conjunction with the `image` field</Note>
-
-### image
-
-image (optional) A string referencing the address of an existing docker image
-that powers this service.
-
 <Note>This field cannot be used in conjunction with the `build` field</Note>
-
-### command
-
-(optional) A string or string[] specifying the command to be used to start up
-the service inside the container. If no value is specified, the default `CMD`
-from the associated image will be used.
-
-### entrypoint
-
-(optional) A string or string[] specifying the entrypoint to be used to start up
-the service inside the container. If no value is specified, the default
-`ENTRYPOINT` from the associated image will be used.
-
-### interfaces
-
-A dictionary containing a set of named interfaces that the service listens for
-requests on. Each interface must at minimum specify the port it is listening for
-requests on.
-
-```yaml
-interfaces:
-  public:
-    # (required) Port that the service is listening for traffic on
-    port: 8080
-
-    # (optional) Protocol that the interface responds to (default: http)
-    protocol: http
-
-    # (optional) The host address of an existing service to use instead of provisioning a new one
-    host: rds.amazonwebservices.com
-
-    # (optional) A basic auth username required to access the interface
-    username: ${{ secrets.API_USERNAME }}
-
-    # (optional) A basic auth password required to access the interface
-    password: ${{ secrets.API_PASSWORD }}
-
-    # (optional) Specific path that the service is listening on
-    path: /api
-
-    # (optional) Ingress rules
-    ingress:
-      subdomain: api
-
-      # (optional) Specific path that the service is listening on externally
-      path: /
-```
-
-To learn about how to expose your services see
-[ingress rules](/components/ingress-rules/).
-
-Since many services use http for traffic, interfaces also support a simple
-short-hand for specifying the service port:
-
-```yaml
-interfaces:
-  public: 8080
-```
 
 #### Overriding service hosts
 
@@ -235,17 +308,6 @@ liveness_probe:
   success_threshold: 1
   # (optional, defaults to 1) The number of times to retry a failed health check before the container is considered unhealthy. You may specify between 1 and 10 retries.
   failure_threshold: 1
-```
-
-### environment
-
-A key-value store of environment variables to be injected into the service
-runtime.
-
-```yaml
-environment:
-  NODE_ENV: dev
-  STRIPE_API_KEY: abc-123
 ```
 
 ### volumes

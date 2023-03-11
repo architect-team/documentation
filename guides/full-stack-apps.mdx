@@ -1,0 +1,45 @@
+---
+title: Creating full-stack apps
+sidebarTitle: Full-stack apps
+description: How to design and run a full-stack application component with Architect
+---
+
+## Databases
+
+## The backend
+
+## The frontend
+
+## Putting it all together
+
+```yaml
+name: my-component
+
+databases:
+  main:
+    type: postgres:13
+  
+services:
+  backend:
+    build:
+      context: ./backend
+    interfaces:
+      main:
+        port: 8080
+        ingress:
+          subdomain: api
+    environment:
+      DATABASE_ADDR: ${{ databases.main.url }}
+      CORS_ORIGIN: ${{ services.frontend.interfaces.main.ingress.url }}
+  
+  frontend:
+    build:
+      context: ./frontend
+    interfaces:
+      main:
+        port: 3000
+        ingress:
+          subdomain: app
+    environment:
+      BACKEND_ADDR: ${{ services.backend.interfaces.main.ingress.url }}
+```

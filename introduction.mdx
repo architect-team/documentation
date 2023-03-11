@@ -1,0 +1,54 @@
+---
+title: Introduction
+description: Learn all about designing, developing, and deploying your apps on Architect Cloud
+---
+
+## Architect Cloud
+
+Architect is a platform-as-a-service designed specifically for cloud native applications and
+microservices. Every time an application (aka a Component) gets deployed, Architect automatically
+deploys and integrates with all its required dependencies. This means that any application can be
+deployed by anyone for any reason.
+
+## How it works
+
+Architect is built on the idea that cloud-native applications are more than their code or their container.
+They need to connect to databases, need to publish or subscribe to events, and even need to connect to
+other apps and APIs. Without those critical resources, most cloud applications are rendered useless. Architect
+includes a native dependency manager that makes it easy for developers to integrate with external dependencies
+and deploy said dependencies alongside their own applications.
+
+<Card title="Dependency management for the cloud" href="/how-it-works" icon="diagram-project">
+  Learn how Architect automatically deploys and integrates with API dependencies with each and every deploy
+</Card>
+
+## Components
+
+The Architect Component framework is how developers define services, integrate with dependencies, and otherwise
+declare the resources their application needs to run. 
+
+<Card title="Authoring Components" href="/components" icon="grid-2">
+  Learn how to create your first Architect Component
+</Card>
+
+## Environments
+
+Among the primary benefits of using Architect's Component framework is the portable nature of the Components themselves.
+Since Architect automatically deploys required dependencies, the `architect deploy` command can be used to create new
+environments as easily as it can be used to deploy to existing ones. This means that everyone can create a new, end-to-end
+environment for their application with a single command.
+
+<CardGroup cols={2}>
+  <Card title="Developer environments" icon="rectangle-terminal" href="/environments/local">
+    Developers can create on-demand environments for everyday testing
+  </Card>
+  <Card title="Pull-request environments" icon="code-pull-request" href="/environments/pull-request">
+    Environments can be created to mirror pull requests to expedite testing
+  </Card>
+  <Card title="Branch environments" icon="code-branch" href="/environments/branch">
+    Environments can be made to mirror the contents of a branch like "dev" or "staging"
+  </Card>
+  <Card title="Release environments" icon="code-branch" href="/environments/release">
+    Production can easily be updated whenever new releases are cut
+  </Card>
+</CardGroup>

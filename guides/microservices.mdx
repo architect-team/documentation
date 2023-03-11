@@ -1,0 +1,21 @@
+---
+title: Creating and integrating microservices
+sidebarTitle: Microservices
+description: How to create and integrate microservices across different domains and repositories
+---
+
+## Using dependencies
+
+## Debugging multiple components
+
+```sh
+$ architect link ./component-b
+$ architect dev ./component-a
+```
+
+## Publishing to the registry
+
+```sh
+$ architect register ./component-a --tag v1 --account my-account
+$ architect register ./component-b --tag v1 --account my-account
+```
