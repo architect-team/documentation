@@ -1,0 +1,49 @@
+---
+title: API security
+description: Learn how to secure your web applications and APIs with Architect
+---
+
+## Automated network security
+
+One of the silent benefits of using Architect's dependency management features is the ability
+for our platform to generate Network policies automatically with each deployment. Architect
+automatically reads in references to service interfaces to determine which applications are
+designed to communicate with one another, and uses that metadata to enrich deployments with
+strict, zero-trust network policies.
+
+<Card title="Learn more" icon="link" href="https://www.architect.io/blog/2023-01-05/zero-trust-networking/">
+  Check out our blog to learn more about Zero-trust networking
+</Card>
+
+## IP whitelisting
+
+Unlike for internal services, Architect has no idea who the intended users are for external
+services exposed via ingress rules. By default, the API gateway is configured to allow traffic
+from everywhere.
+
+However, there are some cases where you'd want to limit who can access your applications. Architect
+ingress rules can be configured individually to allow traffic only from specific IP addresses
+or CIDR blocks.
+
+```yaml architect.yml
+services:
+  frontend:
+    interfaces:
+      app:
+        port: 8080
+        ingress:
+          ip_whitelist:
+            - 100.100.100.100
+            - 10.0.0.0/16
+```
+
+<Warning>
+  Requires extra steps for AWS EKS clusters
+</Warning>
+
+If you're deploying your component to a private, EKS cluster, you'll need to do one extra step to ensure
+that the cluster API gateway receives the correct IP addresses from AWS.
+
+Login to your AWS dashboard and find the target groups on that were created by the EKS cluster with the prefix,
+`k8s-arcmanag-traefik`. For each group, click on the `Attributes` tab and make sure that `Proxy protocol v2` and
+`Preserve client IP addresses` are set to `Enabled`.

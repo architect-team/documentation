@@ -185,7 +185,45 @@ In this case, the reference to `services.api` refers to the api service in our c
 refers to it's main interface. From there, you can cite values like `host`, `port`, and `url`, and Architect
 will inject the correct values every time the component gets deployed to a new environment.
 
-## Local-only configuration
+## Exposing services
+
+Application-to-application communication is crucial, but at the end of the day you'll likely need at least one
+application (usually a frontend) exposed publicly so that end-users can reach it. Architect makes this easy
+for developers by simply enabling ingress for a service interface:
+
+```yaml architect.yml
+services:
+  api:
+    image: my-frontend:latest
+    interfaces:
+      main:
+        port: 8080
+        ingress:
+          subdomain: app
+          path: /path
+```
+
+If you deployed a component with the service configuration above, the URL `https://app.<environment-base-url>/path` would
+become available via the environment's API gateway and would forward traffic to your service.
+
+## Volumes
+
+On-disk files in a container are ephemeral which means that by default your application loses all disk data when it crashes
+or otherwise restarts. Volumes represent disk space that lives outside of the container runtime that gets mounted to the
+container when it starts up. By using external volumes, your data will remain in-tact in the event your service crashes or
+restarts.
+
+```yaml architect.yml
+services:
+  api:
+    image: my-api:latest
+    volumes:
+      cache:
+        description: Volume containing some cached data to speed up API responses
+        mount_path: /app/cache
+```
+
+## Local configuration
 
 The nature of services is usually to be portable, reusable, and unchanging, but that's only true when you're
 done coding. When you're actively working on your services, you often need to use specific tools, tactics, or
@@ -218,231 +256,84 @@ Want to learn how to setup hot-reloading for your component? We've got some grea
 
 [Learn more about hot-reloading](/guides/hot-reloading/overview)
 
-## Volumes
+## Production readiness
 
-## Configuration options
+Even though you can run your app locally, there are still a few extra features you can take advantage of to better
+prepare your services for production. You're still the expert when it comes to your application, so you've got
+to do your part to help out anyone who might run your application to do so in a safe and cost-effective way.
 
-<Note>This field cannot be used in conjunction with the `build` field</Note>
+### Liveness probes
 
-#### Overriding service hosts
+Liveness probes are scripts that get run that to test whether or not your application has booted up completely and
+remains healthy. These scripts are often run by container platforms to detect if services are unhealthy so they can
+attempt to restart them automatically or route traffic to other instances.
 
-Architect supports overriding a service with the URL of an external host. When
-this is done, the service will not be created by Architect, but all of the
-interpolated values of the service will continue to be produced. This is a
-common pattern in cases where a user wants Architect to manage everything for
-local development, but wants to reference a managed service such as a database
-instance for staging or production. For example, the service below represents a
-Postgres database service that can be either managed by Architect or effectively
-an external reference:
-
-```yaml
----
-secrets:
-  postgres_host:
-    required: false
----
+```yaml architect.yml
 services:
-  api-db:
-    image: postgres:11
-    interfaces:
-      postgres:
-        host: ${{ secrets.postgres_host }}
-        port: 5432
-        protocol: postgresql
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: architect
-      POSTGRES_DB: architect_postgres_db
+  main:
+    liveness_prove:
+      # (required) Command that will be run to check application health
+      command: curl --fail localhost:8080/healthz
+
+      # (optional, defaults to 0s) Delays the check from running for the
+      # specified amount of time
+      initial_delay: 0s
+
+      # (optional, defaults to 30s) The time period in seconds between
+      # each health check execution. You may specify between 5 and 300 seconds.
+      interval: 30s
+
+      # (optional, defaults to 5s) The time period in seconds to wait for a
+      # health check to succeed before it is considered a failure. You may specify
+      # between 2 and 60 seconds.
+      timeout: 5s
+
+      # (optional, defaults to 1) The number of times to retry a health check before
+      # the container is considered healthy.
+      success_threshold: 1
+
+      # (optional, defaults to 1) The number of times to retry a failed health check
+      # before the container is considered unhealthy. You may specify between 1 and 10 retries.
+      failure_threshold: 1
 ```
 
-The secret `postgres_host` will determine whether or not the service will be
-provisioned by Architect. If `postgres_host` is not set, Architect will
-provision the `api-db` service and create a `postgres:11` container. If the
-`postgres_host` secret is set, `image: postgres:11` will be ignored and the
-container will not be provisioned by Architect. Any interpolated values that
-include the `api-db` service will produce the correct output in either instance
-with the difference being that `${{ services.api-db.interfaces.postgres.host }}`
-and `${{ services.api-db.interfaces.postgres.url }}` will change based on the
-`host` of the interface. Note that if a service has multiple interfaces and you
-would like to reference an external service, all of the Architect service's
-interfaces must specify the `host` override.
+### CPU & Memory
 
-### labels
+The `cpu` and `memory` fields on a component tell container platforms and environment operators
+how many resources are needed by a single instance of your service. Providing accurate resource
+usage numbers helps operators ensure that costs of each environment are kept low.
 
-Dictionary of string keys and values that can be used to organize and categorize
-(scope and select) the service.
-
-Syntax and character set Labels are key/value pairs. Valid label keys have two
-segments: an optional prefix and name, separated by a slash (/). The name
-segment is required and must be 63 characters or less, beginning and ending with
-an alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (\_), dots
-(.), and alphanumerics between. The prefix is optional. If specified, the prefix
-must be a DNS subdomain: a series of DNS labels separated by dots (.), not
-longer than 63 characters in total, followed by a slash (/).
-
-Valid label value: must be 63 characters or less (can be empty), unless empty,
-must begin and end with an alphanumeric character ([a-z0-9A-Z]), could contain
-dashes (-), underscores (\_), dots (.), and alphanumerics between.
-
-### liveness_probe
-
-This configuration is essentially the health check for the service. It's
-important to specify so that traffic isn't load balanced to unhealthy services.
-Critical for rolling updates to function properly.
-
-```yaml
-liveness_probe:
-  # (required) Command that will be run to check application health
-  command: curl --fail localhost:8080/health
-  # (deprecated, optional) Port that the http check will run against
-  port: 8080
-  # (deprecated, optional) Path for the http check
-  path: /health
-  # (optional, defaults to 0s) Delays the check from running for the specified amount of time
-  initial_delay: 0s
-  # (optional, defaults to 30s) The time period in seconds between each health check execution. You may specify between 5 and 300 seconds.
-  interval: 30s
-  # (optional, defaults to 5s) The time period in seconds to wait for a health check to succeed before it is considered a failure. You may specify between 2 and 60 seconds.
-  timeout: 5s
-  # (optional, defaults to 1) The number of times to retry a health check before the container is considered healthy.
-  success_threshold: 1
-  # (optional, defaults to 1) The number of times to retry a failed health check before the container is considered unhealthy. You may specify between 1 and 10 retries.
-  failure_threshold: 1
-```
-
-### volumes
-
-(optional) A dictionary containing a set of named volumes that the service will
-request and mount to each service instance. Architect can take advantage of
-volumes to store data that should be shared between running containers or that
-should persist beyond the lifetime of a container.
-
-#### Local configuration
-
-If you would like to use the local filesystem as a volume or a `docker-compose`
-volume, use the options below in the **debug** block of your service:
-
-```yaml
-volumes:
-  my-volume-name:
-    # Directory at which the volume will be mounted inside the container
-    mount_path: /usr/app/images
-
-    # (optional) Human-readable description of volume
-    description: Description of my volume
-
-    # (optional) A directory on the host machine to sync with the mount_path on the docker image.
-    # This is primarily used for local debugging
-    host_path: ./relative/to/architect.yml
-
-    # (optional) The name of a `docker-compose` volume that has already been created on the host machine.
-    key: my-compose-volume-name
-```
-
-#### Kubernetes
-
-Kubernetes persistent volume claims can be created in advance of a deployment
-requiring volumes. Be sure to create the claim(s) in the same namespace that the
-services will be created in. An example of a persistent volume configuration
-that can be applied to a cluster namespace is below:
-
-```yaml
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: my-claim
-  namespace: my-namespace
-spec:
-  storageClass: "" # Set this to a storage class that supports the access modes below
-  accessModes:
-    - ReadWriteMany # The default PVC storage class must support this access mode
-    - ReadOnlyMany # The default PVC storage class must support this access mode
-  resources:
-    requests:
-      storage: 5Gi
-```
-
-In order to use the persistent volume above in a service, include a block of the
-type below:
-
-```yaml
----
-volumes:
-  my-volume:
-    # Directory at which the volume will be mounted inside the container
-    mount_path: /usr/app/images
-
-    # Name of the persistent volume claim that has been created in the Kubernetes cluster
-    key: my-claim
-```
-
-Architect deployments to Kubernetes clusters also support dynamic volume
-provisioning. If an Architect service contains a volume that does not specify a
-`key` property, the volume will be created automatically at deploy time. An
-example of such a volume is below. Be sure that the Kubernetes cluster's default
-storage class includes both the `ReadWriteOnce` and `ReadOnlyMany` access modes
-and that the volume binding mode is set to `Immediate`.
-
-```yaml
----
-volumes:
-  my-volume:
-    # Directory at which the volume will be mounted inside the container
-    mount_path: /usr/app/images
-```
-
-### cpu & memory
-
-`cpu`: a whole number or decimal that represents the vCPUs allocated to the
-service when it runs.
-
-```yaml
-cpu: 1
-```
-
-`memory`: a string that represents the memory allocated to the service when it
-runs.
-
-```yaml
-memory: 2GB
-```
-
-### depends_on
-
-`depends_on` takes an array of references to other services within the
-component. These dictate startup order: at deployment time, services will not be
-started until any of their listed dependents have already started.
-
-```yaml
+```yaml architect.yml
 services:
-  app: # here, app will not start until my-api and db have started
-    depends_on:
-      - my-api
-      - db
-    interfaces:
-      postgres: 5432
-  my-api: # here, my-api will not start until db has started
-    depends_on:
-      - db
-    interfaces:
-      admin: 8081
-  db:
-    interfaces:
-      postgres: 5432
+  main:
+    # (optional) a whole number or decimal that represents the number of vCPUs allocated
+    # to each service instance
+    cpu: 1
+
+    # (optional) a string representation of the amount of memory to allocate to each
+    # instance of the service. 
+    memory: 2GB
 ```
 
-### replicas
+### Auto-scaling
 
-(optional) The number of replicas the service should have when it's deployed.
-This number will apply across environments unless overridden by an
-[environment-specific setting](/deployments/scaling/#scale-command).
+Even though the number of replicas to run is an environment-specific decision (e.g. one replica in
+preview environments, but several in production), you can help out the operations teams greatly by
+codifying your services with the most reasonable metrics to use to trigger auto-scaling.
 
-```yaml
-replicas: 4
+The scaling metrics below allow you to specify upper thresholds for CPU and memory usage that should
+be used to trigger scale-up events and create more replicas of your service. 
+
+```yaml architect.yml
+services:
+  main:
+    cpu: 1
+    memory: 2GB
+    scaling:
+      metrics:
+        # (optional) a number from 1-100 representing a percentage of memory utilization
+        memory: 80
+
+        # (optional) a nmber from 1-100 representing a percentage of cpu utilization
+        cpu: 70
 ```
-
-## Local development
-
-When developing your service locally you may want to mount volumes or alter the
-command that is used in remote environments. Learn more about how to specify
-with [local configuration](/components/local-configuration).

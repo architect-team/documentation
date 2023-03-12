@@ -1,5 +1,6 @@
 ---
-title: "Tasks"
+title: Cronjobs
+description: Learn how to setup cronjobs to run with your component
 ---
 
 There are some scripts and processes that support applications that don't serve
@@ -9,19 +10,14 @@ sometimes they might want them to be run on a schedule.
 
 By defining task definitions inside Architect components, developers can make
 use of all the same service discovery and security benefits afforded to
-persistent services – making it much easier and safer to execute tasks. This
-coupling of tasks and components means the component must be redeployed to an
-environment before the new version of the task can be run.
+persistent services - making it much easier and safer to execute tasks.
 
-```yaml
-name: component-name
-
+```yaml architect.yml
 services:
-  database:
-    image: postgres:11
+  api:
+    image: my-api:latest
     interfaces:
-      pg:
-        protocol: postgres
+      main:
         port: 5432
 
 tasks:
@@ -32,88 +28,38 @@ tasks:
       context: .
     command: node run-reports.js
     environment:
-      DB_ADDR: ${{ services.database.interfaces.pg.url }}
+      API_ADDR: ${{ services.api.interfaces.main.url }}
 ```
+
+The example above will schedule the `run-reports` task to be run every sunday at 3am. The task
+will have full access to the api service due to the injection of the service address in the 
+`API_ADDR` environment variable.
 
 ## Configuration options
 
-### schedule
+Cronjobs (aka `tasks`) support almost all of the same configuration options as [services](/components/services).
+The only feature of services NOT supported by cronjobs is the `interfaces` feature. Cronjobs aren't
+persistent services which means they can't respond to incoming API requests reliably.
 
-A cron string indicating the schedule at which the task will run. Architect will
-ensure the cron jobs are instrumented correctly regardless of where the task is
-deployed.
+<Card title="Service configuration" icon="link" href="/components/services">
+  Read the docs on service configuration
+</Card>
+
+The only field unique to cronjobs is the `schedule` field. This field is a cron string indicating the
+schedule at which the task will run. Architect will ensure the cronjobs are instrumented correctly
+regardless of where the task is deployed.
 
 <Note>
-  The schedule is ignored when running locally since the environments are
-  temporary and primarily used for debugging. To test your tasks, [try executing
-  them manually](/components/tasks/#manual-execution)
+  The schedule is ignored when running locally since the environments are temporary and primarily used
+  for debugging.
 </Note>
 
-### build
+## Testing cronjobs
 
-(optional) An object containing the details necessary for Architect to build the
-service via Docker. Whenever a service that specifies a `build` field is
-registered with Architect, the CLI will trigger a `docker build` and replace the
-`build` field with a resolvable [image](/components/tasks/#image).
+To test or otherwise manually execute a cronjob task, simply run the `task:exec` command in the CLI:
 
 ```yaml
-build:
-  # The path to the directory containing the source code relative to the architect.yml file
-  context: ./
-
-  # The path to the Dockerfile relative to the build.context (default: Dockerfile)
-  dockerfile: Dockerfile
+$ architect task:exec component-name task-name --account my-account --environment my-environment
 ```
 
-<Note>This field cannot be used in conjunction with the `image` field</Note>
-
-### image
-
-(optional) A string referencing the address of an existing docker image that
-powers this service.
-
-<Note>This field cannot be used in conjunction with the `build` field</Note>
-
-### command
-
-(optional) A string or string[] specifying the command to be used to start up
-the service inside the container. If no value is specified, the default `CMD`
-from the associated image will be used.
-
-### entrypoint
-
-(optional) A string or string[] specifying the entrypoint to be used to start up
-the service inside the container. If no value is specified, the default
-`ENTRYPOINT` from the associated image will be used.
-
-### environment
-
-A key-value store of environment variables to be injected into the service
-runtime.
-
-```yaml
-environment:
-  NODE_ENV: dev
-  STRIPE_API_KEY: abc-123
-```
-
-## Local development
-
-When developing your task locally you may want to mount volumes or alter the
-command that is used in remote environments. Learn more about how to specify
-with [local configuration](/components/local-configuration).
-
-## Manual execution
-
-Anyone with access to an environment that includes a task will be able to
-execute it manually with Architect's CLI using the following command:
-
-```yaml
-$ architect task:exec component-name run-reports --account="my-account"
---environment="my-environment"
-```
-
-`component-name` is the name of the component that contains the task,
-`run-reports` is the name of the task to execute, and the `--account` and
-`--environment` fields are used to target an environment that contains an
-instance of the component.
+To target locally running environments, use the `--local` flag instead of the `--account` and `--environments` flags.

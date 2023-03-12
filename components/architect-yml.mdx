@@ -1,8 +1,7 @@
 ---
-title: "architect.yml"
-description:
-  "The architect.yml file is the manifest file that is used to describe
-  Architect Components. "
+title: Full component specification
+sidebarTitle: Reference
+description: Raw details on the available configuration options for a component
 ---
 
 Components described using this syntax can leverage the CLI and Kubernetes
@@ -77,24 +76,22 @@ services:
           mount_path: /usr/app/src
 ```
 
-## Configuration options
-
-### name
+## name
 
 Name of the component that can be resolved by others. Component names must be
 unique within an Architect account.
 
-### description
+## description
 
 (optional) A human-readable description of the component. This will be rendered
 when others view the component so that they know what it should be used for.
 
-### keywords
+## keywords
 
 (optional) Additional search terms to be used when the component is indexed so
 that others can find it more easily.
 
-### services
+## services
 
 A dictionary of named runtimes for the component. Each service described in an
 `architect.yml` file will be automatically deployed to your Kubernetes cluster
@@ -105,7 +102,7 @@ and registered with your service mesh and API gateway as needed.
   href="/components/services/"
 />
 
-### dependencies
+## dependencies
 
 A key-value store of components and their respective tags that this component
 depends on. Dependency referencing and resolution is a key feature of Architect
@@ -117,7 +114,7 @@ specifics of how to operate dependencies.
   href="/components/dependencies/"
 />
 
-### tasks
+## tasks
 
 A dictionary of named tasks included with the component. Each task described in
 an `architect.yml` file will run on its specified schedule and/or be made
@@ -125,7 +122,7 @@ available as an executable via Architects CLI upon deployment.
 
 <Card title="Learn more about configuring tasks" href="/components/tasks/" />
 
-### secrets
+## secrets
 
 (optional) A dictionary of named, configurable fields for the component. Each
 secret can include a description so that others know what to assign for values,

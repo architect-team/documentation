@@ -55,7 +55,6 @@
         "getting-started/introduction",
         "getting-started/best-practices",
         "getting-started/clusters",
-        "getting-started/external-services",
         "getting-started/working-with-tasks"
       ]
     },
@@ -63,9 +62,10 @@
       "group": "Guides",
       "pages": [
         "guides/full-stack-apps",
+        "guides/static-websites",
         "guides/microservices",
-        "guides/cors",
-        "guides/tracing",
+        "guides/event-driven-architecture",
+        "guides/data-pipelines",
         {
           "group": "Hot reloading",
           "pages": [
@@ -74,7 +74,12 @@
             "guides/hot-reloading/vite-js",
             "guides/hot-reloading/spring-boot"
           ]
-        }
+        },
+        "guides/cors",
+        "guides/tracing",
+        "guides/api-security",
+        "guides/single-tenant",
+        "guides/legacy-apps"
       ]
     },
     {
@@ -82,14 +87,12 @@
       "pages": [
         "components/overview",
         "components/services",
-        "components/ingress-rules",
-        "components/architect-yml",
-        "components/service-discovery",
-        "components/dependencies",
         "components/tasks",
+        "components/dependencies",
         "components/secrets",
         "components/local-configuration",
-        "components/component-registration"
+        "components/component-registration",
+        "components/architect-yml"
       ]
     },
     {
@@ -98,8 +101,8 @@
         "environments/overview",
         "environments/local",
         "environments/remote",
+        "environments/configuration",
         "environments/logs",
-        "environments/scaling",
         "environments/pull-request",
         {
           "group": "Branch environments",
@@ -119,20 +122,6 @@
             "environments/release/circle-ci"
           ]
         }
-      ]
-    },
-    {
-      "group": "Deployments",
-      "pages": [
-        "deployments/local-environments",
-        "deployments/automated-previews",
-        "deployments/gitops-releases",
-        "deployments/secrets",
-        "deployments/custom-domains",
-        "deployments/pipeline-rollbacks",
-        "deployments/multi-tenant-deployments",
-        "deployments/observability",
-        "deployments/scaling"
       ]
     },
     {
