@@ -1,8 +1,10 @@
 ---
-title: Full component specification
+title: Component specification
 sidebarTitle: Reference
 description: Raw details on the available configuration options for a component
 ---
+
+## Component spec
 
 Components described using this syntax can leverage the CLI and Kubernetes
 cluster to provision and update production-grade environments on-demand or via
@@ -76,22 +78,22 @@ services:
           mount_path: /usr/app/src
 ```
 
-## name
+### name
 
 Name of the component that can be resolved by others. Component names must be
 unique within an Architect account.
 
-## description
+### description
 
 (optional) A human-readable description of the component. This will be rendered
 when others view the component so that they know what it should be used for.
 
-## keywords
+### keywords
 
 (optional) Additional search terms to be used when the component is indexed so
 that others can find it more easily.
 
-## services
+### services
 
 A dictionary of named runtimes for the component. Each service described in an
 `architect.yml` file will be automatically deployed to your Kubernetes cluster
@@ -102,7 +104,7 @@ and registered with your service mesh and API gateway as needed.
   href="/components/services/"
 />
 
-## dependencies
+### dependencies
 
 A key-value store of components and their respective tags that this component
 depends on. Dependency referencing and resolution is a key feature of Architect
@@ -114,22 +116,183 @@ specifics of how to operate dependencies.
   href="/components/dependencies/"
 />
 
-## tasks
+### tasks
 
 A dictionary of named tasks included with the component. Each task described in
 an `architect.yml` file will run on its specified schedule and/or be made
 available as an executable via Architects CLI upon deployment.
 
+
+```yaml
+tasks:
+  my-task:
+    schedule: 0 3 * * 0
+    build:
+      context: .
+    command: node run-reports.js
+    environment:
+      KEY: value
+```
+
 <Card title="Learn more about configuring tasks" href="/components/tasks/" />
 
-## secrets
+### secrets
 
 (optional) A dictionary of named, configurable fields for the component. Each
 secret can include a description so that others know what to assign for values,
 a default value for when deployers don't specify one, and an indication as to
 whether or not a value is required.
 
-<Card
-  title="Learn more about configuring secrets"
-  href="/components/secrets/"
-/>
+```yaml
+secrets:
+  my-secret:
+    default: default-value
+    required: false
+    description: Human-readable description
+```
+
+| key           | description             |
+| ------------- | ----------------------- |
+| `default`     | Value to output |
+| `description` | (optional) Description of when to use the output |
+| `required`    | Boolean indicating whether or not a user must provide a value (default: false) |
+
+### outputs
+
+(optional) A dictionary of named fields that the component is making available to upstream consumers.
+Each output must include a value and can optionally include a description indicating when it should
+be used.
+
+```yaml
+outputs:
+  user-signup-topic:
+    description: Published to when a new user signs up
+    value: topic-name
+```
+
+| key           | description             |
+| ------------- | ----------------------- |
+| `value`       | Value to output |
+| `description` | (optional) Description of when to use the output |
+
+## Expression options
+
+In addition to the raw anatomy of the components, the specification also supports several different
+ways to use dynamic values to automate or simply component configuration.
+
+### secrets
+
+Secrets are synonymous with component inputs. They allow you to declare values that should be injected
+into the application at deploy time to be used in one or more places withou the component spec.
+
+```yaml
+secrets:
+  secret-name:
+    description: My secret
+
+services:
+  api:
+    environment:
+      SECRET_VALUE: ${{ secrets.secret-name }}
+```
+
+### services.*.interfaces
+
+Interfaces represent listeners for services, and other apps and services often need to refer to one another
+when making API calls to each other.
+
+```yaml
+services:
+  api:
+    interfaces:
+      main:
+        port: 8080
+    environment:
+      SELF_ADDR: ${{ services.api.interfaces.main.url }}
+```
+
+| key        | description |
+| ---------- | ----------- |
+| `url`      | Fully resolvable URL of the interface |
+| `host`     | Hostname of the interface |
+| `port`     | Port the interface is exposed on |
+| `protocol` | Protocol the interface responds to |
+
+### services.*.interfaces.*.ingress
+
+In addition to the internal addresses, interfaces can optionally be configured to support external addresses
+as well. Applications can then inject the external address into their own configuration by refering to the 
+ingress portion of the interface.
+
+```yaml
+services:
+  api:
+    interfaces:
+      main:
+        port: 8080
+        ingress:
+          enabled: true
+    environment:
+      SELF_ADDR: ${{ services.api.interfaces.main.ingress.url }}
+```
+
+| key        | description |
+| ---------- | ----------- |
+| `url`      | Fully resolvable URL of the ingress |
+| `host`     | Hostname of the ingress |
+| `port`     | Port the ingress is exposed on |
+| `protocol` | Protocol the ingress responds to |
+
+### databases
+
+Like services, databases represent persistent runtimes that can be connected to by other applications and
+services. You can refer to many of the same fields supported by service interfaces for databases as well.
+
+```yaml
+databases:
+  main:
+    type: postgres:13
+
+services:
+  api:
+    interfaces:
+      main:
+        port: 8080
+    environment:
+      DB_DSN: ${{ databases.main.url }}
+```
+
+| key        | description |
+| ---------- | ----------- |
+| `url`      | Fully resolvable URL of the database (aliases: `dsn`, `connection_string`) |
+| `host`     | Hostname of the database |
+| `port`     | Port the database is exposed on |
+| `protocol` | Protocol the database responds to |
+| `username` | Username used to authenticate with the database |
+| `password` | Password used to authenticate with the database |
+| `database` | The database (e.g. namespace) on the instance to be connected to |
+
+### dependencies
+
+Dependencies refer to other components that the current one wants to guarantee exist in the
+same environment. Once declared, components can then inject references to any of the resources
+inside that component into their own configuration.
+
+```yaml
+dependencies:
+  auth: {}
+
+services:
+  api:
+    interfaces:
+      main:
+        port: 8080
+    environment:
+      AUTH_ADDR: ${{ dependencies.auth.services.api.interfaces.main.url }}
+      USER_SIGNUP_TOPIC: ${{ dependencies.auth.outputs.user-signup-topic }}
+```
+
+| key        | description |
+| ---------- | ----------- |
+| `services` | References to individual services inside the dependency (see [services](#services-interfaces)) |
+| `outputs`  | Values output by the downstream component to be used by consumers |

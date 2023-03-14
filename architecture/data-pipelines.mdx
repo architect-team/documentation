@@ -1,0 +1,47 @@
+---
+title: Data pipelines
+description: How to setup and run data pipelines with Architect
+---
+
+<CodeGroup>
+```yaml Extraction job
+name: extraction
+
+events:
+  done:
+    type: s3
+
+tasks:
+  schedule: * * * * *
+  build:
+    context: ./
+  environment:
+    EVENT_TOPIC: ${{ events.done.topic }}
+```
+
+```yaml Transform job
+name: transform
+
+dependencies:
+  extraction: {}
+
+subscriptions:
+  extraction-done:
+    topic: ${{ dependencies.extraction.events.done.topic }}
+    target: ${{ services.api.interfaces.main.url }}
+
+services:
+  api:
+    build:
+      context: ./
+    interfaces:
+      main:
+        port: 8080
+    scaling:
+      min_replicas: 0
+```
+</CodeGroup>
+
+```sh
+$ architect dev ./transform
+```

@@ -1,0 +1,27 @@
+---
+title: Static websites (v2)
+sidebarTitle: Static websites
+description: Check out Architect's upcoming changes to improve the experience for static websites
+---
+
+```yaml architect.yml
+static:
+  website:
+    directory: ./dist
+    build:
+      context: ./
+      command: npm run build
+      environment:
+        API_ADDR: ${{ services.api.interfaces.main.url }}
+    ingress:
+      subdomain: app
+      
+services:
+  api:
+    build:
+      context: ./
+    interfaces:
+      main:
+        port: 8080
+```
+

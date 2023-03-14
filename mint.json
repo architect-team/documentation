@@ -53,19 +53,22 @@
       "group": "Getting Started",
       "pages": [
         "getting-started/introduction",
-        "getting-started/best-practices",
-        "getting-started/clusters",
-        "getting-started/working-with-tasks"
+        "getting-started/starter-projects"
+      ]
+    },
+    {
+      "group": "Architecture",
+      "pages": [
+        "architecture/full-stack-apps",
+        "architecture/static-websites",
+        "architecture/microservices",
+        "architecture/event-driven-architecture",
+        "architecture/data-pipelines"
       ]
     },
     {
       "group": "Guides",
       "pages": [
-        "guides/full-stack-apps",
-        "guides/static-websites",
-        "guides/microservices",
-        "guides/event-driven-architecture",
-        "guides/data-pipelines",
         {
           "group": "Hot reloading",
           "pages": [
@@ -78,8 +81,13 @@
         "guides/cors",
         "guides/tracing",
         "guides/api-security",
-        "guides/single-tenant",
-        "guides/legacy-apps"
+        {
+          "group": "More",
+          "pages": [
+            "guides/single-tenant",
+            "guides/legacy-apps"
+          ]
+        }
       ]
     },
     {
@@ -90,8 +98,6 @@
         "components/tasks",
         "components/dependencies",
         "components/secrets",
-        "components/local-configuration",
-        "components/component-registration",
         "components/architect-yml"
       ]
     },
@@ -103,36 +109,14 @@
         "environments/remote",
         "environments/configuration",
         "environments/logs",
-        "environments/pull-request",
         {
-          "group": "Branch environments",
+          "group": "GitOps",
           "pages": [
-            "environments/branch/overview",
-            "environments/branch/github-actions",
-            "environments/branch/gitlab-ci",
-            "environments/branch/circle-ci"
-          ]
-        },
-        {
-          "group": "Release environments",
-          "pages": [
-            "environments/release/overview",
-            "environments/release/github-actions",
-            "environments/release/gitlab-ci",
-            "environments/release/circle-ci"
+            "environments/gitops/pull-request",
+            "environments/gitops/branch",
+            "environments/gitops/release"
           ]
         }
-      ]
-    },
-    {
-      "group": "Reference",
-      "pages": [
-        "reference/release-notes",
-        "reference/changelog",
-        "reference/contexts",
-        "reference/architect-yml",
-        "reference/templates",
-        "reference/cli"
       ]
     }
   ],

@@ -6,6 +6,36 @@ description: How to create and integrate microservices across different domains 
 
 ## Using dependencies
 
+<CodeGroup>
+
+```yaml Backend
+name: backend
+
+services:
+  api:
+    image: nginx:latest
+    interfaces:
+      main:
+        port: 8080
+```
+
+```yaml Frontend
+name: frontend
+
+dependencies:
+  backend: {}
+
+services:
+  app:
+    image: nginx:latest
+    interfaces:
+      main:
+        port: 8080
+    environments:
+      BACKEND_ADDR: ${{ dependencies.backend.services.api.interfaces.main.url }}
+```
+</CodeGroup>
+
 ## Debugging multiple components
 
 ```sh

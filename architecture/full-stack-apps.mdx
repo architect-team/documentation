@@ -6,9 +6,48 @@ description: How to design and run a full-stack application component with Archi
 
 ## Databases
 
+```yaml architect.yml
+databases:
+  main:
+    type: postgres:13
+```
+
 ## The backend
 
+```sh
+$ architect init backend
+```
+
+```yaml architect.yml
+services:
+  backend:
+    build:
+      context: ./backend
+    interfaces:
+      main:
+        port: 8080
+        ingress:
+          subdomain: api
+    environment:
+      DATABASE_ADDR: ${{ databases.main.url }}
+      CORS_ORIGIN: ${{ services.frontend.interfaces.main.ingress.url }}
+```
+
 ## The frontend
+
+```yaml architect.yml
+services:
+  frontend:
+    build:
+      context: ./frontend
+    interfaces:
+      main:
+        port: 3000
+        ingress:
+          subdomain: app
+    environment:
+      BACKEND_ADDR: ${{ services.backend.interfaces.main.ingress.url }}
+```
 
 ## Putting it all together
 

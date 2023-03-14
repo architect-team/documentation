@@ -2,3 +2,176 @@
 title: Single tenant apps
 description: How to deploy multiple instances of the same component to an environment
 ---
+
+Some applications are designed to support only a single tenant per instance in order to silo and
+protect customer data. One way to handle this would be to deploy entirely different cloud environments
+per customer, but that prevents the applications from sharing non-critical resources like authentication
+or notification services.
+
+In order to accomodate these hybrid needs, Architect components can be deployed many times to the same
+environment. This is accomplished by specifying a tenant name during the deployment using the `@` symbol.
+
+```sh
+$ architect deploy my-component:latest@tenant-name
+```
+
+The command above would deploy the `latest` tag of the `my-component` component under the
+tenant name, `tenant-name`. If you were to run the same command with a different identifier
+after the `@` symbol, it would create another instance of the component rather than updating
+the existing one.
+
+## Single tenancy in action
+
+This feature can be hard to wrap your head around, so let's see it in action. Let's assume we
+have two components registered - one shared service designed for user authentication, and the
+other a single-tenant application designed to contain data for only one customer.
+
+<CodeGroup>
+```yaml shared auth component
+name: auth
+description: Shared authentication service
+
+databases:
+  users:
+    description: Stores user data
+    type: postgres:13
+
+services:
+  api:
+    image: my-auth-image:latest
+    interfaces:
+      main:
+        port: 8080
+    environment:
+      DB_ADDR: ${{ databases.users.url }}
+```
+
+```yaml single-tenant app component
+name: app
+description: Single-tenant application
+
+dependencies:
+  auth: {}
+
+database:
+  customer-data:
+    description: Customer-specific application data
+    type: postgres:13
+
+services:
+  api:
+    build:
+      context: ./
+    interfaces:
+      main:
+        port: 8080
+    environment:
+      AUTH_ADDR: ${{ dependencies.auth.services.api.interfaces.main.url }}
+```
+</CodeGroup>
+
+If we deployed each using normal mechanisms we'd end up with only two components in our
+environment. And every time we attempted to deploy them again, they would override the existing
+instances.
+
+However, by using the single-tenancy features of deployments, we can deploy many instances of the
+app component to the same environment. Let's try it out by specifying two instances during our
+deploy command:
+
+```sh
+$ architect deploy app:latest@cool-customer app:latest@rad-customer
+```
+
+The above command will deploy two instances of the `app` component, but will share the `auth` component
+as a common dependency (remember that Architect automatically deploys dependencies so we don't actually
+have to specify the auth component in the deploy command).
+
+We can also deploy each tenant individually, which can help greatly when we want to wire up GitOps or
+otherwise automated deployments:
+
+```sh
+$ architect deploy app:latest@cool-customer
+$ architect deploy app:latest@rad-customer
+```
+
+## Maintaining a list of tenants
+
+Want to make it as easy as possible for your team to create tenants? Try creating a tenant file in your
+repository that gets read in by your CI jobs to automate deployments.
+
+```json ./tenants.json
+[
+  {
+    "name": "cool-customer",
+    "description": "The coolest of customers",
+    "owner": "thor@architect.io"
+  },
+  {
+    "name": "rad-customer",
+    "description": "The raddest of customers",
+    "owner": "ironman@architect.io"
+  }
+]
+```
+
+With a file like that in the root of your repository, you can iterate over the list of tenants 
+directly in your CI workflow.
+
+```yaml Github Actions Workflow
+name: Deploy tenants
+
+env:
+  ARCHITECT_EMAIL: ${{ secrets.ARCHITECT_EMAIL }} # pass secrets into a job from Github > Settings > Secrets
+  ARCHITECT_PASSWORD: ${{ secrets.ARCHITECT_PASSWORD }}
+  ARCHITECT_ACCOUNT: <account-name>
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+      - uses: crazy-max/ghaction-github-runtime@v2
+      - name: Install Architect CLI
+        run: npm install -g @architect-io/cli
+      - name: Login to Architect Cloud
+        run: architect login
+      - name: Register component
+        run: architect register ./architect.yml --tag latest
+
+  get-tenants:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.get-tenants.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: get-tenants
+        run: |
+          JSON=$(cat ./tenants.json)
+          echo "::set-output name=matrix::${JSON//'%'/'%25'}"
+  
+  deploy:
+    needs: [get-tenants, register]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.get-tenants.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+      - uses: crazy-max/ghaction-github-runtime@v2
+      - name: Install Architect CLI
+        run: npm install -g @architect-io/cli
+      - name: Login to Architect Cloud
+        run: architect login
+      - name: Register and deploy to Staging
+        run: architect deploy app:latest@${{ matrix.name }} --environment production --auto-approve
+```
