@@ -4,48 +4,164 @@ sidebarTitle: Microservices
 description: How to create and integrate microservices across different domains and repositories
 ---
 
-## Using dependencies
+Designing, testing, and deploying microservices is a huge undertaking involving infrastructure design,
+network security, complex CI pipelines, and more. But Architect makes all that easier with one simple
+feature - **dependencies**.
+
+Every language and operating system on earth has tools for managing and injecting dependencies into
+applications, but developers lack similar tools for integrating microservices.
+
+Developers can use Architect to declare their API and microservice dependencies, and every time they
+deploy Architect will guarantee their dependencies exist. If they don't, Architect will deploy them!
+
+## Designing a microservices app
+
+To get an understanding of how microservices can use dependency management, let's create a few different
+Architect components.
+
+1. A `payments` component responsible for securing credit card details and processing payments
+2. An `auth` component responsible for user credentials and authentication
+3. A `backend` component that will be the primary API our webapp uses, and
+4. A `frontend` component that will be the website our users interact with
+
+Be sure to look at the `dependencies` block for each component to see how they all relate to each other.
 
 <CodeGroup>
-
-```yaml Backend
-name: backend
-
-services:
-  api:
-    image: nginx:latest
-    interfaces:
-      main:
-        port: 8080
-```
-
-```yaml Frontend
+```yaml frontend
 name: frontend
 
 dependencies:
   backend: {}
+  auth: {}
 
 services:
   app:
-    image: nginx:latest
+    image: my-frontend-image:latest
     interfaces:
       main:
         port: 8080
     environments:
       BACKEND_ADDR: ${{ dependencies.backend.services.api.interfaces.main.url }}
+      AUTH_URL: ${{ dependencies.auth.services.api.interfaces.main.url }}
+```
+
+```yaml backend
+name: backend
+
+dependencies:
+  auth: {}
+  payments: {}
+
+databases:
+  main:
+    description: Stores misc application data
+    type: postgres:13
+  cache:
+    description: Fast cache for responding to API calls
+    type: redis:5
+
+services:
+  api:
+    image: my-backend-image:latest
+    interfaces:
+      main:
+        port: 8080
+    environment:
+      DB_ADDR: ${{ databases.main.url }}
+      CACHE_ADDR: ${{ databases.cache.url }}
+      PAYMENTS_URL: ${{ dependencies.payments.services.api.interfaces.main.url }}
+      AUTH_URL: ${{ dependencies.auth.services.api.interfaces.main.url }}
+```
+
+```yaml payments
+name: payments
+
+databases:
+  card-data:
+    description: Houses credit card data
+    type: postgres:13
+
+services:
+  api:
+    image: my-payments-image:latest
+    interfaces:
+      main:
+        port: 8080
+    environment:
+      DB_ADDR: ${{ databases.card-data.url }}
+```
+
+```yaml auth
+name: auth
+
+databases:
+  user-data:
+    description: Houses user login data
+    type: postgres:13
+
+services:
+  api:
+    image: my-auth-image:latest
+    interfaces:
+      main:
+        port: 8080
+    environment:
+      DB_ADDR: ${{ databases.user-data.url }}
 ```
 </CodeGroup>
 
+Note that the `frontend` component only depends on the `backend` component, but if you were to deploy
+it you'd see that all 4 components would get deployed. 
+
+By analyzing the full dependency graph for you, Architect helps developers focus less on what they know
+about their own applications instead of having to learn the web of dependencies underneath them.
+
+## Registering components
+
+Architect resolves dependencies by calling out to the Architect Cloud registry to find matching components
+and pull them into the target environment. That means that components need to be registered with Architect
+Cloud before they can be used as dependencies.
+
+To show how the registration works, let's create and register components like the ones described earlier:
+
+```sh
+# Create and register the auth component
+$ architect init auth
+$ architect register ./auth --tag latest --account my-account
+
+# Create and register the payments component
+$ architect init payments
+$ architect register ./payments --tag latest --account my-account
+
+## Create and register the backend component
+$ architect init backend
+$ vim ./backend/architect.yml  # Make sure to update the `dependencies` to include the `auth` and `payments` components
+$ architect register ./backend --tag latest --account my-account
+
+## Create and run the frontend
+$ architect init frontend
+$ vim ./frontend/architect.yml  # Make sure to update the `dependencies` to include the `backend` component
+$ architect dev ./frontend
+```
+
+Notice how we only registered 3 out of 4 of the components we designed earlier. We only need to register
+components that will be used as dependencies for others, so we don't need to register the frontend. When
+we run `architect dev ./frontend`, Architect will automatically identify the auth, payments, and backend
+components as required, pull them down, and run them alongside the frontend.
+
 ## Debugging multiple components
 
+Microservices are great, but its not uncommon to need to debug full-stack application changes across multiple
+services at the same time. Architect includes a `link` command for just this purpose.
+
+Running `architect link` on a component folder or `architect.yml` file will put the folder into a local
+registry. That way when other components cite the linked one as a dependency, Architect will find it locally
+instead of in the cloud registry and will build it from the local source.
+
 ```sh
-$ architect link ./component-b
-$ architect dev ./component-a
+$ architect link ./backend
+$ architect dev ./frontend
 ```
 
-## Publishing to the registry
-
-```sh
-$ architect register ./component-a --tag v1 --account my-account
-$ architect register ./component-b --tag v1 --account my-account
-```
+Since we ran the `link` command on the backend, the next run of `architect dev` will build the backend from
+the local source instead of using `backend:latest` from the registry.
