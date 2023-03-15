@@ -1,0 +1,51 @@
+---
+title: Connecting to existing APIs
+sidebarTitle: Existing APIs
+description: Securely connect applications to existing APIs with virtual services
+---
+
+Getting entire applications and teams to use Architect's best practices is not always possible.
+Some teams move slower than others, and legacy, non-containerized applications are exceedingly
+difficult to modernize and integrate.
+
+That's why Architect created "virtual" services - services that are already deployed in the
+network that applications need to securely connect to. Virtual services are "unmanaged" by
+Architect, but by declaring them Architect is able to automate network security the same way
+it does for non-virtual services.
+
+<CodeGroup>
+```yaml virtual service
+name: legacy-monolith
+
+services:
+  api:
+    interfaces:
+      main:
+        url: https://internal-monolith.my-domain.com
+```
+
+```yaml modern microservice
+name: modern-microservice
+
+dependencies:
+  legacy-monolith: {}
+
+services:
+  app:
+    image: my-image:latest
+    environment:
+      MONOLITH_ADDR: ${{ dependencies.services.api.interfaces.main.url }}
+```
+</CodeGroup>
+
+In the example above, Architect will deploy a new instance of the `app` service inside the
+`modern-microservice` component, but will NOT provision an instance of the `api` service inside
+the `legacy-monolith` component. This is because the service interface has specified the `url`
+(or `host`) of an existing service that should be used instead. The service will show up in
+Architect's graphs, but it will render in a different color indicating that its a "virtual" service.
+
+However, since Architect now knows about the service and which other services need to connect to it,
+Architect can generate strict network policies to secure the traffic just like it does for every other
+service.
+
+[Learn more about API security with Architect](/guides/api-security)

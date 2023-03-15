@@ -8,6 +8,8 @@ protect customer data. One way to handle this would be to deploy entirely differ
 per customer, but that prevents the applications from sharing non-critical resources like authentication
 or notification services.
 
+## Deploying a new tenant
+
 In order to accomodate these hybrid needs, Architect components can be deployed many times to the same
 environment. This is accomplished by specifying a tenant name during the deployment using the `@` symbol.
 
@@ -20,7 +22,7 @@ tenant name, `tenant-name`. If you were to run the same command with a different
 after the `@` symbol, it would create another instance of the component rather than updating
 the existing one.
 
-## Single tenancy in action
+## Sharing dependencies
 
 This feature can be hard to wrap your head around, so let's see it in action. Let's assume we
 have two components registered - one shared service designed for user authentication, and the
@@ -94,7 +96,7 @@ $ architect deploy app:latest@cool-customer
 $ architect deploy app:latest@rad-customer
 ```
 
-## Maintaining a list of tenants
+## Automating deployments
 
 Want to make it as easy as possible for your team to create tenants? Try creating a tenant file in your
 repository that gets read in by your CI jobs to automate deployments.
@@ -114,10 +116,13 @@ repository that gets read in by your CI jobs to automate deployments.
 ]
 ```
 
+### Setting up the workflow
+
 With a file like that in the root of your repository, you can iterate over the list of tenants 
 directly in your CI workflow.
 
-```yaml Github Actions Workflow
+<CodeGroup>
+```yaml Github Actions
 name: Deploy tenants
 
 env:
@@ -175,3 +180,4 @@ jobs:
       - name: Register and deploy to Staging
         run: architect deploy app:latest@${{ matrix.name }} --environment production --auto-approve
 ```
+</CodeGroup>

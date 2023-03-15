@@ -85,7 +85,7 @@
           "group": "More",
           "pages": [
             "guides/single-tenant",
-            "guides/legacy-apps"
+            "guides/existing-apis"
           ]
         }
       ]
