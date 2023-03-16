@@ -62,8 +62,7 @@
         "architecture/full-stack-apps",
         "architecture/static-websites",
         "architecture/microservices",
-        "architecture/event-driven-architecture",
-        "architecture/data-pipelines"
+        "architecture/event-driven-architecture"
       ]
     },
     {
@@ -95,6 +94,7 @@
       "pages": [
         "components/overview",
         "components/services",
+        "components/databases",
         "components/tasks",
         "components/dependencies",
         "components/secrets",

@@ -10,88 +10,21 @@ Components described using this syntax can leverage the CLI and Kubernetes
 cluster to provision and update production-grade environments on-demand or via
 automation.
 
-```yaml
-name: component-name
-description: Human-readable description of my component
-keywords:
-  - additional
-  - search
-  - keywords
-secrets:
-  db_user:
-    required: true
-    description: Human-readable description of my secret
-    default: default-value
-  db_pass: shorthand-default-value
-  db_name: example
-services:
-  database:
-    image: postgres:11
-    interfaces:
-      pg:
-        port: 5432
-        protocol: postgres
-    environment:
-      POSTGRES_USER: ${{ secrets.db_user }}
-      POSTGRES_PASSWORD: ${{ secrets.db_pass }}
-      POSTGRES_DATABASE: ${{ secrets.db_name }}
-  my-api:
-    depends_on:
-      - database
-    build:
-      context: ./path/to/docker/build/context
-      dockerfile: ./relative/to/context/Dockerfile
-    command: npm start
-    entrypoint: entrypoint override for dockerfile ENTRYPOINT
-    interfaces:
-      public:
-        port: 8080
-        protocol: http
-      admin: 8081
-    liveness_probe:
-      command: curl --fail localhost:8080/health
-    environment:
-      DB_ADDR: ${{ services.database.interfaces.pg.url }}/${{ secrets.db_name }}
-      DB_USER: ${{ secrets.db_user }}
-      DB_PASS: ${{ secrets.db_pass }}
-  my-frontend:
-    build:
-      context: .
-    interfaces:
-      webapp:
-        port: 3000
-        ingress:
-          subdomain: app
-    liveness_probe:
-      command: curl --fail localhost:3000/health
-    environment:
-      API_ADDR: ${{ services['my-api'].interfaces.public.url }}
-    # Local configuration for my-frontend service
-    debug:
-      command: npm run dev
-      volumes:
-        src:
-          description:
-            Mount the src directory to the container from the host when running
-            locally
-          host_path: ./src
-          mount_path: /usr/app/src
-```
+### metadata
 
-### name
+<ResponseField name="name" required type="string">
+  Unique name of the component used by others to cite it as a dependency. Component names must
+  be unique within an Architect account.
+</ResponseField>
 
-Name of the component that can be resolved by others. Component names must be
-unique within an Architect account.
+<ResponseField name="description" type="string">
+  A human-readable description of the component so others know when they should use it
+</ResponseField>
 
-### description
-
-(optional) A human-readable description of the component. This will be rendered
-when others view the component so that they know what it should be used for.
-
-### keywords
-
-(optional) Additional search terms to be used when the component is indexed so
-that others can find it more easily.
+<ResponseField name="keywords" type="string | string[]">
+  Additional search terms to be used when the component is indexed so others can find it more
+  easily.
+</ResponseField>
 
 ### services
 
@@ -99,29 +32,127 @@ A dictionary of named runtimes for the component. Each service described in an
 `architect.yml` file will be automatically deployed to your Kubernetes cluster
 and registered with your service mesh and API gateway as needed.
 
-<Card
-  title="Learn more about configuring services"
-  href="/components/services/"
-/>
+```yaml
+services:
+  my-api:
+    ## Instructions on how to build the docker image for this service
+    #
+    # cannot be used in conjunction with the `image` property
+    build:
+      context: ./path/to/docker/build/context
+      dockerfile: ./relative/to/context/Dockerfile
+      target: build
+      args:
+        key: value
+    
+    ## Docker image to use for the service
+    # 
+    # Cannot be used in conjunction with the `build` property
+    image: nginx:latest
+
+    # Entrypoint to use instead of the one from the docker image
+    entrypoint: npm
+
+    # Command to use at startup instead of the one in the docker image
+    command: start
+
+    # Environment variables to inject into the service
+    environment:
+      # Values can be populated explicitly
+      DB_ADDR: rds.amazonwebservices.com/db-name
+
+      # Values can be populated via Architect expressions
+      DB_USER: ${{ secrets.db-user }}
+
+      # Variables can declare how the value should be configured by environments
+      DB_PASS:
+        required: true
+        description: Password used to authenticate with the database
+        default: password
+    
+    # Listeners the service responds to
+    interfaces:
+      # Interfaces can use the shorthand if they only care about the port
+      public: 8080
+
+      # Interfaces can be longform if they need to specify more details
+      admin:
+        port: 8081
+
+        # Ingress configuration exposes the interface outside the environment via the API gateway
+        ingress:
+          enabled: true
+          subdomain: auth
+          path: /api
+    
+    # Labels to add to the generated cloud resources
+    labels:
+      architect.io/environment: dev
+      architect.io/service: api
+    
+    # Liveness probe to run to determine service health and readiness
+    liveness_probe:
+      # Command that will be run to check application health
+      # @required
+      command: curl --fail localhost:8080/health
+      
+      # Delays the check from running for the specified amount of time
+      # @default 0s
+      initial_delay: 0s
+
+      # The time period in seconds between each health check execution. You may specify between 5 and 300 seconds.
+      # @default 30s
+      interval: 30s
+
+      # The time period in seconds to wait for a health check to succeed before it is considered a failure. 
+      # You may specify between 2 and 60 seconds.
+      # @default 5s
+      timeout: 5s
+
+      # The number of times to retry a health check before the container is considered healthy.
+      # @default 1
+      success_threshold: 1
+
+      # The number of times to retry a failed health check before the container is considered unhealthy.
+      # You may specify between 1 and 10 retries.
+      # @default 1
+      failure_threshold: 1
+    
+    # Number of replicas of the service to deploy by default
+    # @default 1
+    replicas: 2
+
+    # Amount of CPU to allocate per replica
+    cpu: 1
+
+    # Amount of memory to allocate per replica
+    memory: 512mb
+
+    # Configuration overrides to be used only by the `architect dev` command
+    debug:
+      command: npm run dev
+      volumes:
+        src:
+          host_path: ./src/
+          mount_path: /usr/app/src/
+```
 
 ### dependencies
 
-A key-value store of components and their respective tags that this component
-depends on. Dependency referencing and resolution is a key feature of Architect
-that enables distribute teams to collaborate without having to get into the
-specifics of how to operate dependencies.
+A set of other components that must be deployed into the same environment as this one. The keys of
+the dictionary are the names of the components that should be deployed, and the value (for now) is
+just an empty object.
 
-<Card
-  title="Learn more about configuring dependencies"
-  href="/components/dependencies/"
-/>
+```yaml
+dependencies:
+  auth: {}
+  payments: {}
+```
 
 ### tasks
 
-A dictionary of named tasks included with the component. Each task described in
-an `architect.yml` file will run on its specified schedule and/or be made
-available as an executable via Architects CLI upon deployment.
-
+A set of named, containerized jobs to be run on a schedule. Tasks support all the same features as
+[services](#services) except for `interfaces`.
 
 ```yaml
 tasks:
@@ -133,8 +164,6 @@ tasks:
     environment:
       KEY: value
 ```
-
-<Card title="Learn more about configuring tasks" href="/components/tasks/" />
 
 ### secrets
 
@@ -196,7 +225,7 @@ services:
       SECRET_VALUE: ${{ secrets.secret-name }}
 ```
 
-### services.*.interfaces
+### services.\*.interfaces
 
 Interfaces represent listeners for services, and other apps and services often need to refer to one another
 when making API calls to each other.
@@ -218,7 +247,7 @@ services:
 | `port`     | Port the interface is exposed on |
 | `protocol` | Protocol the interface responds to |
 
-### services.*.interfaces.*.ingress
+### services.\*.interfaces.\*.ingress
 
 In addition to the internal addresses, interfaces can optionally be configured to support external addresses
 as well. Applications can then inject the external address into their own configuration by refering to the 
