@@ -67,6 +67,7 @@ services:
         ingress:
           subdomain: app
     liveness_probe:
+      # Curl must be installed in the container
       command: curl --fail localhost:3000/health
     environment:
       API_ADDR: ${{ services['my-api'].interfaces.public.url }}
