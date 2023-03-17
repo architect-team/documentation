@@ -1,4 +1,80 @@
 ---
 title: Configuration
-description: How to configure your environment with environment variables, scaling rules, and more
+description: Configure your environment with environment variables, scaling rules, and more
 ---
+
+Even though Architect automates a good amount of application configuration through dependency
+injection, there are still many cases where applications need explicit input variables in order
+to operate correctly. Things like credentials for external APIs and scaling rules are
+all environment-specific details that Architect can't automate for you and users have to provide
+explicitly.
+
+There are two different ways to provide configuration to environments - using a yaml file format
+which is great for the CLI, and using our cloud UI which is perfect for environments managed by
+Architect.
+
+## From the CLI
+
+When running applications locally using [`architect dev`](/environments/local), developers can provide
+configuration settings for their component as well as their dependencies using a simple file-format
+shown below:
+
+```yaml
+# secrets.yml
+
+# Each key is a component name
+frontend:
+  # Each sub-key is the name of a secret or environment variable
+  # found in the component
+  key: value
+  key2: value2
+backend:
+  key: value
+  key3: value3
+```
+
+To apply the configuration in a file like this to your deployments, us the `--secret-file` flag:
+
+```sh
+$ architect dev ./frontend/ --secret-file ./secrets.yml
+```
+
+## From the web
+
+Architects hosted continuous delivery platform is a great way for teams to collaboratively manage
+application configuration and secrets. Check out the screenshots below for some guidance on setting
+and managing application secrets.
+
+<Note>
+  Setting secrets does NOT mean that the matching components exist in the account or environment.
+  Architect will attempt to pull secrets that match each deployment, but secrets can be set before
+  a matching component exists or has been deployed.
+</Note>
+
+### Account secrets
+
+A common place to store secrets used by many different environments (e.g. feature environments) is
+by setting them at the account level. Account level secrets will apply to matching components in
+every environment inside your account.
+
+![Account secrets](/images/account-secrets.png)
+
+### Environment secrets
+
+For more persistent environments like production and staging, you likely have secrets and credentials
+created specifically for each environment. In this case its ideal to store secrets with the environment
+itself.
+
+Secrets in the environment will only match component instances inside said environment and values
+will supercede those found in the account secrets.
+
+![Environment secrets](/images/environment-secrets.png)
+
+### Adding secrets
+
+Adding secrets is very easy. Just click the "New Secret" button on the account or environment secrets pages
+respectively to open up a dialog allowing you to set a value for the secret and a component the secret
+is expected to be found in.
+
+![Adding secrets](/images/adding-secrets.png)
+
