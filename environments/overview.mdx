@@ -1,5 +1,30 @@
 ---
-title: Architect Environments
-sidebarTitle: Overview
+title: Overview
 description: Learn about creating and running environments hosting one or more components
 ---
+
+One of the primary benefits of using Architect is that **anyone** can create a new environment for
+**any** application. Architect Components are fully portable and get deployed with everything they
+need to run - even the APIs and databases they depend on.
+
+There are many different ways to create environments with Architect. Click on one of the links below
+to pick the strategy that works best for you.
+
+<CardGroup>
+  <Card title="Dev environments" icon="laptop" href="/environments/local">
+    Run local dev environments
+  </Card>
+
+  <Card title="Feature environments" icon="user-magnifying-glass" href="/environments/gitops/pull-request">
+    Create ephemeral feature environments that live and die with your pull requests
+  </Card>
+
+  <Card title="Staging & Production" icon="cloud" href="/environments/gitops/branch">
+    Deploy seamlessly into shared environments like staging & production
+  </Card>
+
+  <Card title="Environment configuration" icon="gear" href="/environments/configuration">
+    Manage secrets, scaling rules, and other configuration options for the resources running in
+    each environment
+  </Card>
+</CardGroup>

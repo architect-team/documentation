@@ -2,3 +2,115 @@
 title: Remote environments
 sidebarTitle: Deploying remotely
 ---
+
+Spinning up local environments is done entirely by Architect's CLI with the
+[`architect dev`](/environments/local) command, but deploying into remote infrastructure, like
+Architect Cloud or your own Kubernetes cluster, is facilitated by Architect's hosted continuous
+delivery product. 
+
+## Creating environments
+
+Unlike local environments, remote environments have the potential for multiple people to deploy into
+the same environment. This means environments get created separately from deploying into them to
+enable multiple people or applications to target the same environment.
+
+```sh
+$ architect environment:create staging --account my-account
+```
+
+The command above will create a new environment called `staging` that can be targeted with deployments by
+you and other members of your team. But right now its just an empty namespace.
+
+## Deploying
+
+There are several ways to deploy Architect Components to environments via Architect's continuous delivery
+platform. Find the method that works best for your workflow and give it a shot.
+
+### From source
+
+The most common way to deploy applications is to deploy directly from source. This is a great command
+to instrument using GitOps to make sure your code source mirrors the code running in your environment.
+
+```sh
+$ architect deploy ./frontend/architect.yml --account my-account --environment staging
+```
+
+### From the registry
+
+Another way to deploy is by releasing components that have already been registered in Architect's cloud
+registry. This is perfect for applications used as dependencies and for promoting previously built artifacts
+to higher level environments without re-building code (e.g. staging to production).
+
+```sh
+$ architect deploy auth
+```
+
+### Using specific tags
+
+Just like with Docker, Architect Components get registered with different artifact tags that can be used to
+differentiate between versions of the component. Different teams use different tag naming conventions, but
+specifying a tag during deployments is as easy as including `:<tag-name>` after the component name in the
+deploy command.
+
+```sh
+$ architect deploy auth:v1
+```
+
+### Using specific dependency tags
+
+By default, Architect assumes the usage of the `latest` tag when a tag isn't specified during deploy commands.
+This is true both for explicit deployments and implicit dependencies. To override which tag is used for a
+component dependency, just specify the component and tag explicitly when deploying:
+
+```sh
+$ architect deploy frontend:v1 backend:v2
+```
+
+The command above will deploy `v1` of the frontend component and `v2` of the backend component. That v2 instance
+of the backend will fulfill the dependency on the backend from the frontend or any other component that depends
+on it deployed to the same environment.
+
+## Cleaning up
+
+Ready to clean up your work after a successful test? With Architect you can remove individual components or
+clean up entire environments with ease.
+
+### Removing components
+
+If you're working in a collaborative environment and just want to clean up your own components, you can do
+so with the `architect destroy` command.
+
+```sh
+$ architect destroy <my-component> -e staging
+```
+
+You can also purge all components from the environment by providing no arguments to the command.
+
+### Destroying the environment
+
+Want to remove the entire environment from Architect so that no one can deploy to it anymore? You can do that
+too with the `architect environment:destroy` command:
+
+```sh
+$ architect environment:destroy staging
+```
+
+## Managing environments with GitOps
+
+Its important to understand how Architect environments and deployments work, but the best way to maximize the
+time of your team is to wire up environment creation and deployments to run automatically via GitOps! Check
+out our tutorials on setting up Gitops with your favorite CI systems.
+
+<CardGroup>
+  <Card title="Pull-request environments" icon="code-pull-request" href="/environments/gitops/pull-request">
+    Create environments that live (and die) with your pull-requests
+  </Card>
+
+  <Card title="Branch-based environments" icon="code-branch" href="/environments/gitops/branch">
+    Create environments that get automatically updated to match your git branch(s)
+  </Card>
+
+  <Card title="Release-based environments" icon="cloud-arrow-up" href="/environments/gitops/release">
+    Create environments that get automatically updated when you create git tags or releases
+  </Card>
+</CardGroup>

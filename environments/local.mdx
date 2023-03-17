@@ -1,4 +1,130 @@
 ---
 title: Local environments
 sidebarTitle: Running locally
+description: Create local dev environments with a single command
 ---
+
+Creating private dev environments is the very first thing developers want to do when they're
+testing new features. Fortunately, creating these environments is as easy as running a single
+command:
+
+```sh
+$ architect dev ./architect.yml
+```
+
+No matter how many dependencies your application has, this command is always the same and will
+always stand up a fresh environment for you (so long as your computer has enough CPU and memory to
+run the stack).
+
+## API gateways and DNS
+
+In order to more closely approximate how applications behave in production, Architect automatically
+deploys and configures an API gateway to fulfill all ingress rules for interfaces in your components.
+
+Architect also sets up valid SSL certs, even when running locally, so that your application is tested
+in a production-grade environment even while you're actively working on it. All ingress rules will use
+the following DNS structure:
+
+```
+<subdomain>.localhost.architect.sh/<path>
+```
+
+## Changing gateway ports
+
+Running something else on port 443 on your machine? Perhaps another Architect environment? Changing the
+port the API gateway is listening on is easy. Just specify a `--port` flag with the `architect dev` command.
+
+```sh
+$ architect dev ./frontend/architect.yml --port 1024
+```
+
+Now, all routes in the environment will be listening on that port instead of port 443:
+
+```
+<subdomain>.localhost.architect.sh:1024/<path>
+```
+
+## Debugging multiple components
+
+Want to build and test multiple components from source? Use `architect link` to ensure that
+any dependencies of your application are built from source automatically:
+
+```sh
+# Link the local source with the CLI so it will be used as a dependency
+$ architect link ./backend/architect.yml
+
+# The frontend depends on the backend and will find it at the linked filesystem address
+$ architect dev ./frontend/architect.yml
+```
+
+If the applications aren't dependencies of each other, you can still specify both paths
+directly in the dev command:
+
+```sh
+$ architect dev ./app1/architect.yml ./app2/architect.yml
+```
+
+## Running multiple environments
+
+Sometimes developers want to run multiple different local environments either to compare and contrast
+changes or because they're working on unrelated things in parallel. 
+
+```sh
+$ architect dev . -d -e local1
+$ architect dev . -d -e local2
+```
+
+The `-d` flag in the commands above will run the environments in detached mode. This means that the
+processes will run in the background instead of streaming logs directly to the terminal.
+
+The commands above also use the `-e`, `--environment` flag to give unique names to each environment.
+By default the environment name is `architect`.
+
+### Listing environments
+
+When running in detached mode there are no indicators of which environments are running. To see the
+status of open environments, run the `architect dev:list` command.
+
+```sh
+$ architect dev:list
+┌─────────────┬────────────────────────────┬─────────┐
+│ Environment │ Containers                 │ Status  │
+├─────────────┼────────────────────────────┼─────────┤
+│ local1      │ architect-frontend--app-1  │ running │
+│             │ architect-backend--api-1   │ running │
+├─────────────┼────────────────────────────┼─────────┤
+│ local2      │ architect-frontend--app-1  │ running │
+│             │ architect-backend--api-1   │ running │
+└─────────────┴────────────────────────────┴─────────┘
+```
+
+### Streaming logs
+
+Since the environments are running in the background, their logs won't be streaming in the terminal.
+To access them, you'll have to run the `architect logs` command and target an environment and service.
+You can also use the `-f`, `--follow` flag to stream the logs to your terminal.
+
+```sh
+$ architect logs -f -e local1
+? Select a service (Use arrow keys or type to search)
+❯ frontend.services.app 
+  backend.services.api
+```
+
+### Cleaning up
+
+Once you're done with your background environments, you can stop them with a single command:
+
+```sh
+$ architect dev:stop local1
+$ architect dev:stop local2
+```
+
+## Secrets and environment variables
+
+The last thing you'll need in order to run application environments is the ability to assign values for
+secrets and environment variables. Head on over to the docs on environment configuration to learn more.
+
+<Card to="/environments/configuration" icon="href" title="Environment configuration">
+  Assign values for secrets and environment variables uniquely for each environment
+</Card>
