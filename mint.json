@@ -108,7 +108,6 @@
         "environments/local",
         "environments/remote",
         "environments/configuration",
-        "environments/logs",
         {
           "group": "GitOps",
           "pages": [

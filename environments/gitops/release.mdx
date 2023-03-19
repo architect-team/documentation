@@ -3,3 +3,41 @@ title: Release environments
 description: Triggering deployments whenever releases are cut
 ---
 
+Release environments are those which get deployed to whenever a release is cut from your git
+repository. This is a great way to ensure you have documented changesets associated with 
+everything that goes to production.
+
+Some version control provides have a formal concept of a "release", but for others
+you can simply use tags.
+
+<CodeGroup>
+```yaml Github actions
+# Be sure to register your email and personal access token as the github secrets:
+# ARCHITECT_EMAIL and ARCHITECT_PASSWORD
+name: Release workflow
+
+on:
+  release:
+    types:
+      - published
+
+env:
+  ARCHITECT_ACCOUNT: <architect-account>
+
+jobs:
+  architect_create_release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+      - uses: crazy-max/ghaction-github-runtime@v2 # Exports internal envs for Github Actions. Required for register caching to work.
+      - name: Install Architect CLI
+        run: npm install -g @architect-io/cli
+      - name: Login to Architect Cloud
+        run: architect login -e ${{ secrets.ARCHITECT_EMAIL }} -p ${{ secrets.ARCHITECT_PASSWORD }}
+      - name: Deploy the component
+        run: architect deploy ./ -t latest -e production
+```
+</CodeGroup>

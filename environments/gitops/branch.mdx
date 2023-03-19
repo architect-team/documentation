@@ -2,3 +2,42 @@
 title: Branch environments
 description: Triggering deployments whenever changes are merged into a branch
 ---
+
+One of the most common patterns for GitOps powered continuous delivery is the triggering
+of deployments whenever code is merged into specific branches. Sometimes teams will 
+dedicate specific branches to specific environments. In this example, we've simply setup
+commits to the `main` branch to trigger deployments into the `staging` environment.
+
+<CodeGroup>
+```yaml Github Actions
+# Be sure to register your email and personal access token as the github secrets:
+# ARCHITECT_EMAIL and ARCHITECT_PASSWORD
+name: Branch workflow
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  ARCHITECT_ACCOUNT: <architect-account>
+  ENVIRONMENT_NAME: <architect-environment>
+
+jobs:
+  architect_create_branch_deployments:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+      - uses: crazy-max/ghaction-github-runtime@v2 # Exports internal envs for Github Actions. Required for register caching to work.
+      - name: Install Architect CLI
+        run: npm install -g @architect-io/cli
+      - name: Login to Architect Cloud
+        run:
+          architect login -e ${{ secrets.ARCHITECT_EMAIL }} -p ${{ secrets.ARCHITECT_PASSWORD }}
+      - name: Deploy component
+        run: architect deploy ./ -e ${{ env.ENVIRONMENT_NAME }} --auto-approve
+```
+</CodeGroup>
