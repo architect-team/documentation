@@ -1,5 +1,58 @@
 ---
-title: NextJS
+title: Next.js
 description: How to setup hot-reloading with NextJS applications
 ---
 
+[Next.js](https://nextjs.org/) is an extremely popular React framework that helps developers
+create full-stack web applications by extending the latest React features, and integrating
+powerful Rust-based JavaScript tooling for the fastest builds.
+
+A big part of the Next.js origin story is the ability to create static websites using React
+that can be delivered quickly and cost-effectively via CDNs and edge functions. In order to
+help with that experience for developers, Next.js includes some excellent tools out of the
+box that help developers quickly iterate on their code via hot-reloading.
+
+[Learn more about hot-reloading with Next.js](https://nextjs.org/docs/api-reference/cli#development)
+
+Architect runs [services](/components/services) inside Docker containers to ensure that the
+applications run in consistent, reliable environments, but using containers for local development
+requires some extra steps to ensure that code changes (which happen on the host) get mapped into
+the container environment. 
+
+```yaml architect.yml
+services:
+  app:
+    build:
+      context: ./
+    debug:
+      command: next dev
+      volumes:
+        pages:
+          host_path: ./pages
+          mount_path: /app/pages
+```
+
+The component spec introduces a few `debug` features - ones that only run locally using the `architect dev` 
+command. The first is an override to the default `command` run by the `Dockerfile` (usually `next start` for
+Next.js sites). 
+
+The second is a volume that maps the local `pages` directory to the `/app/pages` directory inside the container
+for your service (this assumes that the `WORKDIR` for your container is `/app`). This will ensure that all file
+changes inside the `pages` directory will trigger hot-reloading inside the container environment.
+
+You can create additional volumes for other directories that contain application code like `components` or `public`
+if you want to enable hot-reloading for the changes. However, a more scalable answer might be to leverage the 
+[src directory](https://nextjs.org/docs/advanced-features/src-directory) feature of Next.js to put all your code
+into a single `src` folder. This will allow you to create only a single volume for all your application changes.
+
+```yaml architect.yml
+services:
+  app:
+    build:
+      context: ./
+    debug:
+      volumes:
+        src:
+          host_path: ./src
+          mount_path: /app/src
+```

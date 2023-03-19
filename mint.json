@@ -71,7 +71,6 @@
         {
           "group": "Hot reloading",
           "pages": [
-            "guides/hot-reloading/overview",
             "guides/hot-reloading/next-js",
             "guides/hot-reloading/vite-js",
             "guides/hot-reloading/spring-boot"
