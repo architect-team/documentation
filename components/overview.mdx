@@ -1,219 +1,142 @@
 ---
 title: Overview
+description: Learn how to create portable, cloud-native components with Architect
 ---
 
-This tutorial covers how you can quickly get started using Architect.
+Components are Architect's version of cloud applications. We call them components because they represent
+more than just your code. They include the databases your application needs to connect to, the API
+gateway rules that need to be configured, and even the other APIs they depend on. By making room for
+these declarations, developers can create truly portable applications that can be deployed anywhere
+by anyone.
 
-### Prerequisites
+This guide will teach you about designing your `architect.yml` file. If you'd prefer to get started more
+quickly with your favorite language or framework, check out our [starter projects](/getting-started/starter-projects).
 
-The following prerequisites are required for a smooth introduction to Architect:
+## Creating a component
 
-- An application that can be run in a container. If you're just curious about what Architect has to offer,
-  you can clone one of our [Starter Projects](https://github.com/architect-templates/) and use that to get
-    started.
-- Some familiarity with running applications using Docker (or any other similar
-  container engine)
+The Component framework is designed to provide all the benefits of infrastructure-as-code (IaC) and CI pipelines
+without having to learn either infrastructure or workflow logistics. Instead, developers simply describe the
+resources their application needs and the relationship between them so Architect can automate both infrastructure
+and CI/CD pipelines for you.
 
-You don't need to know how to use Kubernetes or how to deploy an application
-into a cloud environment - Architect handles that for you.
+### Metadata
 
-## Get Started
-
-A component includes all the services and dependencies that comprise your application.
-Creating a new component that can be run in Architect's community cloud as well as any external
-clusters you add involves the following steps:
-
-- Writing an `architect.yml` file
-- Running and testing the component locally with `architect dev`
-- Using the `architect register` command to register this component with your
-  Architect account
-
-If you don't yet have the Architect CLI installed,
-[see our instructions on how to do that](/getting-started/introduction/#install-the-cli).
-
-You can create your own component with a pre-existing app you've built, clone
-one of our [Starter Projects](https://github.com/architect-templates/) yourself, or use our `init` command to clone it for you.
-
-### Create a project using `architect init`
-
-You can use the `architect init` command to clone one of our
-[Starter Projects](https://github.com/architect-templates/) locally. A drop-down list of Starter Projects is
-displayed for you to select from. The tutorial follows along with the
-[React Starter Project](https://github.com/architect-templates/react), but you can
-follow with whichever Starter Project you choose. We recommend selecting one that includes an frontend.
-
-```bash
-%architect init
-? What is the name of your project? my-starter-project
-? Please select a framework/language for your project React
-
-######################################
-##### Let's set up your project! #####
-######################################
-
-Creating project directory... ✓
-Pulling down GitHub repository... ✓ react
-
-Successfully created project my-starter-project.
-
-Your project is ready to be deployed by Architect!
-To deploy locally, run:
-	architect dev my-starter-project/architect.yml
-```
-### Create a component with a pre-existing app
-
-Suppose we are working within a repository for a simple React app with the
-following file structure:
-
-```
-src/
-    index.js
-Dockerfile
-package.json
-package-lock.json
-```
-
-We can create an `architect.yml` file for this repo so that we can easily run
-our application locally **and** in the cloud with Architect.
-
-## Defining a Component
-
-### Component Metadata
-
-First, we can add some metadata to the top of our `architect.yml` to help
-identify our component.
+Adding metadata like `name`, `description`, and `keywords` to your component allows it to be indexed in
+Architect's cloud registry. This helps your team discover the component and use it as a dependency.
 
 ```yaml
-name: react
-description: A react frontend component
+name: payments
+description: API for payment processing
+keywords:
+  - payments
+  - credit
+  - debit
+  - pci-compliant
 ```
 
-The `name` and `description` will be visible on the Components page once the
-component is registered.
+### Services
 
-### Defining a Service
-
-Next, we can add a `services` section that defines one or more services that are
-part of this component. Each service is defined by a top-level unique key that
-you choose, and can be referenced in other sections of the `architect.yml`. Our
-service will be called `my-app` in this example.
+Next up is the declaration of your APIs. Components can include one or more API "service" that
+will be deployed by your application. The syntax is largely inspired by [docker compose](https://docs.docker.com/compose/),
+and users of docker compose should find it very familiar:
 
 ```yaml
-name: react
-description: A react frontend component
-
 services:
-  my-app:
-    build:
-      context: .
-    interfaces:
-      main: 8080
-```
-
-#### The build section
-
-```yaml
-build:
-  context: .
-```
-
-The `build` section specifies details necessary for Architect to build an image
-for this service via Docker. `context` tells Architect what directory to build
-from, relative to the `architect.yml`. In this case, `architect.yml` is in the
-same directory as our application, so we specify the path `.`. By default,
-Architect expects a dockerfile named `Dockerfile` at the provided context to
-build the image.
-
-Other configuration options for the `build` section
-[can be found here](/components/services/).
-
-#### The interfaces section
-
-```
-interfaces:
-  main:
-    port: 8080
-```
-
-The `interfaces` section contains a set of named interfaces that the service
-listens for requests on. Defines an interface named `main` that listens for
-requests on port `8080` over http.
-
-Importantly, this `interfaces` definition within the services section does not
-expose the service publicly. In order for a service to be reached by outside
-users or applications, see
-[Defining an Interface](/tutorial/create-component/#defining-an-interface).
-
-The protocol, port, hostname, and more are also available as configuration
-options for the `interfaces` section.
-[Details can be found here](/components/services).
-
-An in-depth breakdown of the available configuration options for a service
-[can be found here](/components/services).
-
-### Defining an Ingress
-
-In order to reach our service from a browser, we must create an ingress on the
-interface we just created. Which defines the subdomain that will be used to
-expose the interface externally.
-
-```yaml
-interfaces:
-  main:
-    port: 8080
-    ingress:
-      subdomain: test
-```
-
-The final version of the `architect.yml` should look like:
-
-```yaml
-name: react
-description: A react frontend component
-
-services:
-  my-app:
+  my-api:
     build:
       context: .
     interfaces:
       main:
         port: 8080
-        ingress:
-          subdomain: test
+    environment:
+      MY_VAR: my-key
 ```
 
-### Running Locally
+<Card title="Services" icon="link" href="/components/services">
+  Learn more about configuring services
+</Card>
 
-Our `architect.yml` currently defines a very basic service that only has a
-static frontend and an interface that allows us to connect to it. We will fix
-that shortly, but we already have enough to create a component.
+### Cronjobs
 
-In order to test that the `architect.yml` is set up correctly, we can run:
+Components can also include one or more "tasks" that can be run on a schedule (e.g. cronjobs)
+or triggered manually in an environment. Tasks support most of the same fields as services, 
+but cannot add `interfaces` to listen for requests on.
 
-```sh
-$ architect dev architect.yml
+```yaml
+tasks:
+  my-cron:
+    schedule: 0 3 * * 0
+    build:
+      context: .
+    environment:
+      MY_VAR: my-key
 ```
 
-After the image is built, you will be able to see your frontend at
-`https://test.localhost.architect.sh`. Notice that the subdomain `test` is
-coming from our defined ingress subdomain.
+<Card title="Tasks" icon="link" href="/components/tasks">
+  Learn more about configuring tasks
+</Card>
 
-### Registering a Component to be deployed on the Cloud
+### Databases
 
-In order to deploy this service to the Architect Cloud, we can run:
+Need to ensure a database gets provisioned alongside your services so you can store persistent
+data? Simply declare your databases and types right inside your component. No infrastructure
+knowledge required!
 
-```sh
-$ architect login
+```yaml
+databases:
+  user-data:
+    type: postgres:13
 ```
 
-If you have not registered yet,
-[create an account](https://cloud.architect.io/login). Once you've successfully
-logged in, you can now register the component by running:
+<Card title="Databases" icon="link" href="/components/databases">
+  Learn more about configuring databases
+</Card>
 
-```sh
-$ architect register architect.yml
+### Secrets
+
+Need to pass in variables to your component unique to each environment? Architect components can
+declare `secrets` that can be used to configure your application at deploy-time:
+
+```yaml
+secrets:
+  api-key:
+    description: External API key
+    required: true
 ```
 
-Now, when you view the Components page on https://cloud.architect.io, you will
-see a component named `react` that was just registered! Try deploying the app in
-the cloud by clicking the "Deploy" button on the component card.
+<Card title="Secrets" icon="link" href="/components/secrets">
+  Learn more about configuring secrets
+</Card>
+
+### Dependencies
+
+Want to connect two components together? Architect includes a native dependency resolver so that
+you can easily extend the work of others using common dependency management tactics.
+
+```yaml
+dependencies:
+  auth: {}
+```
+
+<Card title="Dependencies" icon="link" href="/components/dependencies">
+  Learn more about configuring dependencies
+</Card>
+
+### Integrating resources
+
+Declaring the resources in a simple, infrastructure-agnostic way isn't the only benefit of using 
+Architect's Component framework. Architect also includes the ability to reference service interfaces,
+databases, and dependencies using its [expression](/components/architect-yml) references:
+
+```yaml
+services:
+  my-api:
+    environment:
+      DB_ADDR: ${{ databases.user-data.url }}
+      API_ADDR: ${{ services.my-api.interfaces.main.url }}
+      AUTH_ADDR: ${{ dependencies.auth.services.api.interfaces.main.url }}
+```
+
+<Card title="Reference expressions" icon="link" href="/components/architect-yml">
+  Learn more about component expressions
+</Card>
