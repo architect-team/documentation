@@ -76,6 +76,7 @@
             "guides/hot-reloading/spring-boot"
           ]
         },
+        "guides/integration-testing",
         "guides/cors",
         "guides/tracing",
         "guides/api-security",
