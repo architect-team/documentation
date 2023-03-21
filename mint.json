@@ -65,10 +65,10 @@
       ]
     },
     {
-      "group": "Tutorial",
+      "group": "Guides",
       "pages": [
-        "tutorial/create-a-component",
-        "tutorial/adding-additional-services"
+        "guides/create-a-component",
+        "guides/adding-additional-services"
       ]
     },
     {
@@ -90,6 +90,7 @@
       "pages": [
         "deployments/local-environments",
         "deployments/automated-previews",
+        "deployments/clusters",
         "deployments/gitops-releases",
         "deployments/secrets",
         "deployments/custom-domains",
