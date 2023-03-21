@@ -39,16 +39,16 @@ folder to your user home directory.
 
 ## Try a Starter Project
 To help you get started using Architect, we've provided several
-[Starter Projects](https://github.com/orgs/architect-templates/repositories) that use different languages and
+[starter projects](https://github.com/orgs/architect-templates/repositories) that use different languages and
 frameworks. While Architect is
 language-agnostic, we know developers have preferences, and we aim to give each developer a learning context they are
-comfortable with. Each Starter Project implements a simple application and defines it as an Architect Component using the
-`architect.yml` config file. You can clone the Starter Project repository to you local machine or use the `architect init`
+comfortable with. Each starter project implements a simple application and defines it as an Architect Component using the
+`architect.yml` config file. You can clone the starter project repository to you local machine or use the `architect init`
 command.
 
 ### Run `architect init`
 
-The `architect init` presents you with all the Starter Projects available and clones the one you select to your local machine.
+The `architect init` presents you with all the starter projects available and clones the one you select to your local machine.
 
 ```bash
 %architect init
@@ -68,12 +68,12 @@ Your project is ready to be deployed by Architect!
 To deploy locally, run:
 	architect dev my-starter-project/architect.yml
 ```
-The repo for the Starter Project you selected should now reside in the location where you ran the `architect init` command.
+The repo for the starter project you selected should now reside in the location where you ran the `architect init` command.
 
 ## Run locally
 
 One of the key benefits of using Architect is the ability to seamlessly run your application on your local machine.
-To run the Starter Project you just cloned, copy the `architect dev` command that is displayed when the `architect init` command
+To run the starter project you just cloned, copy the `architect dev` command that is displayed when the `architect init` command
 completes, and run it from the same location where you ran the `architect init` command. The `architect dev` command runs your
 application and all its dependencies in your local Docker environment. You will see output similar to the following:
 
@@ -86,142 +86,30 @@ Once the containers are running they will be accessible via the following urls:
 https://app.localhost.architect.sh:443/ => react
 [7:45:17 PM] Starting compilation in watch mode...
 
-<<<<<<< HEAD
-```sh
-$ architect link ./examples/react-app/
-```
-
-### Check out the architect.yml file
-
-<Card
-  title="For users of Visual Studio Code, check out the Architect.io extension!"
-  href="https://marketplace.visualstudio.com/items?itemName=Architectio.architect-vscode"
-/>
-
-The `architect.yml` file contains the component descriptors that power Architect
-deployments. Why don't you open up the file in the react-app example:
-
-```yaml
-name: react-app
-
-secrets:
-  world_text:
-    description: Default greeting text for the landing page
-    default: world
-  root_db_user:
-    description: Root user to assign to the generated database
-    default: postgres
-  root_db_pass:
-    description: Root password to assign to the generated database
-    default: architect
-  api_db_name:
-    description: Name of the database used by the API
-    default: test_database
-
-services:
-  # Describes the database service
-  api-db:
-    image: postgres:11
-    interfaces:
-      postgres:
-        port: 5432
-        protocol: postgres
-    environment:
-      POSTGRES_USER: ${{ secrets.root_db_user }}
-      POSTGRES_PASSWORD: ${{ secrets.root_db_pass }}
-      POSTGRES_DB: ${{ secrets.api_db_name }}
-
-  # Describes the Node.js backend API
-  api:
-    build:
-      context: ./backend
-    interfaces:
-      main: &api-port 8080
-    environment:
-      PORT: *api-port
-      DB_ADDR: ${{ services.api-db.interfaces.postgres.url }}
-      DB_USER: ${{ secrets.root_db_user }}
-      DB_PASS: ${{ secrets.root_db_pass }}
-      DB_NAME: ${{ secrets.api_db_name }}
-    # The debug block defines features only used for local deployments. In this
-    # case, we've mounted to src directory and instrumented a hot-reloading cmd
-    debug:
-      command: npm run start:dev
-      volumes:
-        src:
-          mount_path: /usr/src/app/src
-          host_path: ./backend/src
-
-  # Describes the Next.js frontend application
-  app:
-    build:
-      context: ./frontend
-    interfaces:
-      main:
-        port: &app-port 8080
-        ingress:
-          # Maps the frontend application to an external interface. Once running, it can
-          # be resolved at https://app.localhost.architect.sh
-          subdomain: app
-    environment:
-      PORT: *app-port
-      API_ADDR: ${{ services.api.interfaces.main.url }}
-      WORLD_TEXT: ${{ secrets.world_text }}
-    debug:
-      build:
-        dockerfile: Dockerfile.dev
-      volumes:
-        src:
-          mount_path: /usr/src/app/src
-          host_path: ./frontend/src
-```
-
-This `architect.yml` describes each of our three `services`, exposes the
-frontend externally via `interfaces`, and allows the root database credentials
-to be configured via `secrets`.
-
-### Run the component
-
-Now that you have a better understanding of what you're deploying, go ahead and
-start it up!
-
-```sh
-$ architect dev react-app
-
-Using locally linked react-app found at /architect-cli/examples/react-app
-https://app.localhost.architect.sh:443/ => react-app--app
-
-https://localhost:443/ => gateway:443
-https://localhost:8080/ => gateway:8080
-https://localhost:50000/ => react-app--api-db:5432
-https://localhost:50001/ => react-app--api:8080
-https://localhost:50002/ => react-app--app:8080
-=======
->>>>>>> fca38ea (Small initial WIP commit)
 # begin log stream...
 ```
-You'll notice in the output above that one or more URLs is provided, depending on which Starter Project you are using.
-For example, Starter Projects that include a frontend will be accessible at `https://app.localhost.architect.sh:443/` as
+You'll notice in the output above that one or more URLs is provided, depending on which starter project you are using.
+For example, starter projects that include a frontend will be accessible at `https://app.localhost.architect.sh:443/` as
 soon as the startup completes. 
 
 When you run the command above, Architect reads the `architect.yml` file that resides in the repo and transforms it into
 a fully enriched `docker-compose.yml` file. The application described by this file is run automatically in your local
 Docker environment. As shown in the example above, the output from this command provides the URLs where
-the services that comprise this component can be accessed. Depending on which Starter Project you use, your output
-may differ slightly. If your Starter Project contains a frontend service, it will be automatically launched in a web browser
+the services that comprise this component can be accessed. Depending on which starter project you use, your output
+may differ slightly. If your starter project contains a frontend service, it will be automatically launched in a web browser
 once the application is started.
 
 ## Check out the architect.yml file
+
+The `architect.yml` file describes the different services that comprise your application. This is where you'll define
+the interfaces and ingress rules that allow access to your application as well as secrets and dependencies.
+This is the `architect.yml` file for the `react` starter project. Yours will vary slightly depending on the project you
+are working with.
 
 <Card
   title="For users of Visual Studio Code, check out the Architect.io extension!"
   href="https://marketplace.visualstudio.com/items?itemName=Architectio.architect-vscode"
 />
-
-The `architect.yml` file describes the different services that comprise your application. This is where you'll define
-the interfaces and ingress rules that allow access to your application as well as secrets and dependencies.
-This is the `architect.yml` file for the `react` Starter Project. Yours will vary slightly depending on the project you
-are working with.
 
 ```
 name: react
@@ -337,7 +225,7 @@ and then your browser window will update automatically.</Tip>
 ## Create a free Architect account
 
 Now that you've successfully run and edited a component locally, it's time to
-learn how to register the component and deploy it to cloud environments. Before
+learn how to register the component and deploy it to a cloud environment. Before
 you can do that however, you need to
 [sign up](https://cloud.architect.io/signup) for Architect and create a free account
 that will house your components and environments.
@@ -354,7 +242,7 @@ architect login
 
 Before you can deploy to a cloud environment, you have to register and tag your
 component with Architect's component registry. You can register
-the component with a single command, substituting your Architect account name for the the `<account-name>` placeholder.
+the component with a single command, substituting your Architect account name for the `<account-name>` placeholder.
 Run this command from the top-level directory of your project:
 
 ```sh
@@ -435,15 +323,14 @@ Time: 5:05.597 (m:ss.mmm)
 ```
 ## Create an environment
 An environment is an isolated namespace that exists on a Kubernetes cluster where you can deploy your applications.
-Architect provides a community cloud cluster where you can create an preview environment and deploy your applications for free.
-To create a new environment on Architect's
-free cloud, run the following command:
+Architect provides a community cloud cluster where you can create a preview environment and deploy your applications for free.
+To create a new environment on Architect's free cloud, run the following command:
 
 ```sh
 architect environments:create my-first-environment
 ```
 This command presents you with a list of Kubernetes clusters. Since you haven't added any external clusters to your
-account, you should only see `architect`. Hit enter to create your environment on Architect's community cloud.
+account, you should only see `architect`. Hit enter to create your environment on the Architect cloud.
 
 ```sh
 ? Select a cluster (Use arrow keys or type to search)
@@ -459,7 +346,7 @@ Environment created: https://cloud.architect.io/<account-name>/environments/my-f
 ## Deploy to the cloud
 
 Finally, you're ready to deploy! Run the following command to deploy your application to the environment you just
-created on Architect's community cloud:
+created on the Architect cloud:
 
 ```sh
 architect deploy react:latest --account <account-name> \
