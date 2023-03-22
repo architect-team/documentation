@@ -1,0 +1,310 @@
+---
+title: "Create a Component"
+
+---
+An Architect component is comprised of one or more services that live and die together. The services
+are tied together via the `architect.yml` file,  and one Architect component may
+depend on another by specifying it in the [`dependencies`](../components/dependencies) block. This guide uses the
+[React starter project](https://github.com/architect-templates/react) to help you learn about defining
+an Architect component.
+
+### Prerequisites
+
+The following prerequisites are required for a smooth introduction to Architect:
+
+- Some familiarity with running applications using Docker (or any other similar
+  container engine)
+- [Docker](https://docs.docker.com/get-docker/) installed and running
+- [Architect CLI](https://github.com/architect-team/architect-cli) installed
+
+You don't need to know how to use Kubernetes or how to deploy an application
+into a cloud environment - Architect handles that for you.
+
+## Get Started
+
+A component includes all the services and dependencies that comprise your application.
+Creating a new component that can be run in the Architect cloud as well as any external
+clusters you add involves the following steps:
+
+- Writing an `architect.yml` file
+- Running and testing the component locally with `architect dev`
+- Using the `architect register` command to register this component with your
+  Architect account
+
+### Clone the React starter project
+
+You can clone the React starter project yourself or use the `architect init` command to let Architect clone
+it for you.
+
+#### Use the `architect init` command
+
+Run the `architect init` command and select `React` from the drop-down list.
+
+```bash
+% architect init
+? What is the name of your project? my-starter-project
+? Please select a framework/language for your project
+  Nodejs
+  Nuxt
+❯ React
+  Ruby-on-Rails
+  Springboot
+  ASP.NET Core
+  Django
+(Move up and down to reveal more choices)
+...
+######################################
+##### Let's set up your project! #####
+######################################
+
+Creating project directory... ✓
+Pulling down GitHub repository... ✓ react
+
+Successfully created project my-starter-project.
+
+Your project is ready to be deployed by Architect!
+To deploy locally, run:
+	architect dev my-starter-project/architect.yml
+```
+
+#### Use `git clone`
+You'll need `git` installed to clone the starter project manually.
+If you don't have `git` installed, use the [`architect init`](./#use-the-architect-init-command) command.
+To clone the starter project yourself, run the
+following command:
+
+```sh
+git clone https://github.com/architect-templates/react.git
+````
+
+### Open the `architect.yml` file
+Now that you have the React starter project cloned locally open the `architect.yml` file in your favorite editor
+and follow along.
+
+## Define a Component
+Let's take a look at the `architect.yml` file.
+
+### Component metadata
+
+The top of the `architect.yml` file defines some metadata for the component.
+
+```yaml
+name: react
+description: An Architect Starter Project using React.
+homepage: https://github.com/architect-templates/react
+keywords:
+  - react
+  - express
+  - javascript
+```
+
+Once the component is registered, the `name` and `description` will be visible on the Components page in the Architect UI. The `name` property is also how components specify other components as [dependencies](../components/dependencies).
+
+### Secrets
+The next block defines [secrets](../deployments/secrets) that will be available to the component at runtime.
+
+```yaml
+secrets:
+  db_user:
+    description: Root user to assign to the component's DB
+    default: architect
+  db_pass:
+    description: Root password to assign to the component's DB
+    default: secret
+  db_name:
+    description: Name of the DB the component will store content in
+    default: api-db
+  db_port:
+    description: Port for the db
+    default: 5432
+  api_port:
+    description: Port for api
+    default: 8080
+```
+
+### Services
+
+The `services` section defines the services that comprise this component. In this case, we have the following services:
+* `app` - the React app itself
+* `api-db` - the database used by the backend API
+* `api` - the backend API
+
+You must specify a unique key for each service, and the key is used to reference the service in other sections of
+the `architect.yml`.
+
+```yaml
+services:
+  app:
+        build:
+          context: ./
+          args:
+            NODE_ENV: production
+...
+```
+
+#### Build
+
+You'll notice that the `app` service contains a `build` section. This section tells Architect how
+to build an image for this service using Docker. The `context` property indicates which directory to build
+from, relative to the `architect.yml` file. The path is `.` in this case since the `architect.yml` file is in the
+same directory as the application code. By default,
+Architect expects a Dockerfile named `Dockerfile` in the location provided in the `context`.
+
+This section sets the `NODE_ENV` environment variable to `production`. This variable is used in the Dockerfile
+so that the image can be built differently for production vs. [building for local development](./create-a-component#debug).
+
+Other configuration options for the `build` section
+[can be found here](../components/services#build).
+
+```yaml
+build:
+  context: ./
+    args:
+      NODE_ENV: production
+```
+
+
+#### Interfaces
+
+The `interfaces` section contains a set of named interfaces that the service
+listens for requests on. The `app` service defines an interface named `main` that listens for
+requests on port `8080` over http.
+
+```
+interfaces:
+  main:
+    port: 8080
+```
+
+The `interfaces` defined in the services section are for internal communication only and do not
+expose the service publicly. For a service to be reached by outside
+users or applications, you must
+[define ingress rules](./create-a-component#ingress).
+
+The protocol, port, hostname, and more are also available as [configuration
+options](../components/services#interfaces) for the `interfaces` section.
+
+
+An in-depth breakdown of the available configuration options for a service
+[can be found here](../components/services).
+
+#### Ingress
+
+To expose the `app` service to the outside world, we define an ingress on the
+interface we just created. This defines the subdomain that will be used to
+expose the interface externally.
+
+```yaml
+interfaces:
+  main:
+    port: 8080
+    ingress:
+      subdomain: app
+```
+
+#### Environment
+
+The `environment` section defines environment variables that the service can access at runtime. You'll notice that the
+`app` service defines a `REACT_APP_API_ADDR` variable that uses [service discovery](../components/service-discovery) to
+extrapolate the value.
+
+```sh
+environment:
+      PORT: 8080
+      REACT_APP_API_ADDR: ${{ services.api.interfaces.http.ingress.url }}
+````
+
+#### Liveness probe
+
+The `liveness_probe` section defines the `command` to run to check whether a service is healthy. In this case,
+the command is run every 30 seconds, and the service is restarted after the command fails three times.
+
+```shell
+liveness_probe:
+      command: curl --fail 0.0.0.0:8080
+      interval: 30s
+      failure_threshold: 3
+```
+
+#### Debug
+
+The `debug` section indicates how the service should be built for local development. This section comes into play when
+you run the component locally using the `architect dev` command.
+
+```shell
+debug:
+      command: npm run dev
+      build:
+        args:
+          NODE_ENV: development
+      volumes:
+        src:
+          mount_path: /usr/src/app/src
+          host_path: ./src
+```
+
+We set the `NODE_ENV` environment variable to `development` so that Docker knows to build the image for local development.
+The Dockerfile for this component uses this variable to determine whether to run `npm run build` when building the image
+for this component.
+
+```shell
+RUN if [ "$NODE_ENV" = "development" ] ; then echo "Debug mode enabled. Skipping build." ; else npm run build ; fi
+```
+The `volumes` section mounts the local source code directory as a volume in the container to allow for hot reloading
+during development.
+
+```shell
+volumes:
+  src:
+    mount_path: /usr/src/app/src
+      host_path: ./src
+```
+
+#### Image
+
+The `api-db` and `api` services each define an `image` rather than specifying a `build` context.
+
+```shell
+api-db:
+    image: postgres:12
+...
+api:
+    image: devmandy/starter-project-api:v1
+```
+
+The `api-db` service uses version `12` of the official
+`postgres` image. The `api` service uses a custom Docker image for an API. This image was built for frontend
+starter projects to simplify the learning experience. For your services, you will use
+[dependencies](../components/dependencies) to consume a separate API.
+
+### Run locally
+
+Once you have defined a component by creating an `architect.yml` file, you can test it by running the component locally.
+To run the component locally, run the following command from the top-level directory:
+
+```shell
+architect dev
+```
+Once the containers are running, you can see your frontend at https://app.localhost.architect.sh.
+Notice that the subdomain `app` comes from our defined ingress subdomain.
+
+### Register a component
+
+You must register a component before deploying it to the Architect cloud or an external cluster. You'll start by
+logging in.
+
+```sh
+$ architect login
+```
+
+If you have not registered yet,
+[create a free account](https://cloud.architect.io/login). Once you've successfully
+logged in, you can now register the component by running the following command from the top-level directory:
+
+```sh
+$ architect register
+```
+
+Now, when you view the Components page on https://cloud.architect.io, you will
+see a component named `react` that was just registered! Try deploying the app in
+the cloud by clicking the "Deploy" button on the component card.
