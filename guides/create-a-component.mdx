@@ -78,7 +78,7 @@ git clone https://github.com/architect-templates/react.git
 ````
 
 ### Open the `architect.yml` file
-Now that you have the React starter project cloned locally, open the `architect.yml` file in your favorite editor
+Now that you have the React starter project cloned locally open the `architect.yml` file in your favorite editor
 and follow along.
 
 ## Define a Component
@@ -98,8 +98,7 @@ keywords:
   - javascript
 ```
 
-The `name` and `description` will be visible on the Components page in the Architect UI once the
-component is registered. The `name` property is also how components specify other components as dependencies.
+Once the component is registered, the `name` and `description` will be visible on the Components page in the Architect UI. The `name` property is also how components specify other components as [dependencies](../components/dependencies).
 
 ### Secrets
 The next block defines [secrets](../deployments/secrets) that will be available to the component at runtime.
@@ -147,12 +146,12 @@ services:
 
 You'll notice that the `app` service contains a `build` section. This section tells Architect how
 to build an image for this service using Docker. The `context` property indicates which directory to build
-from, relative to the `architect.yml` file. In this case, the path is `.` since the `architect.yml` file is in the
+from, relative to the `architect.yml` file. The path is `.` in this case since the `architect.yml` file is in the
 same directory as the application code. By default,
 Architect expects a Dockerfile named `Dockerfile` in the location provided in the `context`.
 
-This section sets the `NODE_ENV` environment variable is set to `production`. This variable is used in the Dockerfile
-so that the image can be built differently for production vs [building for local development](./create-a-component#debug).
+This section sets the `NODE_ENV` environment variable to `production`. This variable is used in the Dockerfile
+so that the image can be built differently for production vs. [building for local development](./create-a-component#debug).
 
 Other configuration options for the `build` section
 [can be found here](../components/services#build).
@@ -178,7 +177,7 @@ interfaces:
 ```
 
 The `interfaces` defined in the services section are for internal communication only and do not
-expose the service publicly. In order for a service to be reached by outside
+expose the service publicly. For a service to be reached by outside
 users or applications, you must
 [define ingress rules](./create-a-component#ingress).
 
@@ -286,12 +285,12 @@ To run the component locally, run the following command from the top-level direc
 ```shell
 architect dev
 ```
-Once the containers are running, you will be able to see your frontend at https://app.localhost.architect.sh.
-Notice that the subdomain `app` is coming from our defined ingress subdomain.
+Once the containers are running, you can see your frontend at https://app.localhost.architect.sh.
+Notice that the subdomain `app` comes from our defined ingress subdomain.
 
 ### Register a component
 
-You must register a component before you can deploy it to the Architect cloud or an external cluster. You'll start by
+You must register a component before deploying it to the Architect cloud or an external cluster. You'll start by
 logging in.
 
 ```sh
