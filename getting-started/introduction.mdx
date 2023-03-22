@@ -15,7 +15,7 @@ unnecessarily.
 How do we do this?
 * We use Docker to make deployments portable
 * We use a config file (`architect.yml`) to describe your app's structure and dependencies
-* We provide a single command to deploy locally, to deploy to a preview environments, or to deploy to production
+* We provide a single command to deploy locally, to deploy to a preview environment, or to deploy to production
 
 ## First steps
 
@@ -23,7 +23,7 @@ How do we do this?
 
 We built Architect for developers, and our feature-rich CLI provides the best developer experience. Before you do anything
 else, install [Docker]( https://docs.docker.com/get-docker/)
-and [NPM](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) if haven't already,
+and [NPM](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) if you haven't already,
 and make sure Docker is running.
 
 Then install the CLI via NPM:
@@ -43,7 +43,7 @@ To help you get started using Architect, we've provided several
 frameworks. While Architect is
 language-agnostic, we know developers have preferences, and we aim to give each developer a learning context they are
 comfortable with. Each starter project implements a simple application and defines it as an Architect Component using the
-`architect.yml` config file. You can clone the starter project repository to you local machine or use the `architect init`
+`architect.yml` config file. You can clone the starter project repository to your local machine or use the `architect init`
 command.
 
 ### Run `architect init`
@@ -68,12 +68,12 @@ Your project is ready to be deployed by Architect!
 To deploy locally, run:
 	architect dev my-starter-project/architect.yml
 ```
-The repo for the starter project you selected should now reside in the location where you ran the `architect init` command.
+The repo for the selected starter project should now reside where you ran the `architect init` command.
 
 ## Run locally
 
-One of the key benefits of using Architect is the ability to seamlessly run your application on your local machine.
-To run the starter project you just cloned, copy the `architect dev` command that is displayed when the `architect init` command
+One of the key benefits of using Architect is the ability to run your application on your local machine seamlessly.
+To run the starter project you just cloned, copy the `architect dev` command displayed when the `architect init` command
 completes, and run it from the same location where you ran the `architect init` command. The `architect dev` command runs your
 application and all its dependencies in your local Docker environment. You will see output similar to the following:
 
@@ -82,21 +82,21 @@ architect dev my-starter-project/architect.yml
 
 Building containers... done
 
-Once the containers are running they will be accessible via the following urls:
+Once the containers are running, they will be accessible via the following URLs:
 https://app.localhost.architect.sh:443/ => react
 [7:45:17 PM] Starting compilation in watch mode...
 
 # begin log stream...
 ```
-You'll notice in the output above that one or more URLs is provided, depending on which starter project you are using.
-For example, starter projects that include a frontend will be accessible at `https://app.localhost.architect.sh:443/` as
+You'll notice in the output above that one or more URLs are provided, depending on your starter project.
+For example, starter projects with a frontend will be accessible at `https://app.localhost.architect.sh:443/` as
 soon as the startup completes. 
 
-When you run the command above, Architect reads the `architect.yml` file that resides in the repo and transforms it into
-a fully enriched `docker-compose.yml` file. The application described by this file is run automatically in your local
+When you run the command above, Architect reads the `architect.yml` file in the repo and transforms it into
+a fully enriched `docker-compose.yml` file. The application described in this file is run automatically in your local
 Docker environment. As shown in the example above, the output from this command provides the URLs where
 the services that comprise this component can be accessed. Depending on which starter project you use, your output
-may differ slightly. If your starter project contains a frontend service, it will be automatically launched in a web browser
+may differ slightly. If your starter project contains a frontend service, it will automatically launch in a web browser
 once the application is started.
 
 ## Check out the architect.yml file
@@ -215,8 +215,8 @@ services:
 
 As you may have noticed, there is a `debug` block in the `architect.yml` file
 that enables hot-reloading for each service within the component. That means you can make changes to
-the source code and those changes will be applied to the environment automatically. This allows you to quickly
-iterate and see your changes without having to restart the application stack.
+the source code, which will automatically apply to the environment. This allows you to quickly
+iterate and see your changes without restarting the application stack.
 
 <Tip> Give it a try! Search inside your project for "Movie Ratings" and change this string to "Pizza Ratings." Once you save the file,
 you'll see the frontend service recompiling in the logs
@@ -226,13 +226,13 @@ and then your browser window will update automatically.</Tip>
 
 Now that you've successfully run and edited a component locally, it's time to
 learn how to register the component and deploy it to a cloud environment. Before
-you can do that however, you need to
+you can do that, however, you need to
 [sign up](https://cloud.architect.io/signup) for Architect and create a free account
 that will house your components and environments.
 
 
 ## Login to Architect
-After you've signed up, you simply need to login via the CLI to allow for access
+After you've signed up, you need to login via the CLI to allow access
 to your account:
 ```bash
 architect login
@@ -240,7 +240,7 @@ architect login
 
 ## Register a component
 
-Before you can deploy to a cloud environment, you have to register and tag your
+Before deploying to a cloud environment, you must register and tag your
 component with Architect's component registry. You can register
 the component with a single command, substituting your Architect account name for the `<account-name>` placeholder.
 Run this command from the top-level directory of your project:
@@ -329,7 +329,7 @@ To create a new environment on Architect's free cloud, run the following command
 ```sh
 architect environments:create my-first-environment
 ```
-This command presents you with a list of Kubernetes clusters. Since you haven't added any external clusters to your
+This command presents you with a list of Kubernetes clusters. Since you haven't added external clusters to your
 account, you should only see `architect`. Hit enter to create your environment on the Architect cloud.
 
 ```sh
@@ -353,7 +353,6 @@ architect deploy react:latest --account <account-name> \
 --environment my-first-environment
 ```
 
-Nice work! Now that you've gotten the hang of the deploy flow, you're probably
-ready to try it out with your own application. Head on over to the
+Nice work! Now that you've gotten the hang of the deploy flow, you can try it out with your own application. Head over to the
 [configuration](/components/architect-yml) section to learn more about the
 `architect.yml` file and how to write one of your own!
