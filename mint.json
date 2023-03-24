@@ -105,7 +105,7 @@
       "pages": [
         "reference/release-notes",
         "reference/changelog",
-        "reference/contexts",
+        "reference/contexts-and-interpolation",
         "reference/architect-yml",
         "reference/templates",
         "reference/cli"
