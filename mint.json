@@ -68,7 +68,8 @@
       "group": "Guides",
       "pages": [
         "guides/create-a-component",
-        "guides/adding-additional-services"
+        "guides/adding-additional-services",
+        "guides/integration-testing"
       ]
     },
     {
