@@ -1,8 +1,8 @@
 ---
-title: "Adding Additional Services"
+title: "Add additional services"
 ---
 
-## Adding a Backend
+## Add a Backend
 
 Our `architect.yml` can define multiple services, and our frontend application
 isn't able to do much without a backend providing data.
@@ -59,7 +59,7 @@ services:
           subdomain: api
 ```
 
-### Defining Another Service
+### Define another service
 
 In order for our component to deploy multiple services, we can add configuration
 a second service within the `services` section. For this example, the additional
@@ -81,7 +81,7 @@ We want to build our API from the `node-backend` directory, and can use the
 relative path `../node-backend` to specify that. We also create an interface
 named `http` that will listen on port 3000.
 
-### Running Locally
+### Run locally
 
 This can be run locally using the same command as before:
 
@@ -93,7 +93,7 @@ This time, both `https://test.localhost.architect.sh` and
 `https://api.localhost.architect.sh` will be available when the containers are
 started, and the frontend will be able to make requests to the backend.
 
-### Registering a Component to be deployed on the Cloud
+### Register a component to be deployed on the cloud
 
 The updated version of the component can be registered as well:
 
@@ -105,7 +105,7 @@ This will allow you to deploy the component on the Architect Cloud from
 `https://cloud.architect.io`, or via the command line utility
 `architect deploy`.
 
-### Next Steps
+### Next steps
 
 At this point, the `architect.yml` can evolve in whatever way is necessary to
 fulfill the needs of your application. For example, it's likely necessary for
