@@ -108,6 +108,8 @@
         "reference/contexts-and-interpolation",
         "reference/architect-yml",
         "reference/templates",
+        "reference/architect-yml",
+        "reference/contexts",
         "reference/cli"
       ]
     }
