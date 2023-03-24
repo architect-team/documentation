@@ -1,0 +1,86 @@
+---
+title: "Integration testing via preview environments"
+---
+ 
+Preview environments (also called feature environments) are a powerful tool of Architect. It can seamlessly spin up custom environments to help preview new changes; this removes the headache of trying to provision your environment, allowing you to test faster and earlier in your process.
+
+With that in mind, this feature will enable you to quickly and efficiently run integration tests on your application to ensure brand-new features play nicely with the rest of the application.
+
+## Integration testing
+
+So what exactly is integration testing? Integration testing is the next step up from unit testing - instead of testing the new feature in isolation to ensure proper functionality, you’re testing how the new feature interacts with other parts of your application or platform. This ensures that unforeseen errors won’t occur and gives insight into how the new feature fits the product. 
+
+Let’s say you just finished creating a cart service (or module, depending on how you build your software). To be successful, the cart service will need to interface with your API to ingest data the user generates from the front end, such as adding a new item to the cart. The cart service will also need to integrate with a few other services as well - the user session service, the checkout service, etc.
+
+Architect uses dependency management to ensure each component has all the services needed to run correctly and define internal networking between the services. 
+
+We won’t delve deep into the types of integration testing (such as Top-down or bottom-up approach), but we want to lay the initial landscape of the problem. You have one service that needs to interact with several others; testing each individually can be a nightmare. Some services required for your integration testing will also depend on other services.
+
+### Requirements
+
+To run integration tests, you'll need a few things:
+* A component to test
+* A testing framework with support for integration testing
+* The [Architect CLI](https://www.npmjs.com/package/@architect-io/cli)
+
+For our example, we’ll be using our starter projects - the language doesn’t matter, so feel free to pick your chosen framework. The only important thing your component will need in the `architect.yml` file is an [ingress rule](../components/ingress-rules) to allow connections to your application. We’ll use the [react](https://github.com/architect-templates/react) starter project for the example below.
+
+Aside from that, you'll need a testing framework that supports integration testing. Certain unit testing frameworks, such as [jest](https://jestjs.io/), can be extended to perform integration testing, but it’s best to use a framework that focuses on integration testing, such as [cypress.io](https://www.cypress.io/) or [Nightwatch.js](https://nightwatchjs.org/). For our example, we'll use [Playwright](https://playwright.dev/).
+
+# Example Integration test
+
+### Set up your application
+First, we’ll need a component to work on the test. Clone down the react starter project by running:
+
+```bash
+$ git clone git@github.com:architect-templates/react.git
+```
+
+This application is a simple "Favorite Movies” application that takes a movie name and a rating from 1-5. Let's pretend that we just added the functionality to add in our movie names, and we want to test it to ensure that it works with the rest of our application.
+
+Once cloned, go into your project folder and run the following architect command:
+```bash
+$ architect dev .
+```
+
+This will spin up a local instance of the starter project, which will be accessible through `https://app.localhost.architect.sh/`.
+
+### Installing playwright and writing the test
+Open a new terminal in the project folder, and run the following command to install playwright:
+
+```bash
+npm init playwright@latest
+```
+
+After answering all the prompts, npm will install playwright's packages and a few example tests. You will have a few new folders in your directory. Navigate to the new `/tests` folder, and open up `example.spec.js`.
+
+Once this file is open, paste in the below code - This playwright test goes to the page, checks that it can add in new input, and then submit the input form.
+```js
+// @ts-check
+const { test, expect } = require('@playwright/test');
+
+test('Ensure form submit works', async ({ page }) => {
+  await page.goto('https://app.localhost.architect.sh/');
+
+  // Input a movie title and rating
+  await page.getByRole('textbox', {name:'name'}).fill('Test-movie');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Digit2');
+
+  // Submit a new favorite movie
+  await page.getByRole('button').click();
+});
+```
+
+Once saved, go to the terminal and run the following command:
+```bash
+$ npx playwright test
+```
+
+This command will execute the test that we just added in. Once the test completes, you can view your test results by running:
+```bash
+$ npx playwright show-report
+```
+
+And that's all there is to it! To further automate your flow, check out to leverage the power of [GitOps](../deployments/gitops-releases) to integrate your tests into GitHub actions or other CI/CD workflows.
+
