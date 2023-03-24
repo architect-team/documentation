@@ -59,7 +59,6 @@
       "pages": [
         "getting-started/introduction",
         "getting-started/best-practices",
-        "getting-started/clusters",
         "getting-started/external-services",
         "getting-started/working-with-tasks"
       ]
