@@ -79,6 +79,11 @@ them at deployment time. This applies to both
 [service](/components/service-discovery) and
 [dependency](/components/dependencies) references.
 
+## Interpolation
+
+Architect component configuration files are meant to be used to deploy applications to any environment, whether that's local or remote.
+Because of this, things that can change between environments such as service addresses and secrets should be referenced by [interpolation](/reference/contexts-and-interpolation#interpolation).
+
 ## Volumes
 
 Volumes are important in local and production-grade deployments to persist data
