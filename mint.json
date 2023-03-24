@@ -51,24 +51,12 @@
   ],
   "navigation": [
     {
-      "group": "Welcome",
-      "pages": ["home"]
-    },
-    {
       "group": "Getting Started",
       "pages": [
+        "home",
         "getting-started/introduction",
-        "getting-started/best-practices",
-        "getting-started/clusters",
-        "getting-started/external-services",
-        "getting-started/working-with-tasks"
-      ]
-    },
-    {
-      "group": "Guides",
-      "pages": [
-        "guides/create-a-component",
-        "guides/adding-additional-services"
+        "getting-started/create-a-component",
+        "getting-started/add-additional-services"
       ]
     },
     {
@@ -82,7 +70,15 @@
         "components/secrets",
         "components/local-configuration",
         "components/ingress-rules",
-        "components/component-registration"
+        "components/component-registration",
+        {
+          "group": "More",
+          "pages": [
+            "getting-started/best-practices",
+            "getting-started/external-services",
+            "getting-started/working-with-tasks"
+          ]
+        }
       ]
     },
     {

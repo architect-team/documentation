@@ -3,9 +3,12 @@ title: "Best Practices"
 ---
 Follow these best practices to help you get the most out of Architect.
 
-## Component names
+## Components
+These are some best practices to keep in mind when creating components.
 
-A [component](./../tutorial/create-a-component) name is used in the architect.yml component file that defines
+### Component names
+
+A [component](./../tutorial/create-a-component) name is used in the `architect.yml` component file that defines
 services, tasks, interfaces, and secrets. A component name can include lowercase
 letters, numbers, underscores, and dashes. Component names can't start or end
 with a dash or underscore. The maximum length is 32 characters.
@@ -29,8 +32,8 @@ name: my-component
 ### Component versions
 
 An architect component version, or tag, is created when a component is
-[registered](/reference/cli/#architect-register-component) with the Architect
-Cloud. The `--tag` or `-t` flag of the `architect register` command can be used
+[registered](/reference/cli/#architect-register-component) with Architect.
+The `--tag` or `-t` flag of the `architect register` command can be used
 to specify the name of the version. Architect components can have multiple
 versions similar to any package manager. Component versions can contain
 alphanumeric characters, periods, dashes, and underscores. The maximum length of
@@ -58,7 +61,10 @@ architect register architect.yml -t 0.0.1
 
 ## Parameterizing services
 
-[Secrets](/deployments/secrets) should be used frequently in the architect.yml
+Your service definitions should parameterize any values that are likely to change between local development and
+deploying to production.
+
+[Secrets](/deployments/secrets) should be defined in the `architect.yml`
 component file for configurable values between local or remote deployments. This
 ensures that applications maintain portability.
 
@@ -70,9 +76,9 @@ Examples include:
 
 Secrets help avoid hardcoded values for things that may change between local
 development and production, such as an API address or a database
-username/password.
+username and password.
 
-Similarly, services defined in the component configuration file shouldn't have
+Similarly, services defined in the component configuration file don't need to use
 hardcoded values when referencing one another. This is because Architect will
 dynamically detect connections between services and dependencies and generate
 them at deployment time. This applies to both
@@ -86,11 +92,12 @@ Because of this, things that can change between environments such as service add
 
 ## Volumes
 
-Volumes are important in local and production-grade deployments to persist data
-between container lifecycles. Local deployments can also leverage volumes used
-in the component config's `debug` block to support hot reloading.
+Volumes are important in both local and production deployments to persist data
+between container lifecycles.
 
 ### Local volumes
+
+Local deployments can use volumes within the `debug` block of the `architect.yml` file to support hot reloading.
 
 #### Hot reloading
 
@@ -114,19 +121,21 @@ services:
           host_path: ./api/src # The location of the code relative to the architect.yml file on the host machine
 ```
 
-Note that the application running in the container should be configured to
+Note that the application running in the container must be configured to
 support hot reloading. This will vary depending on your framework. For example,
-node applications would need to utilize the
-[nodemon](https://www.npmjs.com/package/nodemon) package for hot reloading.
+Node applications can implement hot reloading by utilizing the
+[nodemon](https://www.npmjs.com/package/nodemon) package.
 
 #### Debug volumes
 
 [Data persistence](/components/local-configuration/#persisting-data) should also
-be considered when running local deployments with `architect`. Using volumes,
+be considered when running local deployments with `architect dev`. Using volumes,
 data can be shared between the container and the host machine so that even as
 the local stack spins up and down, the data being used to debug won't disappear.
 This is especially useful in cases where it's important to retain data from a
-database. An example is below:
+database.
+
+This is an example of mounting a local database volume when running locally in `debug` mode:
 
 ```yaml
 # architect.yml
@@ -156,13 +165,14 @@ services:
 </Warning>
 
 <Warning>
-When changing the service name, the volume name, or the architect dev environment name (via `architect dev -e <env-name>`), a new volume will be provisioned if `mount_path` is used in the volume config without a `host_path`.
+    When changing the service name, the volume name, or the architect dev environment name (via `architect dev -e <env-name>`),
+    a new volume will be provisioned if `mount_path` is used in the volume config without a `host_path`.
 </Warning>
 
 ### Remote volumes
 
-Any data stored directly on the filesystem of a Kubernetes pod shouldn't be
-expected to be persistent. For that reason, important data should be stored in a
+Data stored directly on the filesystem of a Kubernetes pod won't be persisted. For
+that reason, important data should be stored in a
 volume and added to the service similar to the following:
 
 ```yaml
@@ -178,7 +188,7 @@ services:
 
 ## Service dependencies
 
-When using a service that depends on another service to be fully operational
+When using a service that depends on another service that must be fully operational
 first, a [`depends_on`](/components/services/#depends_on) block can be added to
 the service definition of the dependent service. An example of this is an API
 requiring a database service to run before the API can start up. The
@@ -186,10 +196,10 @@ requiring a database service to run before the API can start up. The
 
 Take a simple web service named `my-service` which will fail to start if it
 cannot connect to the `database` service. A `depends_on` block can be added to
-`my-service`, which will ensure that the database has been spun up before trying
+`my-service` to ensure that the database has been spun up before trying
 to start `my-service`.
 
-Below is a snippet of an Architect component file to demonstrate what this would
+Below is a snippet of an `architect.yml` file to demonstrate what this would
 look like.
 
 ```yaml
@@ -206,15 +216,10 @@ database:
       port: 5432
 ```
 
-## Using Third-party or Cloud Services
-
-Host overrides are used to replace Architect services with third-party services,
-such as databases. Check out an example configuration.
-
 ## Ensuring service health
 
-The Architect service configuration includes a liveness_probe block to configure
+The Architect service configuration includes a `liveness_probe` block to configure
 a check that ensures service health. It can let a container environment know
-when to restart a service if for some reason the container becomes unhealthy.
+when to restart a service if the container becomes unhealthy.
 When configuring the command for the liveness probe, ensure that the command
-used (ex. curl) is installed in the Docker image for the service.
+used (ie `curl`) is installed in the Docker image for the service.
