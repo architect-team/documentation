@@ -2,7 +2,7 @@
 title: "Contexts and Interpolation"
 ---
 
-When writing `architect.yml files`, you can reference information about the
+When writing `architect.yml` files, you can reference information about the
 runtime or environment, details that are otherwise unique to each deployed
 environment, through Architect's expression syntax. Encoding component's with
 these references can help limit the manual configuration needs of your services
@@ -87,47 +87,14 @@ Interface values are referenced in many places, `dependencies` and `services` wi
 Interpolation is used in the `architect.yml` component configuration file to reference values in contexts defined by Architect.
 Common use cases for interpolation include referencing the address of another service within the component, the address of a dependent component,
 a secret of the component, an ingress of a service, and more. An interpolation reference always starts with `${{` and ends with `}}`.
-When the component is started with either [`architect dev`](/reference/cli#architect-dev-configs-or-components) or [`architect deploy`](/reference/cli#architect-deploy-configs-or-components),
+When the component is deployed with either [`architect dev`](/reference/cli#architect-dev-configs-or-components) or [`architect deploy`](/reference/cli#architect-deploy-configs-or-components),
 any interpolation references in the component file will be populated with real values.
 
 ### Examples of common use cases
 
-#### Referencing the address of a dependency
-
-In certain cases, a component will reference another Architect component as a dependency, and an address of a service within that dependency will need to be referenced.
-Take the following example of two components, where the "api" component is a dependency of the "app" component.
-
-```yml
-# architect.yml of the api component
-name: api
-
-services:
-  api:
-    interfaces:
-      main:
-        port: 8080
-        ingress:
-          subdomain: api
-...
-```
-
-```yml
-# architect.yml of the app component
-name: app
-
-dependencies:
-  api: latest
-
-services:
-  app:
-    environment:
-      API_ADDRESS: ${{ dependencies.api.services.api.interfaces.main.ingress.url }}
-...
-```
-
 #### Referencing a secret
 
-Secrets will frequently be defined in the component configuration file and will be populated when the component is started. It will then be referenced in a part of a service,
+Secrets will frequently be defined in the component configuration file and will be populated when the component is deployed. It will then be referenced in a part of a service,
 such as the environment block.
 
 ```yml
@@ -167,8 +134,9 @@ services:
 
 #### Referencing the external address of another service
 
-Services within the same component will sometimes need to reference one another from outside of the network. This is common when a frontend application needs to make calls to an API from
-a browser. In the example below, the "app" service references the external, public-facing address of the "api" service.
+Services within the same component will sometimes need to reference one another from outside of the network. A common case is when a frontend application needs to make calls to an
+API from a browser. In the example below, the "app" service references the external, public-facing address of the "api" service. The external address of the API service is generated
+automatically by Architect when the component is deployed.
 
 ```yml
 # architect.yml
@@ -188,12 +156,45 @@ services:
 ...
 ```
 
+#### Referencing the address of a dependency
+
+In certain cases, a component will reference another Architect component as a dependency, and an address of a service within that dependency will need to be referenced.
+Take the following example of two components, where the "api" component is a dependency of the "app" component.
+
+```yml
+# architect.yml of the api component
+name: api
+
+services:
+  api:
+    interfaces:
+      main:
+        port: 8080
+        ingress:
+          subdomain: api
+...
+```
+
+```yml
+# architect.yml of the app component
+name: app
+
+dependencies:
+  api: latest
+
+services:
+  app:
+    environment:
+      API_ADDRESS: ${{ dependencies.api.services.api.interfaces.main.ingress.url }}
+...
+```
+
 ### Example of a simple component with interpolation
 
 The following example component uses the Docker image built by our "node-rest-api" [example project](https://github.com/architect-templates/node-rest-api) and connects the API to a Postgres database.
-`${{ services.database.interfaces.main.url }}` is used to allow the database to connect to the API. When the component is started, the interpolation reference will be replaced by an automatically-generated
+`${{ services.database.interfaces.main.url }}` is used to allow the database to connect to the API. When the component is deployed, the interpolation reference will be replaced by an automatically-generated
 network address where the database service can be reached. Secrets are passed to each service with secret interpolation such as `${{ secrets.db_name }}`. The secret interpolation references
-will be replaced by actual secret values when the component is started.
+will be replaced by actual secret values when the component is deployed.
 
 ```yml
 # architect.yml
