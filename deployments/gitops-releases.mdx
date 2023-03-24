@@ -1,10 +1,5 @@
 ---
-title: "GitOps Releases"
-description:
-  "In the previous doc you learned how to automate preview environments on pull
-  requests. In this doc, you'll learn how to create additional GitOps workflows
-  that promote your code to staging when pull requests are merged, and
-  production when new releases are cut."
+title: "GitOps releases"
 ---
 
 ## Sync staging with main
@@ -26,7 +21,7 @@ have to create the environment in advance.
   token](https://cloud.architect.io/login).
 </Warning>
 
-### Github Actions
+### Github actions
 
 ```yaml
 name: Deploy main
@@ -79,7 +74,7 @@ persistent, so you'll have to create the environment in advance.
   token](https://cloud.architect.io/login).
 </Warning>
 
-### Github Actions
+### Github actions
 
 ```yaml
 name: Deploy release

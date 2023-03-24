@@ -1,9 +1,5 @@
 ---
-title: "Multi-Tenant Deployments"
-description:
-  "Though components support horizontal scaling through the replicas property,
-  there are cases where you may want multiple separate deployments of a
-  component in a single environment."
+title: "Multi-tenant deployments"
 ---
 
 The default deployment process will create an instance of the component as an
@@ -20,7 +16,7 @@ tenant of the `examples/react-app` component had already been deployed, the
 above command would have deployed to that same tenant, leaving any other
 instances of the component untouched.
 
-## Deployments and Management Lifecycle
+## Deployments and management lifecycle
 
 When you view your deployed components, you'll see that the react-app has the
 name "app1" whereas the typical deployment without a tenant name will show only
@@ -29,7 +25,7 @@ the tenant names "app1" and "app2", and once without a tenant name.
 
 ![](/images/multi-tenant-components.webp)
 
-## Secrets and Values
+## Secrets and values
 
 Configuring individual tenants works the same way as deploying those tenants: by
 providing the tenant name. Secrets use the component scopes to specify which

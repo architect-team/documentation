@@ -63,7 +63,7 @@ build:
 
 <Note>This field cannot be used in conjunction with the `image` field</Note>
 
-#### Using Buildpack
+#### Using buildpack
 
 > Buildpack is currently in alpha. While the feature should be stable, it may be changed or removed without prior notice. As such we do not recommend using this feature in any automated pipelines. During this time we greatly appreciate any feedback as we continue to finalize the implementation. You can reach us at support@architect.io.
 If a `Dockerfile` is not found in the directory in which the `context` field is set, the CLI by default will trigger a Cloud Native Buildpacks builder to build an [image](#image) of the service. A builder is an image that detects and converts source code into a runnable container image.
