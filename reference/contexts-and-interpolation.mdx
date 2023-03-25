@@ -19,6 +19,7 @@ categories available for reference:
 | `dependencies` | References to the dynamic outputs of each dependency and their interfaces |
 | `secrets`      | Dynamic values for the secrets declared by your component                 |
 | `services`     | References to the dynamic outputs of each service and their interfaces    |
+| `databases`    | References to the dynamic outputs of each database                        |
 
 ### `dependencies` context
 
@@ -68,19 +69,37 @@ interfaces of other services inside the component.
 | `services.<service>.interfaces.<interface>`         | `object` | Information about the specified service interface. [See the interface values](#interface-values) for more details. |
 | `services.<service>.interfaces.<interface>.ingress` | `object` | Information about the specified service interface. [See the interface values](#interface-values) for more details. |
 
+### `databases` context
+
+The `databases` context contains dynamic information about all the databases
+inside the component. This context is primarily used to refer to the address
+and credentials of each database instance.
+
+| Property                      | Type        | Description                                    |
+| ----------------------------- | ----------- | ---------------------------------------------- |
+| `databases`                   | `object`    |  |
+| `databases.<name>`            | `object`    |  |
+| `databases.<name>.url`        | `string`    | Fully resolvable URL of the database (alias: `connection_string`) |
+| `databases.<name>.host`       | `string`    | Hostname of the database |
+| `databases.<name>.port`       | `int`       | Port the database is exposed on |
+| `databases.<name>.protocol`   | `string`    | Protocol the database responds to |
+| `databases.<name>.username`   | `string`    | Username used to authenticate with the database |
+| `databases.<name>.password`   | `string`    | Password used to authenticate with the database |
+| `databases.<name>.database`   | `string`    | The database (e.g. namespace) on the instance to be connected to |
+
 ### `interface values`
 
 Interface values are referenced in many places, `dependencies` and `services` with a set of uniform values available to reference. These values include:
 
-| Property | Type                                                                                                                                                                                                                                                            | Description |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| url      | The fully composed URL of the reference interface. This will take the format, `<protocol>://<username>:<password>@<host>:<port><path>`.                                                                                                                         |
-| protocol | The protocol of the interface being referenced. This will always be the specific value assigned to the interface by the developer.                                                                                                                              |
-| username | The username of the interface being referenced. Not all interfaces have usernames, so this will be an empty string if none is set.                                                                                                                              |
-| password | The password of the interface being referenced. Not all interfaces have passwords, so this will be an empty string if none is set.                                                                                                                              |
-| host     | The host value of the interface being referenced. This value is usually dynamic to accomodate the differences between service discovery solutions available to each environment.                                                                                |
-| port     | The port value of the interface being referenced. This will not always be the specific port that the interface is listening on as many container clusters leverage port mapping to ensure that there are no port collisions when sharing hardware in a cluster. |
-| path     | The path value of the interface being referenced. Not all interfaces have paths, so this will be an empty string if none is set.                                                                                                                                |                                                                                                                         |
+| Property   | Type        | Description                        |
+| ---------- | ----------- | ---------------------------------- |
+| `url`      | `string`    | The fully composed URL of the reference interface. This will take the format, `<protocol>://<username>:<password>@<host>:<port><path>`. |
+| `protocol` | `string`    | The protocol of the interface being referenced. This will always be the specific value assigned to the interface by the developer.  |
+| `username` | `string`    | The username of the interface being referenced. Not all interfaces have usernames, so this will be an empty string if none is set. |
+| `password` | `string`    | The password of the interface being referenced. Not all interfaces have passwords, so this will be an empty string if none is set. |
+| `host`     | `string`    | The host value of the interface being referenced. This value is usually dynamic to accomodate the differences between service discovery solutions available to each environment. |
+| `port`     | `int`       | The port value of the interface being referenced. This will not always be the specific port that the interface is listening on as many container clusters leverage port mapping to ensure that there are no port collisions when sharing hardware in a cluster. |
+| `path`     | `string`    | The path value of the interface being referenced. Not all interfaces have paths, so this will be an empty string if none is set. |  
 
 ## Interpolation
 
