@@ -55,8 +55,15 @@
       "pages": [
         "home",
         "getting-started/introduction",
-        "getting-started/create-a-component",
-        "getting-started/add-additional-services"
+        "reference/templates"
+      ]
+    },
+    {
+      "group": "Guides",
+      "pages": [
+        "guides/create-a-component",
+        "guides/add-additional-services",
+        "guides/api-security"
       ]
     },
     {
@@ -103,7 +110,6 @@
         "reference/changelog",
         "reference/contexts-and-interpolation",
         "reference/architect-yml",
-        "reference/templates",
         "reference/cli"
       ]
     }
