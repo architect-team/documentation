@@ -20,6 +20,10 @@ strict, zero-trust network policies.
 
 ## IP whitelisting
 
+<Note>
+  This feature only works for remote environments since local environments aren't accessible to the public web
+</Note>
+
 Unlike for internal services, Architect has no idea who the intended users are for external
 services exposed via ingress rules. By default, the API gateway is configured to allow traffic
 from everywhere.
@@ -50,3 +54,11 @@ that the cluster API gateway receives the correct IP addresses from AWS.
 Login to your AWS dashboard and find the target groups that were created by the EKS cluster with the prefix,
 `k8s-arcmanag-traefik`. For each group, click on the `Attributes` tab and make sure that `Proxy protocol v2` and
 `Preserve client IP addresses` are set to `Enabled`.
+
+### FAQ
+
+#### Getting "Forbidden" even though my IP address is allowed
+
+Stuck getting a "Forbidden" message even though you've provided a valid IP address in the `ip_whitelist` field? The first thing you need to confirm is whether or not you're actually using the right IP address. To see what IP address is visible externally, go to [whatsmyip.org](https://www.whatsmyip.org/).
+
+Another reason you could be seeing this is if "proxy protocol" is not enabled on your load balancer. If you're deploying to your own cluster instead of Architect Cloud, be sure that your cloud provide supports "proxy protocol" for their load balancers and double check to make sure that it is enabled for yours. Every provider has different methods for enabling the feature, so please refer to your cloud provider's documentation for further instructions.
