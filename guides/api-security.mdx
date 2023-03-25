@@ -47,6 +47,6 @@ services:
 If you're deploying your component to a private, EKS cluster, you'll need to do one extra step to ensure
 that the cluster API gateway receives the correct IP addresses from AWS.
 
-Login to your AWS dashboard and find the target groups on that were created by the EKS cluster with the prefix,
+Login to your AWS dashboard and find the target groups that were created by the EKS cluster with the prefix,
 `k8s-arcmanag-traefik`. For each group, click on the `Attributes` tab and make sure that `Proxy protocol v2` and
 `Preserve client IP addresses` are set to `Enabled`.
