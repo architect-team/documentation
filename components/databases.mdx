@@ -1,0 +1,39 @@
+---
+title: Databases
+description: Add databases to your Architect Components
+---
+
+<Warning>
+  Declarative databases are currently an **alpha** feature. While the feature should be stable, it may
+  be changed without prior notice.
+</Warning>
+
+Databases represent a common building block in cloud architecture, and Architect makes it easier than
+ever for developers to create applications that require databases. Simply declare them as part of your
+component and they'll be automatically deployed alongside your applications.
+
+```yaml architect.yml
+databases:
+  main:
+    description: Main storage for my application
+    type: postgres:13
+```
+
+## How databases get deployed
+
+Today, Architect deploys databases by transforming the database claims into single-interface services.
+That means they'll be deployed as containerized applications. This is great for feature-environments,
+but not ideal for production.
+
+When going to production, Architect recommends creating your database separately using your favorite
+cloud provider. Once your database exists, you can provide the connection string to the environment
+to create a [virtual service](/getting-started/external-services) - allowing applications to connect securely
+to the existing instance.
+
+## Supported database types
+
+| Type         | Version                            |
+| ------------ | ---------------------------------- |
+| `postgres`   | `10`, `11`, `12`, `13`, `14`, `15` |
+| `mysql`      | `5`, `8` |
+| `mariadb`    | `10` |
