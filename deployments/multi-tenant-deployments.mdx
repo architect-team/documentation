@@ -44,7 +44,7 @@ This enables minimal duplication of configuration, as you can specify any
 necessary values in a generic component scope, but then override specific values
 on a tenant-by-tenant basis. In the following example, the `planetearth` tenant
 would have the `foo` secret as configured in the first scope, but would have the
-overwritten values for w`orld_text` set in the second scope.
+overwritten values for `world_text` set in the second scope.
 
 ```yaml
 "react-app":
@@ -53,3 +53,89 @@ overwritten values for w`orld_text` set in the second scope.
 "react-app@planetearth":
   world_text: Planet Earth
 ```
+
+## Automating deployments
+
+Want to make it as easy as possible for your team to create tenants? Try creating a tenant file in your
+repository that gets read in by your CI jobs to automate deployments.
+
+```json ./tenants.json
+[
+  {
+    "name": "cool-customer",
+    "description": "The coolest of customers",
+    "owner": "thor@architect.io"
+  },
+  {
+    "name": "rad-customer",
+    "description": "The raddest of customers",
+    "owner": "ironman@architect.io"
+  }
+]
+```
+
+### Setting up the workflow
+
+With a file like that in the root of your repository, you can iterate over the list of tenants 
+directly in your CI workflow.
+
+<CodeGroup>
+```yaml Github Actions
+name: Deploy tenants
+
+env:
+  ARCHITECT_EMAIL: ${{ secrets.ARCHITECT_EMAIL }} # pass secrets into a job from Github > Settings > Secrets
+  ARCHITECT_PASSWORD: ${{ secrets.ARCHITECT_PASSWORD }}
+  ARCHITECT_ACCOUNT: <account-name>
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+      - uses: crazy-max/ghaction-github-runtime@v2
+      - name: Install Architect CLI
+        run: npm install -g @architect-io/cli
+      - name: Login to Architect Cloud
+        run: architect login
+      - name: Register component
+        run: architect register ./architect.yml --tag latest
+
+  get-tenants:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.get-tenants.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: get-tenants
+        run: |
+          JSON=$(cat ./tenants.json)
+          echo "::set-output name=matrix::${JSON//'%'/'%25'}"
+  
+  deploy:
+    needs: [get-tenants, register]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.get-tenants.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+      - uses: crazy-max/ghaction-github-runtime@v2
+      - name: Install Architect CLI
+        run: npm install -g @architect-io/cli
+      - name: Login to Architect Cloud
+        run: architect login
+      - name: Register and deploy to Staging
+        run: architect deploy app:latest@${{ matrix.name }} --environment production --auto-approve
+```
+</CodeGroup>
