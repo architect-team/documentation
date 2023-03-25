@@ -19,6 +19,35 @@ databases:
     type: postgres:13
 ```
 
+## Integration
+
+Like services, databases represent persistent runtimes that can be connected to by other applications and
+services. You can refer to many of the same fields supported by service interfaces for databases as well.
+
+```yaml
+databases:
+  main:
+    type: postgres:13
+
+services:
+  api:
+    interfaces:
+      main:
+        port: 8080
+    environment:
+      DB_DSN: ${{ databases.main.url }}
+```
+
+| key        | description |
+| ---------- | ----------- |
+| `url`      | Fully resolvable URL of the database (alias: `connection_string`) |
+| `host`     | Hostname of the database |
+| `port`     | Port the database is exposed on |
+| `protocol` | Protocol the database responds to |
+| `username` | Username used to authenticate with the database |
+| `password` | Password used to authenticate with the database |
+| `database` | The database (e.g. namespace) on the instance to be connected to |
+
 ## How databases get deployed
 
 Today, Architect deploys databases by transforming the database definitions into single-interface services.
