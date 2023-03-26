@@ -1,0 +1,69 @@
+---
+title: CORS configuration
+sidebarTitle: CORS
+---
+
+Cross-Origin Resource Sharing (CORS) is an HTTP-header based mechanism that allows a server to
+indicate any origins (domain, scheme, or port) other than its own from which a browser should
+permit loading resources. By default, requests from the same domain, schema, and port are allowed
+by CORS, but it is common to use different subdomains for different apps and services in cloud
+environments which can create the need to configure CORS explicitly.
+
+[Click here to learn more about what CORS is and why it exists](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
+
+Architect helps application developers automatically configure CORS for their applications by
+facilitating the injection of the external [ingress](/components/ingress-rules) URLs into the
+application. This is normally used to help client-side applications connect to the external address
+of backend APIs, but can also be used by the backend APIs to allow the frontend address to be
+used as a valid CORS origin.
+
+```yaml architect.yml
+services:
+  frontend:
+    image: my-image:latest
+    interfaces:
+      main:
+        port: 3000
+        ingress:
+          subdomain: app
+    environment:
+      BACKEND_ADDR: ${{ services.backend.interfaces.main.ingress.url }}
+  
+  backend:
+    image: my-backend:latest
+    interfaces:
+      main:
+        port: 8080
+        ingress:
+          subdomain: api
+    environment:
+      CORS_ORIGIN: ${{ services.frontend.interfaces.main.ingress.url }}
+```
+
+In the example above, the backend has an environment variable called `CORS_ORIGIN` that will
+automatically be populated with the external address of the frontend service. From there, 
+developers can use the value to automatically configure CORS as shown in the [ExpressJS](https://expressjs.com/)
+example below:
+
+```js
+var express = require('express')
+var cors = require('cors')
+var app = express()
+
+app.use(cors({
+  origin: process.env.CORS_ORIGIN,
+  optionsSuccessStatus: 200
+}))
+
+app.get('/products/:id', function (req, res, next) {
+  res.json({msg: 'This is CORS-enabled for all origins!'})
+})
+
+app.listen(8080, function () {
+  console.log('CORS-enabled web server listening on port 8080')
+})
+```
+
+Architect helps by dynamically injecting the CORS origin addresses into your application, but
+every web framework uses different schemas for configuring CORS. Be sure to consult the documentation
+for your framework on how to configure the CORS origin address.
