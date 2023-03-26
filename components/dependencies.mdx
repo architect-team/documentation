@@ -1,59 +1,105 @@
 ---
-title: "Dependencies"
-description:
-  "Architect was designed with the future in mind, and the future of any team
-  building distributed software is a complex web of services."
+title: Dependencies
+description: Integrate with other APIs using common dependency management tactics
 ---
 
-Historically this complex web of services has been hard to manage, hard to
-reason about, and hard for developers to contribute to.
+Historically cloud teams have tried to avoid dependencies and coupling between microservices and APIs
+because it creates a lot of infrastructure and CI/CD complexity. However, its all too natural for
+developers to try to extend what exists rather than reinvent it, and many teams ended up with complex
+webs of microservices nonetheless. 
 
-Fortunately, the graphing and collaboration problems this creates have been
-solved before. We've seen it with object-oriented programming and inheritance,
-and even more recently with package and dependency management. All of our
-favorite languages have a way for developers to utilize dependencies through a
-resolver to handle the artifact storage, complex graphing, and de-duplication
-needed to manage them at-scale. Architect takes this same approach to make it
-easier than ever for developers to extend cloud services.
+Fortunately, this problem of "dependencies" has been solved before. Every language and operating system
+on earth has tools for dependency management to help developers collaborate and extend each others work.
+Now Architect is here to provide the same value for APIs and microservices.
 
-## Utilizing dependencies
+## Why use dependencies?
 
-```yaml
-dependencies:
-  authentication: latest
+Citing dependencies as part of your component is not the most natural way for developers to integrate with
+software made by other teams, but its also the only way to achieve [on-demand environments](/environments/pull-request)
+for [distributed applications](/architecture/microservices).
 
-services:
-  my-api:
-    interfaces:
-      http: 8080
-    environment:
-      AUTH_INTERNAL: ${{ dependencies['authentication'].services.auth.interfaces.main.url }}
-      AUTH_EXTERNAL: ${{
-        dependencies['authentication'].services.auth.interfaces.main.ingress.url
-        }}
+Every time a component is deployed with Architect, it will automatically deploy (if needed) and connect to
+cited dependencies. Perhaps even more impressive than that is that it will also deploy the dependencies OF your
+component's dependencies and ensure they're integrated as well.
+
+Without dependency management integrated into deployments, each and every application would have to maintain a
+complex web of CI pipelines or centralized infrastructure-as-code (IaC) templates to create new environments which
+can be an educational and logistical nightmare. With Architect, all you ever need to know is your immediate dependencies
+and the rest will be automated for you.
+
+## Registering dependencies
+
+Before we can begin using dependencies, we need to create a component that we want to act as a dependency for another.
+Let's start by creating a new component that we'll call the `backend` of our project. The command below will help you
+create a new component from one of Architect's starter projects.
+
+```sh
+$ architect init backend
 ```
 
-Just like with your favorite package manager, developers can cite the names and
-versions of the components that they need to make calls to. Not only will this
-allow Architect to provision the dependency automatically, it will also allow
-developers to pin to specific versions and ensure that the APIs don't change out
-from under them.
+Now that we have the project created, let's go ahead and register it with Architect. This will simply build the services
+into docker images and publish everything to Architect's cloud registry.
 
-## Dependency referencing syntax
+```sh
+$ architect register ./backend --tag latest --account my-account
+```
 
-We've already shown how Architect enables developers to take advantage of
-[service discovery](/components/service-discovery) for connecting to peer
-services, and the same approach can be used to connect to the interfaces of
-component dependencies. Once you've specified a dependency in your component,
-you can reference the interfaces of said dependency using the
-`${{ dependencies.*.services.*.interfaces.* }}` expression context.
+## Using dependencies
 
-| field    | description                                                                                                                                                                      |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| url      | The fully composed URL of the reference interface. This will take the format, `<protocol>://<username>:<password>@<host>:<port><path>`.                                          |
-| protocol | The protocol of the interface being referenced. This will always be the specific value assigned to the interface by the developer.                                               |
-| username | The username of the interface being referenced. Not all interfaces have usernames, so this will be an empty string if none is set.                                               |
-| password | The password of the interface being referenced. Not all interfaces have passwords, so this will be an empty string if none is set.                                               |
-| host     | The host value of the interface being referenced. This value is usually dynamic to accomodate the differences between service discovery solutions available to each environment. |
-| port     | The port value of the interface being referenced.                                                                                                                                |
-| path     | The path value of the interface being referenced. Not all interfaces have paths, so this will be an empty string if none is set.                                                 |
+Now that we have a component in the registry, we can use it as a dependency for another one. Let's create a second project
+and call it `frontend`.
+
+```sh
+$ architect init frontend
+```
+
+Next, let's open up `./frontend/architect.yml` in our favorite IDE so we can add the dependency. First, let's cite the dependency
+so that the backend will be deployed alongside the frontend. Add the following to the component configuration:
+
+```yaml architect.yml
+dependencies:
+  backend: latest
+```
+
+Next, we'll need to ensure the frontend service has access to the backend API. Find the `environment` variables of the `app` service
+and add the following:
+
+```yaml architect.yml
+services:
+  app:
+    build:
+      context: ./
+    environment:
+      BACKEND_ADDR: ${{ dependencies.backend.services.api.interfaces.main.url }}
+```
+
+<Card title="SPAs and single page apps" icon="link" href="/architecture/static-websites">
+  SPAs and static websites run in the browser and need to connect to the external **ingress** URLs. Click here to learn more.
+</Card>
+
+Finally, let's deploy our application! We haven't written any code to connect to the backend API, but you'll see that the
+backend got automatically deployed, and you're welcome to go try writing features that leverage it. 
+
+## Available pointers
+
+Service addresses aren't the only thing you can inject into your own component from dependencies. Developers can
+point to just about any resoure declared by the dependency to enrich their own configuration:
+
+| Key                             | Description                                        |
+| ------------------------------- | -------------------------------------------------- |
+| `dependencies.<name>.services`  | Allows you to inject values associated with [services](/components/services) inside the dependency  |
+| `dependencies.<name>.databases` | Allows you to inject values associated with [databases](/components/databases) inside the dependency |
+| `dependencies.<name>.outputs`   | Allows you to inject output values issued by the dependency |
+
+## Debugging dependencies
+
+By default Architect will pull dependencies down from the cloud registry on every deployment. But if you want to test changes to,
+two components at once, you can do so by linking the dependency to your host machine with `architect link`:
+
+```sh
+# Tells architect to use the local source code to fulfill dependencies on the `backend`
+$ architect link ./backend/
+
+# Will build and connect to the backend code found locally instead of the docker images pulled from Architect Cloud
+$ architect dev ./frontend/
+```
