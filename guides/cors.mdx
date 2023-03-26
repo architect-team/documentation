@@ -7,15 +7,18 @@ Cross-Origin Resource Sharing (CORS) is an HTTP-header based mechanism that allo
 indicate any origins (domain, scheme, or port) other than its own from which a browser should
 permit loading resources. By default, requests from the same domain, schema, and port are allowed
 by CORS, but it is common to use different subdomains for different apps and services in cloud
-environments which can create the need to configure CORS explicitly.
+environments, which can create the need to configure CORS explicitly.
 
-[Click here to learn more about what CORS is and why it exists](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
+<Tip>Click [here](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) to learn more about CORS and why it is important.</Tip>
+
 
 Architect helps application developers automatically configure CORS for their applications by
 facilitating the injection of the external [ingress](/components/ingress-rules) URLs into the
 application. This is normally used to help client-side applications connect to the external address
 of backend APIs, but can also be used by the backend APIs to allow the frontend address to be
 used as a valid CORS origin.
+
+Here is an example of how to configure CORS for a backend API using Architect:
 
 ```yaml architect.yml
 services:
