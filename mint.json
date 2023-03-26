@@ -63,7 +63,8 @@
       "pages": [
         "guides/create-a-component",
         "guides/add-additional-services",
-        "guides/api-security"
+        "guides/api-security",
+        "guides/cors"
       ]
     },
     {
