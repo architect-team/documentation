@@ -72,6 +72,7 @@
         "components/architect-yml",
         "components/services",
         "components/service-discovery",
+        "components/databases",
         "components/dependencies",
         "components/tasks",
         "components/secrets",
