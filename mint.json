@@ -51,24 +51,19 @@
   ],
   "navigation": [
     {
-      "group": "Welcome",
-      "pages": ["home"]
-    },
-    {
       "group": "Getting Started",
       "pages": [
+        "home",
         "getting-started/introduction",
-        "getting-started/best-practices",
-        "getting-started/clusters",
-        "getting-started/external-services",
-        "getting-started/working-with-tasks"
+        "reference/templates"
       ]
     },
     {
       "group": "Guides",
       "pages": [
         "guides/create-a-component",
-        "guides/adding-additional-services",
+        "guides/add-additional-services",
+        "guides/api-security",
         "guides/integration-testing"
       ]
     },
@@ -83,7 +78,15 @@
         "components/secrets",
         "components/local-configuration",
         "components/ingress-rules",
-        "components/component-registration"
+        "components/component-registration",
+        {
+          "group": "More",
+          "pages": [
+            "getting-started/best-practices",
+            "getting-started/external-services",
+            "getting-started/working-with-tasks"
+          ]
+        }
       ]
     },
     {
@@ -106,9 +109,8 @@
       "pages": [
         "reference/release-notes",
         "reference/changelog",
-        "reference/contexts",
+        "reference/contexts-and-interpolation",
         "reference/architect-yml",
-        "reference/templates",
         "reference/cli"
       ]
     }

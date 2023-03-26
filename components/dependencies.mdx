@@ -20,17 +20,15 @@ easier than ever for developers to extend cloud services.
 
 ```yaml
 dependencies:
-  authentication: 1.2.1
+  authentication: latest
 
 services:
   my-api:
     interfaces:
       http: 8080
     environment:
-      AUTH_INTERNAL:
-        ${{ dependencies['authentication'].services.auth.interfaces.main.url }}
-      AUTH_EXTERNAL:
-        ${{
+      AUTH_INTERNAL: ${{ dependencies['authentication'].services.auth.interfaces.main.url }}
+      AUTH_EXTERNAL: ${{
         dependencies['authentication'].services.auth.interfaces.main.ingress.url
         }}
 ```
