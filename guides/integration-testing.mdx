@@ -84,7 +84,7 @@ that it can add in new input, and then submit the input form.
 const { test, expect } = require('@playwright/test');
 
 test('Ensure form submit works', async ({ page }) => {
-  await page.goto('https://app.localhost.architect.sh/');
+  await page.goto(process.env.BASE_URL);
 
   // Input a movie title and rating
   await page.getByRole('textbox', {name:'name'}).fill('Test-movie');
@@ -101,7 +101,7 @@ test('Ensure form submit works', async ({ page }) => {
 Once saved, go to the terminal and run the following command:
 
 ```bash
-$ npx playwright test
+$ BASE_URL='https://app.localhost.architect.sh/' npx playwright test
 ```
 
 This command will execute the test that we just added in. Once the test completes, you can view your
@@ -111,7 +111,16 @@ test results by running:
 $ npx playwright show-report
 ```
 
-And that's all there is to it! To further automate your flow, check out to leverage the power of
-[GitOps](/deployments/gitops-releases) to integrate your tests into GitHub actions or other CI/CD
-workflows.
+## Integration tests on pull requests
+
+Now that you know how to run your tests manually its time to setup your test suite to run on every
+pull request! This will help your team build trust in your changes and accelerate approvals, and
+Architect helps by provisioning the test environment automatically every time a pull request is 
+opened.
+
+Previously, we passed in the URL of our environment as the `BASE_URL` environment variable, and we
+can use that same environment variable to pass in a different address unique to our test environments.
+Go ahead and try to wire up [pull-request environments](/deployments/gitops-releases) using your
+favorite CI system. You'll be able to use the `architect environment:ingresses` command to extract
+the URLs for your environment to run your tests.
 
