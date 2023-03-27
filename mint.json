@@ -61,7 +61,8 @@
     {
       "group": "Architecture",
       "pages": [
-        "architecture/full-stack-apps"
+        "architecture/full-stack-apps",
+        "architecture/event-driven-architecture"
       ]
     },
     {
