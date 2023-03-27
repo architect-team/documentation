@@ -93,7 +93,7 @@ point to just about any resoure declared by the dependency to enrich their own c
 ## Debugging dependencies
 
 By default Architect will pull dependencies down from the cloud registry on every deployment. But if you want to test changes to
-two components at once, you can do so by linking the dependency to your host machine with `architect link`:
+two components at once, you can do so by linking the dependency to your host machine with `architect link`. This will cause Architect to use the local version of the components rather than trying to pull them from the Architect cloud registry. This is helpful when you are actively developing multiple components that are dependent on one another. 
 
 ```sh
 # Tells architect to use the local source code to fulfill dependencies on the `backend`
