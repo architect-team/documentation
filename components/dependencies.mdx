@@ -14,8 +14,8 @@ Now Architect is here to provide the same value for APIs and microservices.
 ## Why use dependencies?
 
 Citing dependencies as part of your component is not the most natural way for developers to integrate with
-software made by other teams, but its also the only way to achieve [on-demand environments](/environments/pull-request)
-for [distributed applications](/architecture/microservices).
+software made by other teams, but its also the only way to achieve [on-demand environments](/deployments/automated-previews)
+for distributed applications.
 
 Every time a component is deployed with Architect, it will automatically deploy (if needed) and connect to
 cited dependencies. Perhaps even more impressive than that is that it will also deploy the dependencies OF your
@@ -28,40 +28,34 @@ and the rest will be automated for you.
 
 ## Registering dependencies
 
-Before we can begin using dependencies, we need to create a component that we want to act as a dependency for another.
-Let's start by creating a new component that we'll call the `backend` of our project. The command below will help you
-create a new component from one of Architect's starter projects.
+Before we can begin using dependencies, we need to register a component that will act as a dependency for others. There
+are no restrictions on what type of component can be used as a dependency. All you need is to run the `register` command
+to publish your component to Architect's cloud registry.
 
-```sh
-$ architect init backend
-```
-
-Now that we have the project created, let's go ahead and register it with Architect. This will simply build the services
-into Docker images and publish everything to Architect's cloud registry.
+<Note>
+  If you're component builds docker images from source, those images will also be published to Architect's registry with
+  the same access rights.
+</Note>
 
 ```sh
 $ architect register ./backend --tag latest --account my-account
 ```
 
+Haven't created a component before? Check out the [creating components](/guides/create-a-component) guide to learn more.
+
 ## Using dependencies
 
-Now that we have a component in the registry, we can use it as a dependency for another one. Let's create a second project
-and call it `frontend`.
-
-```sh
-$ architect init frontend
-```
-
-Next, let's open up `./frontend/architect.yml` in our favorite IDE so we can add the dependency. First, let's cite the dependency
-so that the backend will be deployed alongside the frontend. Add the following to the component configuration:
+Now that we have a component in the registry, we can use it as a dependency for another one. Citing another component as
+a dependency is easy using the `dependencies` block inside the component spec. The below example shows how to cite a component
+named `backend` as a dependency so that it gets automatically deployed with your own component.
 
 ```yaml architect.yml
 dependencies:
   backend: latest
 ```
 
-Next, we'll need to ensure the frontend service has access to the backend API. Find the `environment` variables of the `app` service
-and add the following:
+You may also want to integrate with one or more services inside the dependency component. You can easily point to `services`, `outputs`,
+and other resources declared inside dependencies using Architect's expression syntax:
 
 ```yaml architect.yml
 services:
@@ -72,14 +66,7 @@ services:
       BACKEND_ADDR: ${{ dependencies.backend.services.api.interfaces.main.url }}
 ```
 
-<Card title="SPAs and single page apps" icon="link" href="/architecture/static-websites">
-  SPAs and static websites run in the browser and need to connect to the external **ingress** URLs. Click here to learn more.
-</Card>
-
-Finally, let's deploy our application! We haven't written any code to connect to the backend API, but you'll see that the
-backend got automatically deployed, and you're welcome to go try writing features that leverage it. 
-
-## Available pointers
+### Available references
 
 Service addresses aren't the only thing you can inject into your own component from dependencies. Developers can
 point to just about any resoure declared by the dependency to enrich their own configuration:
@@ -93,7 +80,9 @@ point to just about any resoure declared by the dependency to enrich their own c
 ## Debugging dependencies
 
 By default Architect will pull dependencies down from the cloud registry on every deployment. But if you want to test changes to
-two components at once, you can do so by linking the dependency to your host machine with `architect link`. This will cause Architect to use the local version of the components rather than trying to pull them from the Architect cloud registry. This is helpful when you are actively developing multiple components that are dependent on one another. 
+two components at once, you can do so by linking the dependency to your host machine with `architect link`. This will cause Architect
+to use the local version of the components rather than trying to pull them from the Architect cloud registry. This is helpful when
+you are actively developing multiple components that are dependent on one another. 
 
 ```sh
 # Tells architect to use the local source code to fulfill dependencies on the `backend`
