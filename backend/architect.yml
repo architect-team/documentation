@@ -1,0 +1,25 @@
+name: backend
+description: My apps API backend
+keywords:
+  - backend
+  - my-app
+  - REST
+
+databases:
+  main:
+    type: postgres:13
+    description: Stores user data
+
+services:
+  api:
+    image: registry.gitlab.com/architect-io/docker-files/sample-backend:latest
+    interfaces:
+      main:
+        port: 8080
+        ingress:
+          subdomain: api
+    environment:
+      PORT: 8080
+      DB_ADDR: ${{ databases.main.url }}
+      DB_USER: ${{ databases.main.username }}
+      DB_PASS: ${{ databases.main.password }}

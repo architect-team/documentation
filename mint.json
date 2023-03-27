@@ -59,6 +59,12 @@
       ]
     },
     {
+      "group": "Architecture",
+      "pages": [
+        "architecture/full-stack-apps"
+      ]
+    },
+    {
       "group": "Guides",
       "pages": [
         "guides/create-a-component",
