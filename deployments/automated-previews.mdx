@@ -189,7 +189,7 @@ variables:
   before_script:
     - apk add --update npm
     - npm install -g @architect-io/cli
-    - architect login -e $ARCHITECT_EMAIL -p $ARCHITECT_PASSWORD
+    - architect login
 
 deploy_preview:
   <<: *preview_common
