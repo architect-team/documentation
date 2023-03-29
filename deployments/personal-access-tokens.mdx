@@ -1,0 +1,24 @@
+---
+title: "Personal access tokens"
+sidebarTitle: "Personal access tokens"
+---
+
+## Logging in
+
+Architect is frequently run in automated CI/CD workflows such as [GitHub actions](https://docs.github.com/en/actions) and [GitLab CI/CD](https://docs.gitlab.com/ee/ci/) where a user
+should not log in using a personal password. For cases like these, users can log in to Architect using a username and a personal access token.
+Tokens can be created on your [personal access tokens page](https://cloud.architect.io/users/me/access-tokens) and be set to expire at any time, or never.
+Once a personal access token is generated, logging in can be done with the command
+
+```sh
+architect login -e <your-email-address> -p <your-personal-access-token>
+```
+
+<Note>
+The environment variable `ARCHITECT_PASSWORD` can be set to a personal access token rather than using the `-p` flag and providing the personal access token directly to the command.
+</Note>
+
+## Security
+
+Your personal access tokens provide access to all functions of your Architect accounts that you normally have. If one is compromised, find it in the list of
+personal access tokens on your [personal access tokens page](https://cloud.architect.io/users/me/access-tokens) and revoke it. Personal access tokens should always be stored securely.
