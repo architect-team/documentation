@@ -218,7 +218,6 @@ destroy_preview:
     action: stop
   rules:
     - if: $CI_MERGE_REQUEST_ID
-      allow_failure: true
       when: manual
     - if: $CI_MERGE_REQUEST_APPROVED
 
