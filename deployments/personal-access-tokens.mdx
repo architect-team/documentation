@@ -1,9 +1,11 @@
 ---
-title: "Personal access tokens"
+title: "Personal access tokens (PATs)"
 sidebarTitle: "Personal access tokens"
 ---
 
-## Logging in
+Personal Access Tokens (PATs) are used to authenticate third-party applications to run architect commands. For example, when connecting to GitHub to use one of our [starter projects](../reference/templates), we generate a PAT on your behalf so GitHub actions can automatically spin up and tear down environments as part of an automated CI/CD flow.
+
+## PATs for Automated Testing
 
 Architect is frequently run in automated CI/CD workflows such as [GitHub actions](https://docs.github.com/en/actions) and [GitLab CI/CD](https://docs.gitlab.com/ee/ci/) where a user
 should not log in using a personal password. For cases like these, users can log in to Architect using a username and a personal access token.
