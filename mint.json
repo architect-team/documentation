@@ -98,6 +98,7 @@
         "deployments/clusters",
         "deployments/gitops-releases",
         "deployments/secrets",
+        "deployments/personal-access-tokens",
         "deployments/custom-domains",
         "deployments/pipeline-rollbacks",
         "deployments/multi-tenant-deployments",
