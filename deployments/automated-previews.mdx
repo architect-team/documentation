@@ -11,10 +11,10 @@ What this means is that not only can developers run the stack privately, but the
 
 ### Create preview environment
 
-The workflow below can be pasted into a file in your repository in the `.github/workflows` folder to trigger automated preview environments via Architect. These previews will be created whenever a pull request is submitted that targets the master branch. Be sure to set values in Github Secrets for the architect fields: `ARCHITECT_EMAIL` and `ARCHITECT_PAT`. Replace `<account-name>`, `<cluster-name>` with the appropriate values.
+The workflow below can be pasted into a file in your repository in the `.github/workflows` folder to trigger automated preview environments via Architect. These previews will be created whenever a pull request is submitted that targets the master branch. Be sure to set values in Github Secrets for the architect fields: `ARCHITECT_EMAIL` and `ARCHITECT_PASSWORD`. Replace `<account-name>`, `<cluster-name>` with the appropriate values.
 
 <Note>
-  `ARCHITECT_PAT` must be a [personal access
+  `ARCHITECT_PASSWORD` must be a [personal access
   token](/deployments/personal-access-tokens).
 </Note>
 
@@ -30,7 +30,7 @@ on:
 
 env:
   ARCHITECT_EMAIL: ${{ secrets.ARCHITECT_EMAIL }}
-  ARCHITECT_PAT: ${{ secrets.ARCHITECT_PAT }}
+  ARCHITECT_PASSWORD: ${{ secrets.ARCHITECT_PASSWORD }}
   ARCHITECT_ACCOUNT: <account-name>
 
 jobs:
@@ -89,7 +89,7 @@ on:
 
 env:
   ARCHITECT_EMAIL: ${{ secrets.ARCHITECT_EMAIL }}
-  ARCHITECT_PAT: ${{ secrets.ARCHITECT_PAT }}
+  ARCHITECT_PASSWORD: ${{ secrets.ARCHITECT_PASSWORD }}
   ARCHITECT_ACCOUNT: reach-demo
 
 jobs:
@@ -156,7 +156,7 @@ This job can be pasted into your `.gitlab-ci.yml` at the root of your repository
 This configuration takes advantage of GitLab environments in order to give you better control and visibility into what environments exist and what's deployed to them. On PR creation, both a GitLab and Architect environment will be created. The component specified in the repository will be registered with the Architect Cloud and deployed to the environment. When the PR is either merged or closed, the GitLab environment will be automatically deleted and the component deployed to the environment in the Architect Cloud will be destroyed.
 
 <Note>
-  `ARCHITECT_PAT` must be a [personal access
+  `ARCHITECT_PASSWORD` must be a [personal access
   token](/deployments/personal-access-tokens).
 </Note>
 
@@ -179,7 +179,7 @@ default:
     - apk add yq --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
     # Install architect cli and login
     - npm install -g @architect-io/cli
-    - architect login -e $ARCHITECT_EMAIL -p $ARCHITECT_PAT
+    - architect login -e $ARCHITECT_EMAIL -p $ARCHITECT_PASSWORD
 
 deploy_preview:
   stage: preview
@@ -219,11 +219,11 @@ deployed to the environment. The pipeline provides the option to remove the depl
 which should be done once the pull request is merged or closed.
 
 <Note>
-  This example assumes that the repo has `ARCHITECT_EMAIL`, `ARCHITECT_PAT`, `ARCHITECT_ACCOUNT`, and `ARCHITECT_CLUSTER` set as CI/CD variables.
+  This example assumes that the repo has `ARCHITECT_EMAIL`, `ARCHITECT_PASSWORD`, `ARCHITECT_ACCOUNT`, and `ARCHITECT_CLUSTER` set as CI/CD variables.
 </Note>
 
 <Note>
-  `ARCHITECT_PAT` must be a [personal access
+  `ARCHITECT_PASSWORD` must be a [personal access
   token](/deployments/personal-access-tokens).
 </Note>
 
