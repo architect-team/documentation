@@ -151,9 +151,20 @@ jobs:
 
 ## Gitlab CI
 
-This job can be pasted into your `.gitlab-ci.yml` at the root of your repository. You are welcome to change the `stage` to whatever fits your needs to allow you to run tests before the preview is generated, and please be sure to assign correct values for the variables in the job. Additionally, you'll need to assign values for variables in the below config not prefixed with `$CI_` in your repository's CI variables configuration so that the architect commands will run successfully.
+### Creating and cleaning up preview environments
 
-This configuration takes advantage of GitLab environments in order to give you better control and visibility into what environments exist and what's deployed to them. On PR creation, both a GitLab and Architect environment will be created. The component specified in the repository will be registered with the Architect Cloud and deployed to the environment. When the PR is either merged or closed, the GitLab environment will be automatically deleted and the component deployed to the environment in the Architect Cloud will be destroyed.
+This job can be pasted into your `.gitlab-ci.yml` at the root of your repository. You are welcome to change the `stage` to whatever fits your needs to allow you to run
+tests before the preview is generated. Please be sure to assign correct values for the variables in the job marked with `<set-this-as-a-CI/CD-variable>` as well as the
+ones mentioned in the note below.
+
+This configuration takes advantage of GitLab environments in order to give you better control and visibility into what environments exist and what's deployed to them.
+On PR creation, both a GitLab and Architect environment will be created. The component specified in the repository will be registered with the Architect Cloud and
+deployed to the environment. When the PR is either merged or closed, the GitLab environment will be automatically deleted and the component deployed to the environment
+in the Architect Cloud will be destroyed.
+
+<Note>
+  This example assumes that the repo has `ARCHITECT_EMAIL`, `ARCHITECT_PAT`, `ARCHITECT_ACCOUNT`, and `ARCHITECT_CLUSTER` set as CI/CD variables.
+</Note>
 
 <Note>
   `ARCHITECT_PAT` must be a [personal access
@@ -161,51 +172,55 @@ This configuration takes advantage of GitLab environments in order to give you b
 </Note>
 
 ```yaml
-# this example assumes that the repo has ARCHITECT_ACCOUNT and ARCHITECT_CLUSTER set as CI/CD variables
 stages:
   - preview
 
 variables:
-  ARCHITECT_ACCOUNT: <account-name>
-  ARCHITECT_CLUSTER: <cluster-name>
+  ARCHITECT_ACCOUNT: <set-this-as-a-CI/CD-variable>
+  ARCHITECT_CLUSTER: <set-this-as-a-CI/CD-variable>
   ARCHITECT_ENVIRONMENT: preview-$CI_MERGE_REQUEST_ID
+  ARCHITECT_CACHE_DIR: .architect-cache/
 
-default:
-  image: docker:latest
+.preview_common: &preview_common
+  image: docker:23.0.1
   services:
-    - docker:dind
+    - docker:23.0.1-dind
   before_script:
-    - apk add --update npm git
-    - apk add yq --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
-    # Install architect cli and login
+    - apk add --update npm
     - npm install -g @architect-io/cli
     - architect login -e $ARCHITECT_EMAIL -p $ARCHITECT_PAT
 
 deploy_preview:
+  <<: *preview_common
   stage: preview
-  script: |
-    architect environment:create $ARCHITECT_ENVIRONMENT --cluster $ARCHITECT_CLUSTER
-    architect deploy architect.yml --auto-approve --environment $ARCHITECT_ENVIRONMENT
+  timeout: 1h
+  script:
+    - architect environment:create "${ARCHITECT_ENVIRONMENT}" --description="https://gitlab.com/${CI_MERGE_REQUEST_PROJECT_PATH}/-/merge_requests/${CI_MERGE_REQUEST_IID}"
+    - architect deploy ./architect.yml --auto-approve --cache-directory=$ARCHITECT_CACHE_DIR
   environment:
-    name: architect/preview-$CI_MERGE_REQUEST_ID
-    url: https://cloud.architect.io/$ARCHITECT_ACCOUNT/environments/preview-$CI_MERGE_REQUEST_ID/
+    name: $ARCHITECT_ACCOUNT/preview-$CI_MERGE_REQUEST_IID
     on_stop: destroy_preview
   rules:
-    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_MERGE_REQUEST_IID
+  cache:
+    key: architect-preview-cache-$CI_COMMIT_REF_SLUG
+    paths:
+      - $ARCHITECT_CACHE_DIR
 
 destroy_preview:
+  <<: *preview_common
   stage: preview
-  variables:
-    ARCHITECT_ENVIRONMENT: preview-$CI_MERGE_REQUEST_ID
-  script: |
-    architect destroy --auto-approve --environment $ARCHITECT_ENVIRONMENT
-    architect environment:destroy --auto-approve $ARCHITECT_ENVIRONMENT
+  script:
+    - architect destroy --auto-approve
+    - architect environment:destroy "${ARCHITECT_ENVIRONMENT}" --auto-approve
   environment:
-    name: architect/preview-$CI_MERGE_REQUEST_ID
+    name: $ARCHITECT_ACCOUNT/preview-$CI_MERGE_REQUEST_IID
     action: stop
   rules:
     - if: $CI_MERGE_REQUEST_ID
       when: manual
+    - if: $CI_MERGE_REQUEST_APPROVED
+
 ```
 
 ## BitBucket Pipelines
