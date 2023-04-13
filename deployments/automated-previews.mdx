@@ -7,7 +7,7 @@ One of the largest benefits of Architects framework is that provisioning new env
 
 What this means is that not only can developers run the stack privately, but the stack can also be provisioned automatically whenever there is a new branch or pull request. This automation is perfect for creating _previews_ of impending code changes so that product managers can review and integration tests can be run end to end.
 
-## Github actions
+## Github Actions
 
 ### Create preview environment
 
@@ -274,3 +274,159 @@ pipelines:
 <Note>
   The [`--ttl`](/reference/cli#architect-environments-create-environment) flag is used here in order to clean up the environment automatically after one day because BitBucket doesn't have a feature to trigger a pipeline when a pull request is closed.
 </Note>
+
+## CircleCI
+
+CircleCI doesn't have complete features to handle preview environment creation and destruction, but the [Trigger CircleCI Pipeline GitHub Action](https://github.com/CircleCI-Public/trigger-circleci-pipeline-action)
+can help to work around that. The CircleCI GitHub Action can be used in combination with GitHub's event triggers to run a CircleCI workflow.
+
+<Note>
+  This example assumes that `ARCHITECT_EMAIL`, `ARCHITECT_PASSWORD`, `ARCHITECT_ACCOUNT`, and `ARCHITECT_CLUSTER` are set as project variables in CircleCI. Also, the variable `CCI_TOKEN` must be a CircleCI personal access token and be set as a GitHub Action secret in the GitHub repo.
+</Note>
+
+<Note>
+  `ARCHITECT_PASSWORD` must be a [personal access
+  token](/deployments/personal-access-tokens).
+</Note>
+
+### Preview environment creation trigger
+
+The file `circleci-create-preview.yml` will trigger a CircleCI workflow to be run when a pull request is created or updated in GitHub. Note that `GHA_Meta` is set to `ARC_CREATE_PREVIEW`
+in order to inform the CircleCI workflow to run only the preview creation job.
+
+```yml
+# .github/workflows/circleci-create-preview.yml
+name: Preview environment create trigger
+
+on:
+  pull_request:
+
+jobs:
+  architect_create_preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger CircleCI Pipeline
+        uses: CircleCI-Public/trigger-circleci-pipeline-action@v1.0.7
+        env:
+          CCI_TOKEN: ${{ secrets.CCI_TOKEN }}
+        with:
+          GHA_Meta: ARC_CREATE_PREVIEW
+```
+
+### Preview environment destruction trigger
+
+The file `circleci-destroy-preview.yml` will trigger a CircleCI workflow to be run when a pull request is closed in GitHub. As preview environments are named `preview-<pull_request_number>`
+in the CircleCI workflows, `GHA_Meta` is set to the pull request number in order to let the CircleCI preview destruction workflow know which component and environment to destroy.
+This is set in the GitHub Action and passed to CircleCI because this number isn't available in a CircleCI workflow when a pull request is closed.
+
+```yml
+# .github/workflows/circleci-destroy-preview.yml
+name: Preview environment destroy trigger
+
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  architect_destroy_preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger CircleCI Pipeline
+        uses: CircleCI-Public/trigger-circleci-pipeline-action@v1.0.7
+        env:
+          CCI_TOKEN: ${{ secrets.CCI_TOKEN }}
+        with:
+          GHA_Meta: ${{ github.event.number }}
+```
+
+### Preview environment workflows
+
+The CircleCI config file will run the actual Architect preview environment creation and destruction workflows triggered by the GitHub Actions. The workflow conditions are set so that
+a preview environment will be created when the workflow is triggered with `<< pipeline.parameters.GHA_Meta >>` equal to `ARC_CREATE_PREVIEW`. A preview environment destruction workflow
+will be triggered when `<< pipeline.parameters.GHA_Meta >>` isn't equal to `ARC_CREATE_PREVIEW`.
+
+```yml
+# .circleci/config.yml
+version: 2.1
+
+parameters: # parameters required by the "Trigger CircleCI Pipeline" GitHub Action
+  GHA_Action:
+    type: string
+    default: ""
+  GHA_Meta:
+    type: string
+    default: ""
+  GHA_Actor:
+    type: string
+    default: ""
+  GHA_Event:
+    type: string
+    default: ""
+
+.job_common: &job_common
+  docker:
+    - image: cimg/node:18.14.1
+
+jobs:
+  create_preview:
+    <<: *job_common
+    steps:
+      - run:
+          name: Set up PR number environment variable
+          command: |
+            export PR_NUMBER=$(echo << pipeline.git.branch >> | sed 's/[^0-9]*//g')
+            echo "export PR_NUMBER=$PR_NUMBER" >> "$BASH_ENV"
+      - run:
+          name: Create environment
+          command: architect environment:create preview-$PR_NUMBER
+      - run:
+          name: Deploy component
+          command: architect deploy architect.yml --auto-approve -e preview-$PR_NUMBER
+  destroy_preview:
+    <<: *job_common
+    steps:
+      - run:
+          name: Set up PR number environment variable
+          command: |
+            export PR_NUMBER=<< pipeline.parameters.GHA_Meta >>
+            echo "export PR_NUMBER=$PR_NUMBER" >> "$BASH_ENV"
+      - run:
+          name: Destroy component
+          command: architect destroy --environment preview-$PR_NUMBER --auto-approve
+      - run:
+          name: Destroy environment
+          command: architect environment:destroy preview-$PR_NUMBER --auto-approve
+
+.pre_job_common: &pre_job_common
+  pre-steps:
+    - checkout
+    - setup_remote_docker:
+        version: 20.10.18
+        docker_layer_caching: true
+    - run:
+        name: Install Architect CLI
+        command: npm install -g @architect-io/cli
+    - run:
+        name: Log in to Architect
+        command: architect login
+
+workflows:
+  create_preview_workflow:
+    when:
+      and:
+        - equal: [ ARC_CREATE_PREVIEW, << pipeline.parameters.GHA_Meta >>]
+        - << pipeline.parameters.GHA_Action >> # included to prevent double execution of CircleCI workflows - https://github.com/marketplace/actions/trigger-circleci-pipeline#to-prevent-double-execution
+    jobs:
+      - create_preview:
+          <<: *pre_job_common
+  destroy_preview_workflow:
+    when:
+      and:
+        - not:
+            equal: [ ARC_CREATE_PREVIEW, << pipeline.parameters.GHA_Meta >>]
+        - << pipeline.parameters.GHA_Action >>
+    jobs:
+      - destroy_preview:
+          <<: *pre_job_common
+```
