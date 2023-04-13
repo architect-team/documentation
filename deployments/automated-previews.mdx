@@ -281,7 +281,9 @@ CircleCI doesn't have complete features to handle preview environment creation a
 can help to work around that. The CircleCI GitHub Action can be used in combination with GitHub's event triggers to run a CircleCI workflow.
 
 <Note>
-  This example assumes that `ARCHITECT_EMAIL`, `ARCHITECT_PASSWORD`, `ARCHITECT_ACCOUNT`, and `ARCHITECT_CLUSTER` are set as project variables in CircleCI. Also, the variable `CCI_TOKEN` must be a CircleCI personal access token and be set as a GitHub Action secret in the GitHub repo.
+  This example assumes that `ARCHITECT_EMAIL`, `ARCHITECT_PASSWORD`, `ARCHITECT_ACCOUNT`, and `ARCHITECT_CLUSTER` are set as project variables in CircleCI.
+  Also, the variable `CCI_TOKEN` must be a CircleCI personal access token and be set as a GitHub Action secret in the GitHub repo.
+  `CCI_TOKEN` should _not_ be set to a CircleCI project-specific API token.
 </Note>
 
 <Note>
