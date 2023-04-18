@@ -180,6 +180,7 @@ An ingress exposes an interface to external network traffic through an architect
  | `subdomain` | string \| [Expression](/reference/contexts-and-interpolation) | The subdomain that will be used if the interface is exposed externally. Use `subdomain: @` to target the base domain. |  |
  | `path` | string \| [Expression](/reference/contexts-and-interpolation) | The path of the interface used for path based routing |  |
  | `ip_whitelist` | Array&lt;string \| string&gt; \| [Expression](/reference/contexts-and-interpolation) | IP addresses that are allowed to access the interface |  |
+ | `private` | boolean \| [Expression](/reference/contexts-and-interpolation) | Marks the ingress as private behind Architect authentication |  |
 
 
 ## ScalingMetricsSpec
