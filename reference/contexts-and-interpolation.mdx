@@ -40,9 +40,9 @@ addresses of dependency interfaces.
 The `ingresses` context contains information about the external exposed
 interfaces.
 
-| Property                | Type     | Description                                                                                                                                |
-| ----------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ingresses`             | `object` | Information on the ingress rules of the component                                                                                          |
+| Property                | Type     | Description                                                                                                                                                  |
+| ----------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ingresses`             | `object` | Information on the ingress rules of the component                                                                                                            |
 | `ingresses.<interface>` | `object` | Information on an ingress rule matching the interface. [See the interface values](/reference/contexts-and-interpolation/#interface-values) for more details. |
 
 ### `secrets` context
@@ -75,31 +75,31 @@ The `databases` context contains dynamic information about all the databases
 inside the component. This context is primarily used to refer to the address
 and credentials of each database instance.
 
-| Property                      | Type        | Description                                    |
-| ----------------------------- | ----------- | ---------------------------------------------- |
-| `databases`                   | `object`    |  |
-| `databases.<name>`            | `object`    |  |
-| `databases.<name>.url`        | `string`    | Fully resolvable URL of the database (alias: `connection_string`) |
-| `databases.<name>.host`       | `string`    | Hostname of the database |
-| `databases.<name>.port`       | `int`       | Port the database is exposed on |
-| `databases.<name>.protocol`   | `string`    | Protocol the database responds to |
-| `databases.<name>.username`   | `string`    | Username used to authenticate with the database |
-| `databases.<name>.password`   | `string`    | Password used to authenticate with the database |
-| `databases.<name>.database`   | `string`    | The database (e.g. namespace) on the instance to be connected to |
+| Property                    | Type     | Description                                                       |
+| --------------------------- | -------- | ----------------------------------------------------------------- |
+| `databases`                 | `object` |                                                                   |
+| `databases.<name>`          | `object` |                                                                   |
+| `databases.<name>.url`      | `string` | Fully resolvable URL of the database (alias: `connection_string`) |
+| `databases.<name>.host`     | `string` | Hostname of the database                                          |
+| `databases.<name>.port`     | `int`    | Port the database is exposed on                                   |
+| `databases.<name>.protocol` | `string` | Protocol the database responds to                                 |
+| `databases.<name>.username` | `string` | Username used to authenticate with the database                   |
+| `databases.<name>.password` | `string` | Password used to authenticate with the database                   |
+| `databases.<name>.database` | `string` | The database (e.g. namespace) on the instance to be connected to  |
 
 ### `interface values`
 
 Interface values are referenced in many places, `dependencies` and `services` with a set of uniform values available to reference. These values include:
 
-| Property   | Type        | Description                        |
-| ---------- | ----------- | ---------------------------------- |
-| `url`      | `string`    | The fully composed URL of the reference interface. This will take the format, `<protocol>://<username>:<password>@<host>:<port><path>`. |
-| `protocol` | `string`    | The protocol of the interface being referenced. This will always be the specific value assigned to the interface by the developer.  |
-| `username` | `string`    | The username of the interface being referenced. Not all interfaces have usernames, so this will be an empty string if none is set. |
-| `password` | `string`    | The password of the interface being referenced. Not all interfaces have passwords, so this will be an empty string if none is set. |
-| `host`     | `string`    | The host value of the interface being referenced. This value is usually dynamic to accomodate the differences between service discovery solutions available to each environment. |
-| `port`     | `int`       | The port value of the interface being referenced. This will not always be the specific port that the interface is listening on as many container clusters leverage port mapping to ensure that there are no port collisions when sharing hardware in a cluster. |
-| `path`     | `string`    | The path value of the interface being referenced. Not all interfaces have paths, so this will be an empty string if none is set. |  
+| Property   | Type     | Description                                                                                                                                                                                                                                                     |
+| ---------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `url`      | `string` | The fully composed URL of the reference interface. This will take the format, `<protocol>://<username>:<password>@<host>:<port><path>`.                                                                                                                         |
+| `protocol` | `string` | The protocol of the interface being referenced. This will always be the specific value assigned to the interface by the developer.                                                                                                                              |
+| `username` | `string` | The username of the interface being referenced. Not all interfaces have usernames, so this will be an empty string if none is set.                                                                                                                              |
+| `password` | `string` | The password of the interface being referenced. Not all interfaces have passwords, so this will be an empty string if none is set.                                                                                                                              |
+| `host`     | `string` | The host value of the interface being referenced. This value is usually dynamic to accomodate the differences between service discovery solutions available to each environment.                                                                                |
+| `port`     | `int`    | The port value of the interface being referenced. This will not always be the specific port that the interface is listening on as many container clusters leverage port mapping to ensure that there are no port collisions when sharing hardware in a cluster. |
+| `path`     | `string` | The path value of the interface being referenced. Not all interfaces have paths, so this will be an empty string if none is set.                                                                                                                                |
 
 ## Interpolation
 
@@ -127,7 +127,6 @@ services:
   app:
     environment:
       API_KEY: ${{ secrets.api_key }}
-...
 ```
 
 #### Referencing the internal address of another service
@@ -148,7 +147,6 @@ services:
     interfaces:
       main:
         port: 8080
-...
 ```
 
 #### Referencing the external address of another service
@@ -172,7 +170,6 @@ services:
         port: 8080
         ingress:
           subdomain: api
-...
 ```
 
 #### Referencing the address of a dependency
@@ -191,7 +188,6 @@ services:
         port: 8080
         ingress:
           subdomain: api
-...
 ```
 
 ```yml
@@ -199,13 +195,12 @@ services:
 name: app
 
 dependencies:
-  api: latest
+  api: {}
 
 services:
   app:
     environment:
       API_ADDRESS: ${{ dependencies.api.services.api.interfaces.main.ingress.url }}
-...
 ```
 
 ### Example of a simple component with interpolation

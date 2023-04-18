@@ -17,24 +17,25 @@ easier than ever for developers to extend cloud services.
 
 ```yaml
 dependencies:
-  authentication: latest
+  authentication: {}
 
 services:
   my-api:
     interfaces:
       http: 8080
     environment:
-      AUTH_INTERNAL: ${{ dependencies['authentication'].services.auth.interfaces.main.url }}
+      AUTH_INTERNAL: ${{ dependencies.authentication.services.auth.interfaces.main.url }}
       AUTH_EXTERNAL: ${{
-        dependencies['authentication'].services.auth.interfaces.main.ingress.url
+        dependencies.authentication.services.auth.interfaces.main.ingress.url
         }}
 ```
 
-Just like with your favorite package manager, developers can cite the names and
-versions of the components that they need to make calls to. Not only will this
-allow Architect to provision the dependency automatically, it will also allow
-developers to pin to specific versions and ensure that the APIs don't change out
-from under them.
+Just like with your favorite package manager, developers can cite the names
+of the components that they need to make calls to. A tagged version of the dependency
+can optionally be included as part of the `architect deploy` command. If no tag is
+specified, the `latest` tag is implied. If the dependency already is deployed to the
+remote environment, instead of re-deploying the `latest` tagged version, the currently
+deployed version is used.
 
 ## Dependency referencing syntax
 
