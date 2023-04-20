@@ -10,7 +10,7 @@ Full changelog can be viewed on our [GitHub Repo](https://github.com/architect-t
 
 <br/>
 
-# Breaking Change: Replace parameters with secrets keyword
+# Breaking Change #1: Replace parameters with secrets keyword
 
 Last year we introduced the `secrets` keyword and other CLI flags such as `-s` to replace the `parameters` keyword. Now it’s time to fully deprecate the use of the `parameters` keyword and flag(s) throughout component configs and our CLI.
 
@@ -115,4 +115,35 @@ or (the non-shorthand version):
 
 ```
 [...] --secret key=value [...]
+```
+
+# Breaking Change #2: Deprecation `path` and `port` for `liveness_probe`
+
+Starting from October of 2023, the usage of `path` and `port` for the `liveness_probe` will no longer be supported. Instead, the `command` option should be used for defining the liveness probe.
+
+## Who does this change affect?
+This change affects all users who are currently using the `path` and `port` options in their `liveness_probe` configuration. If you are one of them, please update your configuration to use the `command` option before October to avoid any disruptions in your application's health checks.
+
+## Why are we making this change?
+We are making this change to favor the `command` option, as it provides more flexibility in defining the liveness probe command.
+
+## What do you need to do?
+1. Remove all uses of `path` and `port` for the `liveness_probe` in your component configs.
+2. Add `command` for the `liveness_probe` and **re-register all components**.
+
+## Examples
+Example: if you were using `path` and `port` in your component config as follow:
+```
+services:
+  app:
+    liveness_probe:
+      port: 3000
+      path: /
+```
+You would change this to:
+```
+services:
+  app:
+    liveness_probe:
+      command: curl --fail localhost:3000
 ```
