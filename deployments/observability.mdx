@@ -104,3 +104,18 @@ Which would provide you with an interactive terminal.
 
 For more options please take a look at our
 [Readme](/reference/cli/#architect-exec-resource-flags----command).
+
+## Port forwarding
+
+Sometimes you want to access services running inside your cluster without exposing them publicly.
+The `port-forward` command will allow you access these services on your local machine.
+This can be useful for exposing non-http services for debugging.
+
+```sh
+$ architect port-forward -a my_account -e my_environment react-app.services.api --port 5000 --target-port 8080
+```
+
+Which would expose the react api's port 8080 on your own localhost at http://localhost:5000.
+
+For more options please take a look at our
+[Readme](/reference/cli#architect-port-forward-resource-flags).
