@@ -107,9 +107,8 @@ For more options please take a look at our
 
 ## Port forwarding
 
-Sometimes you want to access services running inside your cluster without exposing them publicly.
-The `port-forward` command will allow you access these services on your local machine.
-This can be useful for exposing non-http services for debugging.
+To access services running inside the cluster without exposing them publicly, you can use the port-forward command. 
+This will allow you to access these services on your local machine and is useful for debugging non-HTTP services.
 
 ```sh
 $ architect port-forward -a my_account -e my_environment react-app.services.api --port 5000 --target-port 8080
