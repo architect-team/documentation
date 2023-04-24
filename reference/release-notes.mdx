@@ -12,10 +12,10 @@ Full changelog can be viewed on our [GitHub Repo](https://github.com/architect-t
 
 ## Breaking Change: Deprecation `path` and `port` for `liveness_probe`
 
-The path and port options of liveness_probe are being depreciated, and support will end on July 2023. Instead, use the command option for defining your liveness probe.
+The `path` and `port` options of `liveness_probe` are being depreciated, and support will end on August 2023. Instead, use the command option for defining your liveness probe.
 
 ### Who does this change affect?
-This change affects all users who are currently using the `path` and `port` options in their `liveness_probe` configuration. If you are one of them, please update your configuration to use the `command` option before July to avoid any disruptions in your application's health checks.
+This change affects all users who are currently using the `path` and `port` options in their `liveness_probe` configuration. If you are one of them, please update your configuration to use the `command` option before August to avoid any disruptions in your application's health checks.
 
 ### Why are we making this change?
 We are making this change to favor the `command` option, as it provides more flexibility in defining the liveness probe command as well as fixing an issue that could potentially arise if incorrect IP Address is passed to the `liveness_probe`.
