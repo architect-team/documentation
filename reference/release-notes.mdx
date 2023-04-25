@@ -4,45 +4,53 @@ title: Release notes
 
 All notable changes to the Architect CLI will be captured in release notes, as well as updates for upcoming breaking changes.
 
-Full changelog can be viewed on our [GitHub Repo](https://github.com/architect-team/architect-cli/releases).
+The full changelog can be viewed on our [GitHub Repo](https://github.com/architect-team/architect-cli/releases).
 
 ---
 
 # April 2023
 
-## Breaking Change: Deprecation `path` and `port` for `liveness_probe`
+## Breaking Change: Deprecation of `path` and `port` for `liveness_probe`
 
-The `path` and `port` options of `liveness_probe` are being depreciated, and support will end on August 2023. Instead, use the command option for defining your liveness probe.
+The `path` and `port` options of [`liveness_probe`](/components/services#liveness-probe) are being deprecated, and support will end on August 2023. Instead, use the `command` option for defining your liveness probe.
 
 ### Who does this change affect?
+
 This change affects all users who are currently using the `path` and `port` options in their `liveness_probe` configuration. If you are one of them, please update your configuration to use the `command` option before August to avoid any disruptions in your application's health checks.
 
 ### Why are we making this change?
+
 We are making this change to favor the `command` option, as it provides more flexibility in defining the liveness probe command as well as fixing an issue that could potentially arise if incorrect IP Address is passed to the `liveness_probe`.
 
 ### What do you need to do?
-1. Remove all uses of `path` and `port` for the `liveness_probe` in your component configs.
-2. Add `command` for the `liveness_probe` and **re-register all components**. 
 
-The `liveness_probe` command specified in the `architect.yml` file will be executed periodically to determine the health of the container. If the command exits with a status code of 0, the container is considered healthy. However, if the command exits with a non-zero status code, the container is considered unhealthy and the health check will be retried according to the number of retries if specified. 
+1. Remove all uses of `path` and `port` for the `liveness_probe` in your component configs.
+2. Add `command` for the `liveness_probe` and **re-register any changed components**.
+
+The `liveness_probe` command specified in the `architect.yml` file will be executed periodically to determine the health of the container. If the command exits with a status code of 0, the container is considered healthy. However, if the command exits with a non-zero status code, the container is considered unhealthy and the health check will be retried according to the number of retries if specified.
 
 ### Examples
-Example - if you were using path and port within your component config as shown below:
-```
+
+Example - if you were using `path` and `port` within your component config as shown below:
+
+```yml
 services:
   app:
     liveness_probe:
       port: 3000
       path: /
 ```
-You would change this to `curl` or `wget`, depending on which is installed on your image.
-```
+
+You would change this to use a `command` with `curl` or `wget`, depending on which is installed on your image.
+
+```yml
 services:
   app:
     liveness_probe:
       command: curl --fail localhost:3000
 ```
-```
+
+```yml
 services:
   app:
     liveness_probe:
@@ -54,7 +62,6 @@ services:
 ## Breaking Change: Replace parameters with secrets keyword
 
 Last year we introduced the `secrets` keyword and other CLI flags such as `-s` to replace the `parameters` keyword. Now it’s time to fully deprecate the use of the `parameters` keyword and flag(s) throughout component configs and our CLI.
-
 
 ### Who does this change affect?
 
@@ -80,15 +87,12 @@ Again, this is a **breaking change** that will take effect **on or about 8 Feb, 
 
 If you have any questions or concerns feel free to reach out to us via Slack (for customers who have access to us there), or you can file a support ticket at support.architect.io or send email to support@architect.io.
 
-
----
-
 ### Examples
 
 Example: if you were using `parameters` on the top level of the component config:
 
 
-```
+```yml
 parameters:
  AUTH_CLIENT_ID:
     required: true
@@ -100,7 +104,7 @@ parameters:
 You would change this to:
 
 
-```
+```yml
 secrets:
   AUTH_CLIENT_ID:
     required: true
@@ -112,7 +116,7 @@ secrets:
 Or if your interpolation reference for an environment variable looks like
 
 
-```
+```yml
 environment:
   NODE_ENV: ${{ parameters.NAME }}
 ```
@@ -121,7 +125,7 @@ environment:
 then it should be changed to
 
 
-```
+```yml
 environment:
   NODE_ENV: ${{ secrets.NAME }}
 ```
