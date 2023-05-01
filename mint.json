@@ -103,7 +103,8 @@
         "deployments/pipeline-rollbacks",
         "deployments/multi-tenant-deployments",
         "deployments/observability",
-        "deployments/scaling"
+        "deployments/scaling",
+        "deployments/managed-services"
       ]
     },
     {

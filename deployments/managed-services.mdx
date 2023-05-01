@@ -1,0 +1,9 @@
+---
+title: "Managed services"
+---
+
+Architect uses Traefik as a reverse proxy to handle incoming traffic to services. When a component is deployed, a node named `gateway` is generated on the graph. This node is Traefik and it is automatically deployed as the gateway for the service. Traefik detects the deployment and generates a configuration for routing traffic to all the services. 
+
+Traefik dynamically discovers and route traffic based on labels applied to the services. These labels are added during the deployments to configure Cert Manager and Traefik. Cert Manager works in conjunction with Traefik to handle incoming traffic and manage the certificates for the services behind the proxy.
+
+To secure the communication between the proxy and the service, Cert Manager is setup to provision and manage the SSL/TLS certificates for the services running in Kubernetes, and Traefik uses these certificates to secure the communication with the services.
