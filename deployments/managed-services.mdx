@@ -5,15 +5,17 @@ title: "Managed services"
 One of the key features of Architect.io is its dependency graph, which is a visual representation of the relationships between different services in an application.
 The dependency graph is a useful tool for managing complex applications with multiple services and dependencies, and demonstrates how those services work together in the application.
 
-Let's consider a example of a simple web application that consists of a single `hello-world` service.
+Let's consider an example of a simple web application with a single `hello-world` service.
 The dependency graph for this application would have two nodes: one for the `hello-world` service and one for the Traefik `gateway`.
 
 ![](/images/dependency-graph.png)
 
-The Traefik gateway, is a gateway node that uses Traefik to route traffic to the service. In this example, the gateway node would have a dependency on the `hello-world` service, as it needs to route traffic to it.
+# Gateway Node (traefik)
+The top node is a gateway node that uses Traefik to route traffic to the service. In this example, the gateway node would depend on the `hello-world` service, as it needs to route traffic to it.
 
-Architect uses Traefik as the reverse proxy to handle incoming traffic to all of the services. When a component is deployed, the gateway node is automatically generated on the graph.
-Traefik dynamically discovers and route traffic based on the labels applied to the services. These labels are added during the deployments to configure both the Traefik, and the Cert Manager. 
+Architect uses Traefik as the reverse proxy to handle incoming traffic to all services. When a component is deployed, the graph automatically generates the gateway node.
+Traefik dynamically discovers and routes traffic based on the labels applied to the services. These labels are added during the deployments to configure both the Traefik and the Cert Manager. 
 
+# Cert manager
 Cert Manager works in conjunction with Traefik to handle incoming traffic and manage the certificates for the services.
-Cert Manager is setup to provision and manage the SSL/TLS certificates for the services, and Traefik uses these certificates to secure the communication with the services.
+Cert Manager is set up to provision and manage the SSL/TLS certificates for the services, and Traefik uses these certificates to secure communication with the services.
