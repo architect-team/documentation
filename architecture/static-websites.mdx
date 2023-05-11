@@ -101,3 +101,35 @@ CMD ["npm", "run", "dev"]
 
 ## Setup caching w/ Cloudflare
 
+... describe how to set up Cloudflare for caching ...
+
+You can set caching for an individual endpoint or set for specific set of endpoint.
+
+### Set up cache for one endpoint:
+``` js
+app.get('/', function(req, res) {
+  // Cache for one week
+  res.set('cache-control', 'public, max-age=604800');
+  res.send('Hello, World!');
+});
+```
+
+### Set up cache for all requests that have url starting with `/static/`
+``` js
+const express = require('express');
+const app = express();
+
+app.set('port', (process.env.PORT || 3000));
+app.use(express.static(__dirname + '/public'));
+
+// Add cache headers to responses
+app.use((req, res, next) => {
+  // Cache all assets with request url starting with /static/ for one week
+  if (req.url.startsWith('/static/')) {
+    res.set('Cache-Control', 'public, max-age=604800');
+  }
+
+  next();
+});
+```
+To check that the cache is working, you can check Network on your browser. 
