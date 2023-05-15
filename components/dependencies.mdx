@@ -34,8 +34,9 @@ Just like with your favorite package manager, developers can cite the names
 of the components that they need to make calls to. A tagged version of the dependency
 can optionally be included as part of the `architect deploy` command. If no tag is
 specified, the `latest` tag is implied. If the dependency already is deployed to the
-remote environment, instead of re-deploying the `latest` tagged version, the currently
-deployed version is used.
+remote environment, instead of deploying the version specified in the `architect.yml`, the currently
+deployed version is used. This behavior can be overriden by specifying the tag in the
+`deploy` command (e.g. `architect deploy my-app:latest my-dependency:my-tag`).
 
 ## Dependency referencing syntax
 
