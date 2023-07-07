@@ -193,6 +193,40 @@ and `${{ services.api-db.interfaces.postgres.url }}` will change based on the
 would like to reference an external service, all of the Architect service's
 interfaces must specify the `host` override.
 
+#### Cusomt SSL Certificates (EXPERIMENTAL)
+
+By default the Architect platform will provision SSL certificates for your
+website using Let's Encrypt. However, sometimes you may wish to provide your own
+SSL certificates. To do this we you can specify them as part of the service.
+
+```yaml
+---
+secrets:
+  api_crt:
+    required: true
+  api_key:
+    required: true
+  api_ca:
+    required: true
+---
+services:
+  api-db:
+    image: postgres:11
+    interfaces:
+      entrypoint:
+        port: 8080
+        ingress:
+          subdomain: entrypoint
+          tls:
+            crt: '${{ secrets.api_crt }}'
+            key: '${{ secrets.api_key }}'
+            ca: '${{ secrets.api_ca }}'
+```
+
+The `tls` subsection of the ingress allows you to specify an SSL certificate. The `crt` field is the signed certificate and the `key` is the private key used to encrypt the data from the server. The `ca` field is an optional field. When set this will override the which CA root certificate will be used to authenticate connections with the server. Primarly this should only be set when trying to limit which connections should be allowed to this server.
+
+(NOTE): While you do specify a custom SSL certificate on an ingress, the certificate will be used for all matching domain names. So if you have a wild card certificate, then all domains that match the wildcard will use the same certificate.
+
 ### labels
 
 Dictionary of string keys and values that can be used to organize and categorize
