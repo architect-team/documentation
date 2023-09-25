@@ -1,0 +1,251 @@
+---
+title: Creating full-stack apps
+sidebarTitle: Full-stack apps
+---
+
+Full-stack applications are the bread and butter of Architect. Our component framework has been
+designed specifically to make it as easy as possible to package up modern applications into 
+portable, deployable units.
+
+In this guide, you'll learn how to create and integrate two components: one for your frontend
+webapp, and another for your backend API and its database.
+
+## The backend
+
+Even though users will primarily work with the frontend application, we're going to begin by describing
+the backend API. The frontend needs to connect to the backend to run correctly, so we'll need the
+backend to exist before the frontend can be completed.
+
+To kick things off, let's create a new folder to house our project and put an empty architect.yml file in
+it:
+
+```sh
+$ mkdir ./backend
+$ touch ./backend/architect.yml
+```
+
+Next, let's open up `./backend/architect.yml` and give the component a name, description, and possibly
+some keywords if I want my team to find the application more easily:
+
+```yml backend/architect.yml
+name: backend
+description: My apps API backend
+keywords:
+  - backend
+  - my-app
+  - REST
+```
+
+### The database
+
+Now that we have the skeleton for our backend component, let's add our first cloud resource - a database!
+Databases are a key building block for any full-stack application. Without the ability to persist data,
+your app will be extremely limited in what features it can deliver for users.
+
+Adding a database is really easy with Architect. Let's open up that `backend/architect.yml` file again
+and add the following:
+
+```yaml backend/architect.yml
+databases:
+  main:
+    type: postgres:13
+    description: Stores user data
+```
+
+The above will ensure that a new database is created for your component that uses `postgres` version `13`.
+It also includes a small description of what the database is used for so that production engineering teams
+have some visibility into what the cloud resources in the environment are used for.
+
+[Learn more about Architect's support for databases](/components/databases)
+
+### The API
+
+Now that we've created our `main` database, let's go ahead and add our API service. In this example we'll
+be using a docker image our team created in advance, but you can check out the [create a component](/guides/create-a-component)
+guide in our docs to learn more about building services from your own source code.
+
+```yaml backend/architect.yml
+services:
+  api:
+    image: registry.gitlab.com/architect-io/docker-files/sample-backend:latest
+    interfaces:
+      main:
+        port: 8080
+        ingress:
+          subdomain: api
+    environment:
+      PORT: 8080
+      DB_ADDR: ${{ databases.main.url }}
+      DB_USER: ${{ databases.main.username }}
+      DB_PASS: ${{ databases.main.password }}
+```
+
+The `api` service above has a few key elements: 1) The reference to the Docker image powering the service,
+2) the `main` interface the service listens for traffic on, and 3) the `environment` variables injected
+into the service at deploy-time.
+
+Take special note of the `DB_ADDR`, `DB_USER`, and `DB_PASS` values in the environment variables. You'll
+notice that they use Architect's [expression syntax](/components/architect-yml) to automatically fill the
+values with our database address and credentials every time we deploy. This helps reduce the amount of
+configuration required dramatically.
+
+### Running the backend
+
+Great! Your backend component is complete! Before we move on to the frontend, lets quickly test it out by
+running it locally:
+
+```sh
+$ architect dev ./backend/
+```
+
+The command above will detect the `architect.yml` file in the backend directly and spin up a fresh environment
+containing our new backend component. You'll also see in the logs that our API service is exposed at 
+`https://api.localhost.architect.sh/`. If you see an empty json array when you run
+`curl https://api.localhost.architect.sh/items` then you know its alive and running!
+
+### Registering the backend
+
+Now that we know the backend component works, we'll need to publish it to Architect's cloud registry so that it
+can be found when other components cite it as a dependency.
+
+```sh
+$ architect register ./backend/ --account my-account
+```
+
+The command above will publish the backend component to the `my-account` account in Architect's registry. You'll
+be able to see it by going to https://cloud.architect.io/my-account/components.
+
+Don't want to sign up for Architect just yet? No problem. You can simulate the way the registry works for local
+deployments using the `architect link` command as follows:
+
+```sh
+$ architect link ./backend
+```
+
+The command above will ensure that every time you run a component locally that depends on the `backend`, it will
+find the dependency on the local filesystem without having to call out to the registry. 
+
+## The frontend
+
+Finally, we're ready to create our frontend! Let's create another sibling folder to the `backend` we created earlier
+and put another `architect.yml` file inside:
+
+```sh
+$ mkdir ./frontend
+$ touch ./frontend/architect.yml
+```
+
+Next, we'll add similar metadata to give our frontend and name and description:
+
+```yml frontend/architect.yml
+name: frontend
+description: My apps frontend webapp
+keywords:
+  - frontend
+  - my-app
+  - REST
+```
+
+### Using dependencies
+
+Before we introduce our frontend webapp to the new component, let's cite the `backend` as a dependency.
+In doing so, we guarantee that the backend will always exist every time we deploy the frontend.
+
+```yaml frontend/architect.yml
+dependencies:
+  backend: latest
+```
+
+Guaranteeing the existance of the backend isn't everything we can do though. We can also inject the service
+addresses from the backend component into our frontend's environment variables. This automates configuration
+for us the same way we did in the backend when connecting to the database.
+
+```yaml frontend/architect.yml
+services:
+  frontend:
+    image: registry.gitlab.com/architect-io/docker-files/sample-frontend:latest
+    interfaces:
+      main:
+        port: 3000
+        ingress:
+          subdomain: app
+    environment:
+      REACT_APP_API_ADDR: ${{ dependencies.backend.services.api.interfaces.main.ingress.url }}
+```
+
+Take a look at the `REACT_APP_API_ADDR` and notice how we referred to the `api` service inside the `backend` 
+component using Architect's [expression syntax](/components/architect-yml) again. Specifically, we referred
+to the `ingress` URL of the `main` interface which will inject a publicly accessible address. This is important
+so that our react app, which runs in the browser, can connect to the API from outside the cloud environment.
+
+### Running the frontend
+
+Great! Now you're frontend component is complete as well! Let's try running it to make sure it works.
+
+```sh
+$ architect dev ./backend/
+```
+
+The command above will detect the `architect.yml` file in the frontend directly and spin up a fresh environment
+containing our new frontend component AND the backend component from the registry that we created earlier.
+You'll also see in the logs that our frontend service is exposed at `https://app.localhost.architect.sh/`. Once
+its ready, the app will open in the browser automatically.
+
+## Putting it all together
+
+Congratulations! You've successfully created and run your first full-stack web app using Architect. If you come
+back to this guide as a reference point, you can easily see the two component specs for your frontend and backend
+below:
+
+<CodeGroup>
+```yml frontend/architect.yml
+name: frontend
+description: My apps frontend webapp
+keywords:
+  - frontend
+  - my-app
+  - REST
+
+dependencies:
+  backend: latest
+
+services:
+  frontend:
+    image: registry.gitlab.com/architect-io/docker-files/sample-frontend:latest
+    interfaces:
+      main:
+        port: 3000
+        ingress:
+          subdomain: app
+    environment:
+      REACT_APP_API_ADDR: ${{ dependencies.backend.services.api.interfaces.main.ingress.url }}
+```
+
+```yml backend/architect.yml
+name: backend
+description: My apps API backend
+keywords:
+  - backend
+  - my-app
+  - REST
+
+databases:
+  main:
+    type: postgres:13
+    description: Stores user data
+
+services:
+  api:
+    image: registry.gitlab.com/architect-io/docker-files/sample-backend:latest
+    interfaces:
+      main:
+        port: 8080
+        ingress:
+          subdomain: api
+    environment:
+      PORT: 8080
+      DB_ADDR: ${{ databases.main.url }}
+      DB_USER: ${{ databases.main.username }}
+      DB_PASS: ${{ databases.main.password }}
+```
+</CodeGroup>

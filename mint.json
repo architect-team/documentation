@@ -59,6 +59,13 @@
       ]
     },
     {
+      "group": "Architecture",
+      "pages": [
+        "architecture/full-stack-apps",
+        "architecture/event-driven-architecture"
+      ]
+    },
+    {
       "group": "Guides",
       "pages": [
         "guides/create-a-component",
