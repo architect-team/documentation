@@ -77,7 +77,7 @@ build:
   buildpack: true
 ```
 
-Architect `buildpack` is in its early development stage and is currently an experimental feature. The version of the builder image is `heroku/buildpacks:20`. This builder version only supports languages such as Java, Go, Node.js, PHP, Python, Ruby, Scala, and Typescript. Learn more about [Heroku builder](https://github.com/heroku/builder).
+Architect `buildpack` is in its early development stage and is currently an experimental feature. The version of the builder image is `heroku/buildpacks:20`. This builder version only supports languages such as Java, Go, Node.js, PHP, Python, Ruby, Scala, and Typescript. Learn more about [Heroku's builder](https://github.com/heroku/cnb-builder-images).
 
 Depending on the language that the application is written in, there might be some requirements in order to build successfully. For example, if an application is written in Java, only these [supported Java versions](https://devcenter.heroku.com/articles/java-support#supported-java-versions) can be used. After selecting a Java version, a `system.properties` might be required at the root of the application for the builder to use the correct [Java runtime version](https://devcenter.heroku.com/articles/java-support#specifying-a-java-version).
 
