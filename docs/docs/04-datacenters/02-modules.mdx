@@ -172,3 +172,36 @@ environment {
   }
 }
 ```
+
+### `inputs`
+
+The `inputs` field is the most common field used in Architect modules. It is what allows Architect
+to pass information to the modules that's unique to the datacenter, environment, or component.
+
+### `build` / `source`
+
+More often than not, developers will use the `build` field to indicate where on the local filesystem
+each module can be built from. Whenever the datacenter gets built, Architect will turn all these
+into built and published docker artifacts and reference them in the `source` field.
+
+If you are re-using previously built Architect modules, you can simply reference them wth the
+`source` field directly instead of the `build` field.
+
+### `plugin`
+
+By default, Architect assumes that all modules are Pulumi modules - the first IaC framework we
+enrolled. However, you can specify that your plugin uses a different framework by specifying the
+`plugin` field. For example, if you wanted to use an OpenTofu module, you would specify the `plugin`
+field as `opentofu`.
+
+```hcl
+module "vpc" {
+  plugin = "opentofu"
+}
+```
+
+### `when`
+
+The last field of interest in module invocation is the `when` field which sets a condition under
+which the module should be invoked. This is a great way to limit the footprint of your environment
+and be reactive to the needs of your developers.

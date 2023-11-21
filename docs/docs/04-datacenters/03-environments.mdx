@@ -1,3 +1,59 @@
 ---
 title: Environments
 ---
+
+Of the the key drivers for the creation and adoption of Architect is the desire to offer
+self-service to developers. One of the elements of self-service in cloud app development is the
+ability to create your own cloud environments. Architect Datacenters offer just the feature needed
+to offer this ability while still ensuring that environments behave as desired.
+
+Inside the datacenter file, operators can declare modules that will be invoked once for every
+environment the datacenter powers. This is perfect for the creation of namespaces, DNS zones, and
+more:
+
+```hcl
+environment {
+  module "namespace" {
+    build = "./k8s-namespace"
+    inputs = {
+      name = environment.name
+      kubeconfig = module.k8s.kubeconfig
+    }
+  }
+}
+```
+
+As you may have noticed from the template above, the module invocation includes a dynamic reference
+to the environment name that allows the module to include environment-specific information.
+
+In addition to the environment name, modules also have access to the full array of application nodes
+that will be deployed to the environment. This metadata can be used to inject environment data into
+applications, or include clever conditions that limit when modules should be invoked. The code below
+uses the `when` clause to limit the creation of a postgres cluster and nginx controller only to
+environments that include a database and ingress node respectively:
+
+```hcl
+environment {
+  module "postgresCluster" {
+    when = contains(environment.nodes.*.type, "database") && contains(environment.nodes.*.inputs.databaseType, "postgres")
+    build = "./databaseCluster"
+    inputs = {
+      name = "${datacenter.name}-database"
+      databaseType = "pg"
+      databaseVersion = 15
+      region = variable.region
+      vpcId = module.vpc.id
+      "digitalocean:token" = variable.do_token
+    }
+  }
+
+  module "nginxController" {
+    when = contains(environment.nodes.*.type, "ingress")
+    build = "./nginx-controller"
+    inputs = {
+      name = "${datacenter.name}-nginx-controller"
+      kubeconfig = module.k8s.kubeconfig
+    }
+  }
+}
+```
