@@ -4,4 +4,175 @@ title: v2
 
 import { JsonSchemaDoc } from '@site/src/components/JsonSchemaDoc';
 
+## Component schema
+
 <JsonSchemaDoc schema="https://raw.githubusercontent.com/architect-team/arcctl/main/src/components/v2/schema.json" />
+
+## Expression context
+
+```yml
+# References the databases declared by this component
+#
+databases:
+  # The name of the database to target
+  #
+  [name]:
+    # The protocol the database is listening on
+    #
+    protocol: postgresql
+
+    # The hostname of the database
+    #
+    host: my-database
+
+    # The port the database is listening on
+    #
+    port: 5432
+
+    # The username used to access the database
+    #
+    username: admin
+
+    # The password used to access the database
+    #
+    password: password
+
+    # The name of the database being accessed
+    #
+    database: my-database
+
+    # The fully resolvable URL of the database
+    #
+    url: postgresql://admin:password@my-database:5432/my-database
+
+# References the builds declared by this component
+#
+builds:
+  # The name of the build to target
+  #
+  [name]:
+    # The address of the newly built Docker image
+    #
+    image: node:14
+
+# References the services inside this component
+#
+services:
+  # Name of the service being referenced
+  #
+  [name]:
+    # Protocol the service responds to
+    #
+    protocol: http
+
+    # Host where the service can be accessed within the environment
+    #
+    host: my-service
+
+    # Port the service is listening on
+    #
+    port: 8080
+
+    # Username the service needs for authentication
+    #
+    # Default value: ""
+    #
+    username: admin
+
+    # Password the service needs for authentication
+    #
+    # Default value: ""
+    #
+    password: password
+
+    # Fully resolvable URL of the service
+    #
+    url: http://admin:password@my-service:8080
+
+# References the ingresses inside this component
+#
+ingresses:
+  [name]:
+    # Protocol the ingress responds to
+    #
+    protocol: http
+
+    # Host where the ingress can be accessed
+    #
+    host: subdomain.hostname.com
+
+    # Port the ingress is listening on
+    #
+    port: 80
+
+    # Username the ingress needs for authentication
+    #
+    # Default value: ""
+    #
+    username: admin
+
+    # Password the ingress needs for authentication
+    #
+    # Default value: ""
+    #
+    password: password
+
+    # The subdomain the ingress is listening on
+    #
+    subdomain: subdomain
+
+    # The path the ingress is listening on
+    #
+    path: /api
+
+    # The DNS zone the ingress is listening on
+    #
+    dns_zone: hostname.com
+
+    # Fully resolvable URL of the ingress
+    #
+    url: http://admin:password@subdomain.hostname.com/api
+
+# The outputs the component makes available
+#
+outputs:
+  # Matches the key of each declared output
+  #
+  [name]:
+    # The payload of the output
+    #
+    data: abc123
+
+# The variable values injected into the component
+#
+variables:
+  # A key-value store of the variable names and their corresponding payloads
+  [name]: data123
+
+# References the dependencies of the component
+#
+dependencies:
+  # Matches the key of each dependency specified by the component
+  #
+  [name]:
+    ## References the services of the dependency. Has the same properties as the top-level services
+    #
+    services: {}
+
+    ## References the ingresses of the dependency. Has the same properties as the top-level ingresses
+    #
+    ingresses: {}
+
+    ## References the outputs the dependency makes available. Has the same properties as the top-level outputs
+    #
+    outputs:
+      # A key-value dictionary of output keys and their corresponding payloads
+      [name]: data123
+
+# Data related to the environment the component is deployed to
+#
+environment:
+  # The name of the environment
+  #
+  name: my-environment
+```
