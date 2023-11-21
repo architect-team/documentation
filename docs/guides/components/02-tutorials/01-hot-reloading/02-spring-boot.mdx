@@ -1,0 +1,72 @@
+---
+title: Sprint Boot (Java)
+description: How to setup hot-reloading for Spring Boot applications
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+[Spring Boot](https://spring.io/projects/spring-boot) makes it easy to create stand-alone,
+production-grade Spring based Applications that you can "just run". Sprint Boot take an opinionated
+view of the Spring platform and third-party libraries so you can get started with minimum fuss. Most
+Spring Boot applications need minimal Spring configuration.
+
+In this guide you'll learn how to setup hot-reloading for Architect Components that use Spring Boot
+services.
+
+<Tabs>
+<TabItem value="architect.yml" label="architect.yml" default>
+
+```yml
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    debug:
+      build:
+        dockerfile: Dockerfile.dev
+      volumes:
+        # The name of the volume we are creating
+        app:
+          host_path: .
+          mount_path: /opt/code/src
+```
+
+</TabItem>
+
+<TabItem value="dockerfile" label="Dockerfile">
+
+```dockerfile
+FROM maven:3-openjdk-18 as build
+WORKDIR /opt/code/src
+COPY . .
+RUN mvn package
+
+FROM maven:3-openjdk-18-slim COPY --from=build /opt/code/src/target/app.war app.war CMD [ "java",
+"-jar", "app.war" ]
+
+```
+
+</TabItem>
+<TabItem value="dockerfile.dev" label="Dockerfile.dev">
+
+```dockerfile Dockerfile.dev
+FROM maven:3-openjdk-18-slim
+WORKDIR /opt/code/src
+CMD [ "mvn", "spring-boot:run", "-Dspring.devtools.restart.enabled=true" ]
+```
+
+</TabItem>
+</Tabs>
+
+Take a look at the `architect.yml` file cited above, and first note the use of a different
+`dockerfile` inside `debug.build` for your service. The production `Dockerfile` includes all the
+steps to build the application before being served directly from a `.war` file, but `Dockerfile.dev`
+skips all that and uses the command `mvn spring-boot:run -Dspring.devtools.restart.enabled=true` to
+build the application from source and ensure that it uses the spring devtools to continously reload
+the application when there are changes.
+
+Secondly, the `architect.yml` file includes a volume to map the application source code to from the
+host to the container runtime. This ensures that code changes are visible to the docker container
+runtime so that spring boot can detect the changes.

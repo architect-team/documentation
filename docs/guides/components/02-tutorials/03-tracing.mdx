@@ -1,0 +1,21 @@
+---
+title: Tracing
+---
+
+Distributed tracing refers to methods of observing requests as they propagate through distributed
+systems. It's a diagnostic technique that reveals how a set of services coordinate to handle
+individual user requests. A single trace typically shows the activity for an individual transaction
+or request within the application being monitored, from the browser or mobile device down through to
+the database and back. In aggregate, a collection of traces can show which backend service or
+database is having the biggest impact on performance as it affects your users' experiences.
+
+[_Description coutesy of Lightstep_](https://lightstep.com/distributed-tracing)
+
+## OpenTelemetry
+
+OpenTelemetry is a collection of tools, APIs, and SDKs used to instrument, generate, collect, and
+export telemetry data (metrics, logs, and traces) to help you analyze your software's performance
+and behavior.
+
+In this guide, you'll learn the basics of setting up OpenTelemetry in your applications and how to
+connect to your preferred trace collector via Architect.

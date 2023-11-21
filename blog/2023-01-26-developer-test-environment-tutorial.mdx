@@ -1,0 +1,402 @@
+---
+title: 'Developer tutorial: Set up your test environment'
+description:
+  Learn the benefits of using developer test environments and how to set up portable test
+  environments using Docker Compose and Architect.
+authors:
+  - mandy.hubbard
+---
+
+To be an efficient developer, you need to iterate quickly on your code while initially isolating
+your code changes from the rest of your team. In order to accomplish those quick, isolated
+iterations, you need a private test environment—one that can be set up and torn down with little
+effort.
+
+In this post, we will walk through how to set up your own private developer test environment in two
+ways—first, using Docker Compose and second using Architect. We’ll also walk through a few different
+types of tests you might run and how your new environment can support them.
+
+{/* truncate */}
+
+But before we get into the details, let’s briefly cover the rationale for development teams to adopt
+developer test environments as a best practice.
+
+## Why development teams need test environments
+
+You probably already understand why you need to test, but sometimes, as developers, we forget what
+makes for a successful test environment and why it’s not enough just to test code on our machines.
+
+Let’s look at a few of those benefits that we gain with a more formal developer test setup—safety,
+consistency, and quality.
+
+### Safety
+
+As a developer, you should be able to hack away at code, run tests, and break the application
+however you want—without affecting the rest of your team. An isolated test environment gives you a
+sandbox to play in.
+
+### Consistency
+
+All developers need to have the same starting point for testing their changes. A shared, consistent
+test environment prevents “it works on my machine” issues. With a uniform test environment for all
+developers, your team will spend less time troubleshooting developer environment differences.
+
+### Quality
+
+An easily accessible, safe, and consistent test environment makes testing easier. With easier
+testing comes more tests and more frequent testing. This leads to better code quality and fewer bugs
+sneaking into production.
+
+Now that we’ve covered the why let’s dive into the how. We’ll look at one way to set up private
+developer test environments that support unit testing, end-to-end testing, and operational
+testing—which all the developers across your team can use—with the help of
+[Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/).
+
+## Enable unit testing
+
+Unit testing is the first stage in the testing pipeline—so let’s start there.
+
+Unit tests validate individual components of your application, isolated as much as possible from
+other dependency components. At this stage, you want to run tests quickly and often for immediate
+feedback and validation of local changes.
+
+Taking a simple Go application as an example, you could just run unit tests in your local
+environment with a simple command:
+
+```bash
+$ go test
+PASS
+ok github.com/example/micro-example 0.007s
+```
+
+Of course, this depends on a machine with a specific set of packages at particular versions and a
+specific version of Go. Trying to maintain that unique environment across a development team is
+burdensome and error-prone, and it will often result in chasing down environmental differences when
+problems occur.
+
+As a solution, we can use a Docker container to create a replicable, consistent, and “portable”
+environment that all developers can use.
+
+We start by using a Dockerfile that specifies the Go version we need for our tests:
+
+```dockerfile
+FROM ubuntu:jammy
+RUN apt-get update && apt-get install -y golang-go=2:1.18~0ubuntu2
+COPY . .
+EXPOSE 8080
+ENTRYPOINT ["go"]
+```
+
+This Dockerfile uses `ubuntu:jammy` as the base image and then installs a specific version of Go,
+achieving the version and base image pinning our app needs. Now, anyone running this image gets the
+same artifact regardless of where they run it.
+
+By treating the unit test suite as an artifact, your CI runners—which also need a particular version
+of Go for running their automated test suite—simply need to build the container and run it, further
+isolating your tooling from your application.
+
+To put this to use, we need to build the image using the Dockerfile.
+
+```bash
+$ docker build -t apptest .
+Sending build context to Docker daemon 69.63kB
+Step 1/4 : FROM ubuntu:jammy
+---> 216c552ea5ba
+Step 2/4 : RUN apt-get update && apt-get install -y golang-go=2:1.18~0ubuntu2
+---> a60aeb917085
+Step 3/4 : COPY . .
+---> 9704e5269120
+Step 4/4 : ENTRYPOINT ["go"]
+---> b852d44c0f49
+Successfully built b852d44c0f49
+Successfully tagged apptest:latest
+```
+
+Our `apptest` container image has been built. Because we defined `go` as the `ENTRYPOINT`, we can
+run our unit tests, and we can also run the app itself from the same running container instance.
+
+```bash
+$ docker run apptest test
+PASS
+ok github.com/example/micro-example 0.004s
+$ docker run apptest run main.go
+Starting server at port 8080…
+```
+
+## Expand to use Docker Compose
+
+We’ve compiled the implementation details needed for our app into an easily reproducible and
+consistent step. Since we know that we will eventually have more services and need to enable
+different levels of testing, let’s take the next logical step and incorporate this into Docker
+Compose.
+
+Docker Compose is an orchestration tool for managing multiple Docker containers (for example, a
+service in Go, a database, and a Redis cache) as a single application. It simplifies the task of
+bringing all of the parts of your application together with one command.
+
+One of the additional benefits of using container orchestration is that you can commit the
+configuration into your code repository, equipping every other developer in the project to spin up
+the same test environment on their local machine.
+
+For now, we’ll keep our `docker-compose.yml` file simple:
+
+```yml
+services:
+  apptest:
+    build:
+      context: .
+    command: run main.go
+```
+
+By running `docker compose up`, this configuration will create a service named `apptest`, build the
+image, and launch the application.
+
+```bash
+$ docker compose up -d
+[+] Running 3/3
+Container micro-example-apptest-1 Created
+Attaching to micro-example-apptest-1
+micro-example-apptest-1 | Starting server at port 8080…
+```
+
+This lays the foundation for both code and tests that are consistent and isolated. Both
+files—`Dockerfile` and `docker-compose.yml`—can be integrated with your CI pipeline to simplify the
+creation of test environments.
+
+Next, let’s expand on this again to enable end-to-end testing.
+
+## Enable end-to-end testing
+
+In most cases, testing strategies like automated smoke testing, end-to-end testing, and manual
+testing require more than just your application code. You likely have dependencies, such as a
+database or external services, that need to be running for the test cases to be valid. With the
+above configurations, those dependencies are not yet accessible by our Go service.
+
+Expanding on the previous example, let’s incorporate our database and the cache layer that our app
+needs.
+
+```yml
+services:
+  apptest:
+    build:
+      context: .
+    command: run main.go
+    environment:
+      - DBPASSWORD=demo
+      - DBPORT=5432
+      - DBHOST=db
+      - CACHEPORT=6739
+      - CACHEHOST=cache
+    depends_on:
+      - db
+      - cache
+    ports:
+      - '8080-8090:8080'
+  db:
+    image: postgres
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_PASSWORD=demo
+  cache:
+    image: redis
+    ports:
+      - '6739:6739'
+```
+
+Now when we run docker compose up, we get the full set of services we need to enable end-to-end
+testing.
+
+```bash
+$ docker compose up -d
+[+] Running 3/3
+⠿ Container micro-example-cache-1 Started
+⠿ Container micro-example-db-1 Started
+⠿ Container micro-example-apptest-1 Started
+```
+
+With our app and dependent services running, we can run our end-to-end tests that validate how our
+application code interacts with these dependencies.
+
+```bash
+$ docker run apptest test -v ./e2e/app_test.go
+=== RUN TestHealthEndpoint
+--- PASS: TestHealthEndpoint (1.33s)
+=== RUN TestServesOnDefaultPort
+--- PASS: TestServesOnDefaultPort (0.20s)
+=== RUN TestCanQueryDatabase
+--- PASS: TestCanQueryDatabase (5.34s)
+=== RUN TestCanReadWriteCache
+--- PASS: TestCanReadWriteCache (0.74s)
+PASS
+ok command-line-arguments 7.607s
+```
+
+## Enable operational testing
+
+Typically, the
+[staging environment](https://www.architect.io/blog/2022-04-20/what-is-staging-environment/) is the
+last step before
+[production](https://www.architect.io/blog/2022-03-21/production-environment-at-different-sizes/).
+By this point, the code should be stable; however, we still need to perform operational testing,
+such as scaling individual pieces of the application.
+
+In this step, we can mimic what our staging environment would look like, except at a local scope.
+Currently, we only have one instance of each of our services running.
+
+```bash
+$ docker ps --format "{{.Names}}"
+micro-example-apptest-1
+micro-example-db-1
+micro-example-cache-1
+```
+
+Docker Compose has a built-in scale command that we can use to scale up individual services. Let’s
+scale up our application.
+
+```bash
+$ sudo docker compose up --scale apptest=2 -d
+[+] Running 4/4
+⠿ Container micro-example-db-1 Started 0.5s
+⠿ Container micro-example-cache-1 Started 0.6s
+⠿ Container micro-example-apptest-1 Started 2.5s
+⠿ Container micro-example-apptest-2 Started 2.4s
+```
+
+Alternatively, if you want to mimic what your real deployment will look like, you can use
+[replicas](https://docs.docker.com/compose/compose-file/deploy/#replicas) in `docker-compose.yml` to
+indicate ahead of time how many instances there should be of each service.
+
+It’s important to note here that one key piece is missing after our application scales up: a routing
+mechanism. Since this detail is often impacted at a higher level in the team or organization, we
+won’t cover it here. With careful consideration, you could add something like Nginx to your
+configuration for your individual service instances, but be careful that you don’t inadvertently
+start testing the routing implementation!
+
+## What would this look like with Architect?
+
+In the above example, we’ve shown what it might look like to create consistent and isolated local
+test environments with Docker and Docker Compose. It was a lot of configuration, but the end result
+was worth the steps.
+
+Now let’s look at how you can easily accomplish much of the same functionality using the
+[Architect CLI](https://www.npmjs.com/package/@architect-io/cli) and then have access to many other
+benefits and features that Architect brings.
+
+Fortunately, since we already have a `docker-compose.yml` file, Architect makes it easy to set up.
+By simply running architect init, we can convert our `docker-compose.yml` file to an `architect.yml`
+file:
+
+```bash
+$ architect init --name=apptest
+$ cat architect.yml
+name: apptest
+services:
+  apptest:
+    build:
+      context: .
+    command: run main.go
+    environment:
+      DBPASSWORD: demo
+      DBPORT: '5432'
+      DBHOST: db
+      CACHEPORT: '6739'
+      CACHEHOST: cache
+      DB_URL: ${{ services.db.interfaces.main.url }}
+      CACHE_URL: ${{ services.cache.interfaces.main.url }}
+    depends_on:
+      - db
+      - cache
+    interfaces:
+      main:
+        port: 8080
+    reserved_name: apptest
+  db:
+    image: postgres
+    interfaces:
+      main:
+        port: 5432
+    environment:
+      POSTGRES_PASSWORD: demo
+    reserved_name: db
+  cache:
+    image: redis
+    interfaces:
+      main:
+        port: 6739
+    reserved_name: cache
+```
+
+With our newly created `architect.yml` file, we can run a local test environment in the same way we
+did using Docker Compose:
+
+```bash
+$ architect dev architect.yml -d
+Using locally linked apptest found at architect.yml
+[+] Building 0.1s (9/9) FINISHED
+ => [internal] load build definition from Dockerfile                                                                                            ...
+Building containers... done
+```
+
+Once the containers are running, they will be accessible via the following URLs:
+
+```bash
+http://localhost:50000/ => apptest:8080
+http://localhost:50001/ => db:5432
+http://localhost:50002/ => cache:6739
+Starting containers…
+```
+
+To verify that our service is accessible, we can issue a curl command.
+
+```bash
+$ curl localhost:50000/health
+Healthy!
+```
+
+From here, we can iterate through our test cycles in the same way we did when running with Docker
+Compose.
+
+Now, you might be wondering: _Why wouldn’t I just do this with Docker Compose? What additional
+benefit does using Architect give me?_ We’re glad you asked.
+
+## The benefits of the Architect approach
+
+Ease of use is a high value for Architect. Out of the box, Architect includes all the pieces you
+need to set up and maintain both local and remote test environments and the ability to create
+[preview environments](https://docs.architect.io/deployments/automated-previews/) automatically.
+
+By offloading the burden of spinning up different test environments or preview environments, both
+locally and remotely, you free up developers to focus on feature building and allow QA engineers to
+focus on testing and validation.
+
+But beyond being an easy way to set up private developer test environments, Architect also brings
+additional functionality to your processes. For example, once you are using Architect you can:
+
+- [Create a service catalog](https://docs.architect.io/components/service-discovery/) for easy
+  discovery and dependency management, making more advanced testing—like operational, scale, and
+  dependency testing—much more achievable.
+- Simplify compliance by generating strict, reliable network policies that white-list access from
+  APIs to their dependencies, enabling zero-trust security from day zero.
+- Manage and graduate [application secrets](https://docs.architect.io/components/secrets/) through
+  multiple environments.
+
+## Learn more about test environments
+
+To recap, we’ve shown how to level up your testing strategy using Docker Compose—a familiar tool and
+workflow that many developers are already using—to produce a replicable test environment that
+simplifies and standardizes the testing setup task across your whole team. We also covered how
+easily you can leverage Architect to manage and maintain local and remote test environments through
+the easy-to-use Architect CLI.
+
+Architect is a batteries-included option that improves your testing strategy while still maintaining
+flexibility. To unlock the full spectrum of functionality that Architect offers, sign up for a free
+developer account today! Check out these other posts on the Architect.io blog to learn more about
+testing and containerization:
+
+- [Microservice Tools: The Top 10 for Monitoring and Testing](https://www.architect.io/blog/2022-08-30/microservices-top-10-testing-monitoring/)
+- [Test Environments: Everything You Need to Know](https://www.architect.io/blog/2022-08-09/test-environment-guide/)
+- [A Developer’s Guide to Containers](https://www.architect.io/blog/2022-10-27/containers-developers-guide/)
+
+As always, feel free to hit us up with comments and suggestions on Twitter at
+[@architect_team](https://twitter.com/@architect_team)!

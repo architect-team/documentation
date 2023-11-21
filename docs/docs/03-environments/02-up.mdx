@@ -1,0 +1,22 @@
+---
+title: Up
+---
+
+The `arcctl up` command is the most popular for developers rapidly making changes to their
+Components. It allows developers to quickly spin up test environments for their Components in a
+single command:
+
+```bash
+$ arcctl up ./ --datacenter local
+```
+
+This command will create a completely new environment in the target datacenter, and will keep said
+environment active so long as the terminal process remains alive. To kill the environment, press
+`Ctrl + C` or `Cmd + C` to send a `SIGINT` signal which will begin environment cleanup.
+
+By default the `up` command will use a random, but human-readable name for the environment, but you
+can manually asign a name with the `--environment` flag:
+
+```bash
+$ arcctl up ./ --datacenter local --environment my-test-environment
+```

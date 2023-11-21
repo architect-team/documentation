@@ -1,0 +1,158 @@
+---
+title: Event-driven architecture
+description: Use event-driven architecture with Architect
+---
+
+import { Button } from '@site/src/components/Button';
+
+Event-driven architecture is a powerful design pattern that allows cloud applications to make calls
+to one another asyncronously and without coupling. This has been a pattern rapidly adopted by
+microservice applications to increase resiliance of inter-process communication.
+
+<Button href="/blog/2021-02-09/event-driven-architecture/" size="lg" color="reliable-green">
+  What the heck is event-driven architecture?
+</Button>
+
+Integrations may be more resiliant with event-driven architecture compared to syncronous API calls,
+but that doesn't mean your application doesn't have dependencies. If you subscribe to an event you
+can safely run your application even if the publisher doesn't exist, but why would you want to? Your
+application would be listening, but nothing would be talking to it. It'd just be burning compute.
+
+By using Architect's dependency management features, developers can still take advantage of the
+asyncronous nature of event-driven architecture, but are empowered to create end-to-end environments
+that automatically deploy the event-publishers to aid in testing.
+
+## Brokers
+
+The first part of any event-driven application is a broker - a database or persistence layer that
+oftentimes includes features to mediate the relationship between event publishers and subscribers. A
+few examples include [RabbitMQ](https://www.rabbitmq.com/), [Celery](https://docs.celeryq.dev/),
+[Kafka](https://kafka.apache.org/), or managed service providers like
+[GCPs PubSub](https://cloud.google.com/pubsub) or AWSs
+[SNS](https://aws.amazon.com/sns/)/[SQS](https://aws.amazon.com/sqs/).
+
+In this guide, we'll be using GCP PubSub. The first step is to define our pubsub Architect
+Component:
+
+```yaml architect.yml
+name: gcp-pubsub
+
+secrets:
+  gcp_project_id:
+    description: Name of the GCP project to connect to
+    default: test
+  service_endpoint:
+    description:
+      If you want to connect to the remote pub/sub service, use the value 'pubsub.googleapis.com'.
+      Otherwise, the local emulator will be used.
+    required: false
+  service_protocol:
+    description:
+      If you want to connect to the remote pub/sub service, use the value 'https'. Otherwise, the
+      local emulator will be used.
+    default: http
+  service_port:
+    description:
+      If you want to connect to the remote pub/sub service, use the value '443'. Otherwise, the
+      local emulator will be used.
+    default: 8085
+
+services:
+  pubsub:
+    image: gcr.io/google.com/cloudsdktool/cloud-sdk:emulators
+    command:
+      gcloud beta emulators pubsub start --host-port=0.0.0.0:${{ secrets.service_port }}
+      --project=${{ secrets.gcp_project_id }}
+    interfaces:
+      main:
+        host: ${{ secrets.service_endpoint }}
+        protocol: ${{ secrets.service_protocol }}
+        port: ${{ secrets.service_port }}
+        ingress:
+          subdomain: pubsub
+```
+
+The GCP team has gone above and beyond to help developers test their integrations by providing local
+emulators for pub/sub. This component uses the emulator to make it easier to test the integration
+without needing a cloud account.
+
+Let's write the file to our filesystem and then register it with Architect:
+
+```sh
+$ architect register ./pubsub/architect.yml --tag latest --account my-account
+```
+
+## Publishers
+
+Next up is an event publisher - a service that will write events to our broker for others to
+subscribe to. The only thing a publisher depends on is the broker itself, and doesn't really care
+who the subscribers are.
+
+```yaml architect.yml
+name: publisher
+
+secrets:
+  publish_topic:
+    description: Topic name the service will publish events to
+    default: topic
+
+outputs:
+  publish_topic:
+    description: Topic name events will be published to
+    value: ${{ secrets.publish_topic }}
+
+dependencies:
+  gcp-pubsub: {}
+
+services:
+  api:
+    build:
+      context: ./
+    environment:
+      GCP_PROJECT_ID: ${{ dependencies['gcp-pubsub'].outputs.gcp_project_id }}
+      PUBSUB_ENDPOINT: ${{ dependencies['gcp-pubsub'].services.pubsub.interfaces.main.url }}
+      PUBSUB_TOPIC: ${{ secrets.publish_topic }}
+```
+
+The component above shows how event publishers can coordinate with upstream subscribers by
+advertising the event topic using architect `outputs`. This will allow subscribers to get the
+correct topic name without hardcoding to something that the publisher may want to change later.
+
+Let's go ahead and register the publisher so that other components can subscribe to its events:
+
+```sh
+$ architect register ./publisher/architect.yml --tag latest --account my-account
+```
+
+## Subscribers
+
+Finally, we're ready to setup our subscriber. Even though we're not making a call to the event
+publisher, we still want to cite it as a dependency because our application won't do anything of
+substance with those events being published.
+
+```yaml architect.yml
+name: subscriber
+
+secrets:
+  subscription_key:
+    description: Key used to define this subscriber
+    default: subscriber
+
+dependencies:
+  gcp-pubsub: {}
+  publisher: {}
+
+services:
+  api:
+    build:
+      context: ./
+    environment:
+      PUBSUB_ENDPOINT: ${{ dependencies['gcp-pubsub'].services.pubsub.interfaces.main.url }}
+      GCP_PROJECT_ID: ${{ dependencies['gcp-pubsub'].outputs.gcp_project_id }}
+      PUBSUB_TOPIC: ${{ dependencies['publisher'].outputs.publish_topic }}
+      PUBSUB_SUBSCRIPTION: ${{ secrets.subscription_key }}
+```
+
+Notice how the subscribe depends on both the `gcp-pubsub` component and the `publisher` component.
+PubSub is used as the broker so that the service can read the events, but the topic name is
+collected from the publisher so that we don't hardcode to something that may change.

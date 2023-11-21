@@ -1,0 +1,37 @@
+---
+title: State management
+description: Store and manage infrastructure state
+---
+
+Architect has to store state about your managed infrastructure and configuration in order to
+facilitate changes. Architect uses this state to determine which changes need to be made to complete
+requests while minimizing impact on the infrastructure.
+
+## Backends
+
+Backends are responsible for storing state and making them accessible to your team and CI agents. By
+default, Architect uses a local backend that stores state in a local configuration file, but this is
+configurable via the CLI:
+
+```sh
+$ arcctl set state.backend
+```
+
+### Supported backend types
+
+Architect only supports a couple of different state backends right now, but we welcome contributions
+to our [CLI](https://github.com/architect-team/arcctl) to expand our support:
+
+- [x] local - Stores state on the local filesystem
+- [x] s3 - Stores state in an S3 bucket on AWS or other conformat providers
+
+## Inspection
+
+State files are simply JSON files containing metadata about the infrastructure or application state,
+but editing the contents directly is highly discouraged. If you find yourself needing to debug state
+changes, you can export the state of your datacenter or environment using `arcctl show`:
+
+```sh
+$ arcctl show datacenter <name>
+$ arcctl show environment <name>
+```

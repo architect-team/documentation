@@ -1,19 +1,41 @@
-# Architect Documentation
+# Website
 
-The content and configuration powering the documentation available at [docs.architect.io](https://docs.architect.io)
+This website is built using [Docusaurus 2](https://docusaurus.io/), a modern static website generator.
 
-### 👩‍💻 Development
-
-Install the [Mintlify CLI](https://www.npmjs.com/package/mintlify) to preview the documentation changes locally. To install, use the following command
+### Installation
 
 ```
-npm i mintlify -g
+$ yarn
 ```
 
-Run the following command at the root of your documentation (where mint.json is)
+### Local Development
 
 ```
-mintlify dev
+$ yarn start
 ```
 
-Test
+This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+
+### Build
+
+```
+$ yarn build
+```
+
+This command generates static content into the `build` directory and can be served using any static contents hosting service.
+
+### Deployment
+
+Using SSH:
+
+```
+$ USE_SSH=true yarn deploy
+```
+
+Not using SSH:
+
+```
+$ GIT_USER=<Your GitHub username> yarn deploy
+```
+
+If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.

@@ -1,0 +1,108 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,700&display=swap');
+
+blockquote {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+hr {
+  border-style: inherit;
+}
+
+/* Setup tailwind */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: theme(colors.slate-blue.500);
+  --ifm-color-primary-dark: theme(colors.slate-blue.600);
+  --ifm-color-primary-darker: theme(colors.slate-blue.700);
+  --ifm-color-primary-darkest: theme(colors.slate-blue.800);
+  --ifm-color-primary-light: theme(colors.slate-blue.400);
+  --ifm-color-primary-lighter: theme(colors.slate-blue.300);
+  --ifm-color-primary-lightest: theme(colors.slate-blue.200);
+  --ifm-background-color: #fff;
+  --ifm-code-font-size: 95%;
+  --ifm-footer-background-color: theme(colors.onyx.brand);
+  --ifm-footer-title-color: #fff;
+  --ifm-footer-color: #fff;
+  --ifm-navbar-height: 4rem;
+  --ifm-spacing-horizontal: 0;
+  --ifm-footer-link-color: theme(colors.gray.300);
+  --ifm-footer-link-hover-color: theme(colors.white);
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+html[data-theme='dark'] {
+  --ifm-color-primary: theme(colors.reliable-green.400);
+  --ifm-color-primary-dark: theme(colors.reliable-green.500);
+  --ifm-color-primary-darker: theme(colors.reliable-green.600);
+  --ifm-color-primary-darkest: theme(colors.reliable-green.700);
+  --ifm-color-primary-light: theme(colors.reliable-green.300);
+  --ifm-color-primary-lighter: theme(colors.reliable-green.200);
+  --ifm-color-primary-lightest: theme(colors.reliable-green.100);
+  --ifm-background-color: theme(colors.slate-blue.700);
+  --ifm-footer-background-color: theme(colors.slate-blue.900);
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+.navbar__logo {
+  height: 24px;
+}
+
+.docMainContainer_src-theme-DocPage-Layout-Main-styles-module {
+  display: block !important;
+}
+
+.prose table {
+  @apply w-fit divide-y divide-gray-300 -mx-4 mt-10 ring-1 ring-gray-300 sm:mx-0 sm:rounded-lg;
+}
+
+.prose table>thead,
+.prose table>tbody,
+.prose table tr,
+.prose table tr,
+.prose table td,
+.prose table th {
+  border: 0;
+  background-color: transparent;
+}
+
+.prose table th {
+  @apply py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6 bg-transparent;
+}
+
+.prose table>tbody>tr {
+  @apply odd:bg-gray-50;
+}
+
+.prose table>tbody>tr:first-child {
+  @apply border-t border-solid border-gray-300;
+}
+
+.prose table>tbody>tr:not(:first-child)>td::after {
+  content: '';
+  @apply absolute -top-px left-0 right-0 h-px bg-gray-200;
+}
+
+.prose table>tbody>tr:not(:first-child)>td:first-child::after {
+  @apply left-6;
+}
+
+.prose table>tbody>tr:not(:first-child)>td:last-child::after {
+  @apply right-6;
+}
+
+.prose table td {
+  @apply relative py-4 pl-4 pr-3 text-sm sm:pl-6 table-cell;
+}

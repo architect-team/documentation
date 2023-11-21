@@ -1,0 +1,58 @@
+---
+title: Overview
+---
+
+# Datacenters
+
+Creating a strong internal developer platform takes time and experience to do right. Once you create
+one golden path, like workflows and IaC templates for a Java monolith, developers quickly ask for
+more. They ask for things like microservices, event-driven architecture, ephemeral environments,
+logging, observability, and the list just keeps growing. If that wasn't enough, you still have the
+other half of your job to do: managing costs, keeping things secure, evaluating tools like gateways,
+service meshes, secret managers, and more. That's why we created the Datacenters framework – to help
+platform engineers offer the developer benefits of components
+
+Datacenters are packages of configuration and rules dictating how cloud resources should behave.
+They allow platform engineers to specify resources that should live inside every cloud environment
+to support multi-tenancy (e.g. namespaces, scoped databases, messaging queues, etc), as well rules
+for how application resources should behave when they land (e.g. where do secrets get stored, where
+should container workloads be run, etc). The ability to codify these rules allows platform teams to
+offer true self-service to developers without loosing control of their cloud. Developers can create
+their own environments and deploy w/out worrying about infrastructure or workflows, and platform
+teams can intrument, monitor, and scale cloud infrastructure w/out worrying about applications or
+developers.
+
+## Key features
+
+- Give developers the power to create their own on-demand environments
+- Automate zero-trust security for every application (both networking and credentials)
+- Experiment with and swap out key tools (like gateways, service meshes, secret managers, and more)
+  without needing to coordinate with developers
+
+## State management
+
+Architect uses persisted state to keep track of your accounts, datacenters and environments. These
+statefiles represent all of your cloud resources. By default these statefiles are kept on your local
+machine. Though, if you want to share these resources with multiple people across machines, then you
+will need to use a remote state. Any provider that supports a secret resource type, can be used as a
+remote backend.
+
+To configure a remote backend you can run the command, which will run you through creating an
+account.
+
+```bash
+$ arcctl set state.backend
+```
+
+To use arcctl in CI flows you can automate the configuration process. The following is an example of
+using DigitalOcean Spaces.
+
+```bash
+$ arcctl set state.backend \
+  --cred accessKeyId=myAccessKeyId \
+  --cred secretAccessKey=mySecretAccessKey \
+  --cred endpoint=https://nyc3.digitaloceanspaces.com \
+  --cred region=nyc3 \
+  --provider s3 \
+  --namespace mybucket
+```

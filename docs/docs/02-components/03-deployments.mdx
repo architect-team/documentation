@@ -1,0 +1,257 @@
+---
+title: Deployments
+description: What is a deployment and when do you need one?
+---
+
+A deployment is one of the most common resource types used by Components as it almost 1:1 represents
+a containerized workload, like an API, webapp, worker, etc. The deployment is responsible for
+describing how your applications should be run and configured.
+
+For anyone familiar with [Docker Compose](https://docs.docker.com/compose/), the syntax of a
+deployment will look a lot like
+[services](https://docs.docker.com/compose/compose-file/05-services/), but with two main
+differences:
+
+1. The use of [expressions](/docs/components/reference/#expression-options), or pointers, to connect
+   to other resources, and
+2. The removal of `ports` in favor of the more feature rich [services](../services) block.
+
+The most basic of deployments only require a single field: `image`. The `image` field tells the
+deployment what docker image to use to run the application.
+
+```yaml
+services:
+  api:
+    image: nginx:latest
+```
+
+## Building from source code
+
+Architect is primarily a deployment orchestration solution, but we wanted to make it easier to power
+dev and test environments by facilitating image builds so that developers can test applications
+faster.
+
+To build an image from source as part of a Component, you can use the `builds` block:
+
+```yaml
+builds:
+  api:
+    context: ./api # required
+    dockerfile: Dockerfile.dev # default: Dockerfile
+
+deployments:
+  api:
+    image: ${{ builds.api.image }}
+```
+
+As you can see in the above, you can ensure that your deployments use this new image by referencing
+it using Component expressions.
+
+:::info
+
+Whenever Components get built using `arcctl build component`, Architect runs `docker build` on all
+artifacts defined in the `builds` block, collects the new image tags, and replaces any references to
+`${{ builds.<artifact>.image }}` with the new image tag. You will never see the `builds` block in
+compiled Component artifacts.
+
+:::
+
+### Using buildpack
+
+:::caution
+
+Buildpack support is currently an **alpha** feature. While the feature should be stable, it may be
+changed without prior notice.
+
+:::
+
+Don't know how to build a Dockerfile? No problem! Architect is uses
+[Cloud Native Buildpacks](https://buildpacks.io/) to automatically build containers directly from
+source code.
+
+If a Dockerfile isn't found, Architect will automatically attempt to use a suitable buildpack to
+produce a functional. If you DO have a Dockerfile but want to test out buildpack anyway, you can
+turn it on manually with the `buildpack` flag.
+
+```yaml architect.yml
+services:
+  api:
+    build:
+      context: ./
+      buildpack: true
+```
+
+The version of the builder image is `heroku/buildpacks:20`. This builder version only supports
+languages such as Java, Go, Node.js, PHP, Python, Ruby, Scala, and Typescript. Learn more about
+[Heroku builder](https://github.com/heroku/cnb-builder-images).
+
+Depending on the language that the application is written in, there might be some requirements in
+order to build successfully. For example, if an application is written in Java, only these
+[supported Java versions](https://devcenter.heroku.com/articles/java-support#supported-java-versions)
+can be used. After selecting a Java version, a `system.properties` might be required at the root of
+the application for the builder to use the correct
+[Java runtime version](https://devcenter.heroku.com/articles/java-support#specifying-a-java-version).
+
+## Environment variables
+
+One of the most common ways to configure cloud applications with unique runtime values is through
+environment variables. Environment variables allow an application to receive input unique to the
+environment its running in, and are often used for things like credentials and addresses for other
+APIs and databases.
+
+```yaml architect.yml
+deployments:
+  api:
+    image: my-api:latest
+    environment:
+      DB_HOST: rds.amazonwebservices.com/....
+      DB_USER: username
+      DB_PASS: password
+      DB_NAME: my-db
+```
+
+Want to learn how to configure values for these variables? Head over to the
+[environment docs](/environments/) and check out how to configure values for
+[local environments](/environments/local) and [remote environments](/environments/remote)
+respectively.
+
+## Volumes
+
+On-disk files in a container are ephemeral which means that by default your application loses all
+disk data when it crashes or otherwise restarts. Volumes represent disk space that lives outside of
+the container runtime that gets mounted to the container when it starts up. By using external
+volumes, your data will remain in-tact in the event your service crashes or restarts.
+
+```yaml architect.yml
+deployments:
+  api:
+    image: my-api:latest
+    volumes:
+      cache:
+        description: Volume containing some cached data to speed up API responses
+        mount_path: /app/cache
+```
+
+## Production readiness
+
+Even though you can run your app locally, there are still a few extra features you can take
+advantage of to better prepare your services for production. You're still the expert when it comes
+to your application, so you've got to do your part to help out anyone who might run your application
+to do so in a safe and cost-effective way.
+
+### Liveness probes
+
+Liveness probes are scripts that get run that to test whether or not your application has booted up
+completely and remains healthy. These scripts are often run by container platforms to detect if
+services are unhealthy so they can attempt to restart them automatically or route traffic to other
+instances.
+
+```yaml architect.yml
+services:
+  main:
+    liveness_prove:
+      # (required) Command that will be run to check application health
+      command: curl --fail localhost:8080/healthz
+
+      # (optional, defaults to 0s) Delays the check from running for the
+      # specified amount of time
+      initial_delay: 0s
+
+      # (optional, defaults to 30s) The time period in seconds between
+      # each health check execution. You may specify between 5 and 300 seconds.
+      interval: 30s
+
+      # (optional, defaults to 5s) The time period in seconds to wait for a
+      # health check to succeed before it is considered a failure. You may specify
+      # between 2 and 60 seconds.
+      timeout: 5s
+
+      # (optional, defaults to 1) The number of times to retry a health check before
+      # the container is considered healthy.
+      success_threshold: 1
+
+      # (optional, defaults to 1) The number of times to retry a failed health check
+      # before the container is considered unhealthy. You may specify between 1 and 10 retries.
+      failure_threshold: 1
+```
+
+### CPU & Memory
+
+The `cpu` and `memory` fields on a component tell container platforms and environment operators how
+many resources are needed by a single instance of your service. Providing accurate resource usage
+numbers helps operators ensure that costs of each environment are kept low.
+
+```yaml architect.yml
+services:
+  main:
+    # (optional) a whole number or decimal that represents the number of vCPUs allocated
+    # to each service instance
+    cpu: 1
+
+    # (optional) a string representation of the amount of memory to allocate to each
+    # instance of the service.
+    memory: 2GB
+```
+
+### Auto-scaling
+
+Even though the number of replicas to run is an environment-specific decision (e.g. one replica in
+preview environments, but several in production), you can help out the operations teams greatly by
+codifying your services with the most reasonable metrics to use to trigger auto-scaling.
+
+The scaling metrics below allow you to specify upper thresholds for CPU and memory usage that should
+be used to trigger scale-up events and create more replicas of your service.
+
+```yaml architect.yml
+services:
+  main:
+    cpu: 1
+    memory: 2GB
+    scaling:
+      metrics:
+        # (optional) a number from 1-100 representing a percentage of memory utilization
+        memory: 80
+
+        # (optional) a nmber from 1-100 representing a percentage of cpu utilization
+        cpu: 70
+```
+
+## Debug mode
+
+The nature of deployments is usually to be portable, reusable, and unchanging, but that's only true
+when you're done coding. When you're actively working on your applications, you often need to use
+specific tools, tactics, or commands to facilitate hot-reloading that you don't need to use once
+you're feature complete.
+
+For features like this, Architect deployments and builds support a `debug` block. The `debug` block
+allows you to extend the functionality of your service with details that will only be triggered when
+a component is being run in debug mode in an environment (e.g. `arcctl deploy --debug` or
+`arcctl up`).
+
+```yaml
+builds:
+  api:
+    context: ./api
+    debug:
+      dockerfile: Dockerfile.debug
+
+deployments:
+  api:
+    image: ${{ builds.api.image }}
+    debug:
+      command: npm run dev
+      volumes:
+        src:
+          description:
+            Mounts the src folder to the container so the application will refresh when I edit my
+            code
+          mount_path: /app/src
+          host_path: ./src
+```
+
+<hr />
+
+Want to learn how to setup hot-reloading for your component? We've got some great guides for a
+variety of languages.
+
+[Learn more about hot-reloading](/guides/components/tutorials/hot-reloading/nextjs/)

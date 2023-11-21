@@ -1,0 +1,123 @@
+---
+title: Apply
+---
+
+The final way to create/update environments with Architect is with the `apply` command. This method
+takes an entire environment configuration file and treats it as the desired end-state of the
+environment. If there are new components or configuration changes, Architect will add/update them.
+If there were components in the environment that are no longer in the specific config file, they
+will be removed:
+
+```sh
+$ arcctl apply environment test ./test-env.yaml
+```
+
+## Writing environment files
+
+The environment file is a simply yaml file that includes configuration settings for the environment.
+These configuration settings are not meant to override either Components or Datacenters, but are
+instead to provide component configuration specific to individual environments (e.g. external API
+keys, references to databases that live in each environment, etc).
+
+### Component source
+
+The first and most critical field in the environment config file is the component `source`. This
+field tells Architect where the component can be found so it can be pulled into the environment.
+
+There are two ways to refer to a component source:
+
+1. with an component image address (Components get packaged as OCI artifacts and can be
+   pushed/pulled to and from any OCI supporting registry), or
+2. from the local filesystem. The second option is useful for local debugging of components and will
+   trigger a build of all the artifacts necessary for the component.
+
+```yml
+components:
+  architectio/kratos:
+    source: architect/kratos:v1.0
+  architectio/twitter-clone:
+    source: file:/Users/batman/twitter-clone
+```
+
+### Variables
+
+Another important property for components to operate correctly is the `variables` block. This allows
+environments to specify different values for component variables like different credentials, log
+behavior, etc.
+
+```yml
+components:
+  architectio/kratos:
+    variables:
+      log_level: error
+```
+
+### Scaling rules
+
+When operating a long-term environment, its important to be able to manage the scaling rules for
+each runtime to support the traffic needs of your applications. Architect lets you specify scaling
+rules for every deployment in your components with ease:
+
+```yaml
+components:
+  architectio/kratos:
+    deployments:
+      kratos:
+        replicas: 3
+        autoscaling:
+          min_replicas: 2
+          max_replicas: 4
+```
+
+### Environment variables
+
+It is recommended that components be configured using variables rather than overriding environment
+variables, but sometimes it can be easier to specify environment variables directly:
+
+```yaml
+components:
+  architectio/kratos:
+    deployments:
+      kratos:
+        environment:
+          LOG_LEVEL: error
+```
+
+### Ingress rules
+
+By default, all component ingresses are automatically assigned human-readable, deterministic
+subdomains to ensure there are no collisions between ingress routes, but oftentimes teams want to
+control the URLs by which their applications are accessed. Developers cna specify specific routing
+rules for each ingress in their components right from the environment configuration:
+
+```yml
+components:
+  architectio/kratos:
+    ingresses:
+      admin:
+        subdomain: kratos
+      public:
+        subdomain: auth
+        path: /api
+      auth:
+        subdomain: auth
+```
+
+### Locals
+
+If there are fields that get re-used throughout the environment, it can be tedious to copy and paste
+the value over and over again. Architect offers an easier solution with the `locals` block which
+allows you to specify values that can be referenced throughout the environment:
+
+```yml
+locals:
+  log_level: error
+
+components:
+  architectio/kratos:
+    variables:
+      log_level: ${{ locals.log_level }}
+  architectio/twitter-clone:
+    variables:
+      log_level: ${{ locals.log_level }}
+```

@@ -1,0 +1,136 @@
+---
+title: Full-stack apps
+description: Design and run a full-stack application component with Architect
+---
+
+Full-stack applications are the bread and butter of Architect. Our component framework has been
+designed specifically to make it as easy as possible to package up modern applications into
+portable, deployable units.
+
+In this guide, you'll learn how to create and deploy an Architect Component that includes a
+database, a dockerized API service, and a static frontend web app.
+
+## Databases
+
+The first building block of a full-stack web application is its database. Our full-stack app needs
+to persist user data, so we'll need a reliable place to store it. Let's start by adding a database
+to our `architect.yml` file:
+
+```yaml architect.yml
+databases:
+  main:
+    type: postgres:13
+    description: Stores user data
+```
+
+The above will ensure that a new database is created for your component that uses `postgres` version
+`13`. It also includes a small description of what the database is used for so that production
+engineering teams have some visibility into what the cloud resources in the environment are used
+for.
+
+## The backend
+
+Next up, we'll want to add our dockerized backend API. Let's start by running `architect init` to
+bootstrap a new project using one of our favorite languages and frameworks.
+
+```sh
+$ architect init backend
+```
+
+:::note
+
+This new project includes its own `architect.yml`, but you can delete it. This guide creates one
+macro component that includes both the frontend and backend resources.
+
+:::
+
+Now that you have a new `backend` folder with the project code, let's create the service in our root
+`architect.yml` file. This should be the same file we added the database to.
+
+```yaml architect.yml
+services:
+  backend:
+    build:
+      context: ./backend
+    interfaces:
+      main:
+        port: 8080
+        ingress:
+          subdomain: api
+    environment:
+      DATABASE_ADDR: ${{ databases.main.url }}
+```
+
+As you can see, we also included a reference to the database inside the `DATABASE_ADDR` environment
+variable. This uses Architect's [expression syntax](/components/architect-yml) to automatically fill
+the value with our database address every time we deploy.
+
+## The frontend
+
+Finally, we're ready to create our frontend. Let's run the `architect init` command again to create
+our frontend project:
+
+```sh
+$ architect init frontend
+```
+
+Now that you have a new `frontend` folder with the project code, let's create the service for our
+frontend app:
+
+```yaml architect.yml
+services:
+  frontend:
+    build:
+      context: ./frontend
+    interfaces:
+      main:
+        port: 3000
+        ingress:
+          subdomain: app
+    environment:
+      BACKEND_ADDR: ${{ services.backend.interfaces.main.ingress.url }}
+```
+
+Just like with the backend service connecting to the database, the frontend service has injected the
+public URL of the backend service into itself as the `BACKEND_ADDR` variable.
+
+## Putting it all together
+
+Now that we've seen the parts, let's put it all together.
+
+```yaml
+name: my-component
+
+databases:
+  main:
+    type: postgres:13
+
+services:
+  backend:
+    build:
+      context: ./backend
+    interfaces:
+      main:
+        port: 8080
+        ingress:
+          subdomain: api
+    environment:
+      DATABASE_ADDR: ${{ databases.main.url }}
+      CORS_ORIGIN: ${{ services.frontend.interfaces.main.ingress.url }}
+
+  frontend:
+    build:
+      context: ./frontend
+    interfaces:
+      main:
+        port: 3000
+        ingress:
+          subdomain: app
+    environment:
+      BACKEND_ADDR: ${{ services.backend.interfaces.main.ingress.url }}
+```
+
+Did you catch the `CORS_ORIGIN` address in the backend service this time? Check out our guide on
+configuring CORS to learn more.
+
+[Learn more about CORS configuration with Architect](/guides/cors)

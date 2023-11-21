@@ -1,0 +1,782 @@
+---
+title: Build and deploy a service with Go
+description: Learn to build a Go service and deploy it to a Kubernetes cluster in AWS
+author: tyler.adrich
+---
+
+[Go](https://go.dev/), also known as Golang, is a popular, statically typed, compiled programming
+language designed by Google. It is an easy-to-learn programming language with a C-style syntax and
+strong built-in networking and concurrency capabilities. The ecosystem of developers and tools is
+vast and constantly growing, making it a great language to write a new application or microservice.
+
+Go has a lot of built-in support for writing a service that can render templates and write to the
+database – perfect for a simple CRUD application. Go’s template syntax can be used to create
+server-rendered HTML and the built-in `net/http` package provides us with a handy HTTP server that
+can be used to route requests to various handlers and return static content.
+
+This example will use these features to create a simple Movie Rating application that stores a
+`name` and a `rating` in a database for each movie entry and retrieves existing entries for display.
+
+{/* truncate */}
+
+Architect will be used to deploy the application in the free Kubernetes environment that comes with
+[your Architect account](https://cloud.architect.io/signup).
+
+## Pre-reqs
+
+This tutorial assumes you have basic knowledge of the Go language and will focus on building out the
+various components needed to build our app.
+
+Before running the steps in this tutorial, make sure that you have the following:
+
+1. A local [Git installation](https://github.com/git-guides/install-git)
+2. A [GitHub account](https://github.com/signup)
+3. [Docker](https://docs.docker.com/get-docker/) (make sure it’s running!)
+4. A [free Architect account](https://cloud.architect.io/signup)
+5. The [Architect CLI](https://github.com/architect-team/architect-cli)
+
+Installing Go is not necessary as our server will be running in a container in this example, but it
+can optionally be downloaded [here](https://go.dev/dl/).
+
+## Run the `architect init` command
+
+To start off, we will use the `architect init` command to clone the Go starter project and walk
+through the code that comprises the Go project. At the end of this tutorial, you will have a clearer
+understanding of how to write a simple service in Go that can render templates and interact with a
+database.
+
+Run `architect init` from your terminal, and select `go` from the drop-down list:
+
+```bash
+$ architect init
+? What is the name of your project? my-starter-project
+? Please select a framework/language for your project
+  Django
+  Flask
+❯ Go
+  Nest
+  Nextjs
+  Nodejs
+  Nuxt
+```
+
+When the command completes, `cd` to the `go` directory:
+
+```bash
+? What is the name of your project? my-starter-project
+? Please select a framework/language for your project Go
+######################################
+##### Let's set up your project! #####
+######################################
+Creating project directory... ✓
+Pulling down GitHub repository... ✓ go
+Successfully created project my-starter-project.
+Your project is ready to be deployed by Architect!
+To deploy locally, run:
+  $ architect dev my-starter-project/architect.yml
+cd ./go
+```
+
+## Project walkthrough
+
+Before we deploy this starter project, let’s take a look at the source code.
+
+### Connect to the database using GORM
+
+[GORM](https://gorm.io/index.html) is a fully featured ORM for Go which allows us to create a simple
+Item table and run an auto-migration to update our database. We will use this application to store
+movie ratings, but since it can store ratings for any item, not just movies, we’ll call the table
+`item`.
+
+The database code is located in `server/database.go`, so open that up in your favorite editor to get
+started.
+
+### Imports
+
+```go
+import (
+    "fmt"
+    "log"
+    "os"
+    "gorm.io/driver/postgres"
+    "gorm.io/gorm"
+)
+```
+
+To start off, the `fmt`, `log`, and `os` built-in packages are imported in order to format our DSN,
+log any errors encountered, and grab environment variables containing our database information,
+respectively.
+
+Next, `gorm.io/driver/postgres` is imported because we are connecting to a PostgreSQL database and
+need to use GORM’s Postgres driver. `gorm.io/gorm` is imported in order to open a database session
+using the PostgreSQL driver.
+
+### Models
+
+The only model we need for this walkthrough is a simple Item struct with Name and Rating fields.
+GORM will use this struct to create a item table in the database with name and rating columns.
+
+```go
+type Item struct {
+    gorm.Model
+    Name   string
+    Rating uint
+}
+```
+
+`gorm.Model` is a helpful struct defined by GORM, which includes the fields `ID` (as a primary key),
+`CreatedAt`, `UpdatedAt`, and `DeletedAt`. This is a convenient addition to many models and is
+included in our `Item` struct as an embedded struct to simplify our code further.
+
+### Database configuration
+
+Finally, we have a simple function that returns a pointer to our database session called
+`ConfigureDb`.
+
+```go
+func ConfigureDb() *gorm.DB {
+    dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s",
+        os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"),
+        os.Getenv("DB_NAME"), os.Getenv("DB_PORT"))
+    db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+    if err != nil {
+        log.Fatal("Unable to connect to db")
+    }
+    // Migrate our database to add this table if it's not already present
+    db.AutoMigrate(Movie{})
+    return db
+}
+```
+
+Using the GORM postgres driver, `gorm.Open(postgres.Open(dsn), &gorm.Config{})` will return a
+pointer to the `gorm.DB` database handle, which can be used to query and insert data into the
+database.
+
+Before returning this database handle, `db.AutoMigrate(Movie{})` is called to update the database
+(if necessary) with a table that maps to the `Item` struct defined above.
+
+You may be wondering where the environment variables like `DB_HOST` are being set – the
+configuration of these environment variables is discussed in the deployment section below.
+
+## Write templates with Go
+
+Next, we need a way for users to create new movie ratings and see existing ratings. To do this, we
+make use of Go’s template syntax and the built-in `html/template` package to create and parse
+templates.
+
+There are two templates in this project: `server/templates/base.tmpl` and
+`server/templates/item_rating.tmpl`. This layout is overkill at the moment because only one template
+is utilizing the base.tmpl base template. Still, it showcases how a combination of templates can be
+used to render various pages in your application.
+
+In the base template, `server/templates/base.tmpl`, the HTML document is set up with a very basic
+body that creates blocks overridden by other templates to insert content:
+
+```html
+<!DOCTYPE html>
+    <head>
+        <title>Golang App</title>
+        <link rel="stylesheet" type="text/css" href="/static/styles.css">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+        <link rel="icon" href="/static/favicon.ico" />
+    </head>
+    <body>
+        <div class="container">
+            <p align="center" class="logo">
+                <a href="//architect.io" target="blank">
+                <img
+                    src="https://cdn.architect.io/logo/horizontal.png"
+                    width="320"
+                    alt="Architect Logo"
+                />
+                </a>
+            </p>
+            {{ block "rating_form" .}}{{end}}
+            {{ block "rating_table" .}}{{end}}
+        </div>
+    </body>
+</html>
+```
+
+This base template declares a couple of different blocks – a `rating_form` block that will house the
+movie rating creation form, and a `rating_table` block that will have a table of existing ratings.
+
+In the “Main” template, `server/templates/item_rating.tmpl`, these blocks are defined.
+
+The `rating_form` block has a simple form that will POST to the /item/ endpoint defined in main.go.
+
+```html
+{{ define "rating_form" }}
+<form action="/item/" method="post">
+  <h1>Favorite Pizza</h1>
+  <div class="user_inputs">
+    <input
+      placeholder="Name*"
+      type="text"
+      id="formName"
+      name="name"
+      class="form-control"
+      value=""
+      minlength="1"
+      maxlength="80"
+      required
+    />
+    <input
+      placeholder="Rating 1-5*"
+      type="number"
+      id="formRating"
+      name="rating"
+      class="form-control"
+      value=""
+      min="1"
+      max="5"
+      required
+    />
+  </div>
+  <div class="d-grid gap-2">
+    <button type="submit">Submit</button>
+  </div>
+</form>
+{{ end }}
+```
+
+The `rating_table` block uses some of Go’s template language features to conditionally display the
+table and to loop through and render all existing movie ratings.
+
+```html
+{{ define "rating_table" }} {{ if .Items }}
+<table class="table table-striped table-bordered">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Rating</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{ range $item := .Items }}
+    <tr>
+      <td>{{ $item.Name }}</td>
+      <td>{{ $item.Rating }}</td>
+    </tr>
+    {{ end }}
+  </tbody>
+</table>
+{{ else }}
+<p>No entries found</p>
+{{ end }} {{ end }}
+```
+
+In the `ratings_table` block, Items references an array of Item structs that will be passed in while
+rendering this template. If the array is empty, <p>No entries found</p> will be rendered instead of
+the table.
+
+`{{ range $item := .Items }} ... {{ end }}` will repeat the block and assign each element in the
+`Items` array to `$item`.
+
+```html
+<tr>
+  <td>{{ $item.Name }}</td>
+  <td>{{ $item.Rating }}</td>
+</tr>
+```
+
+This will be repeated for every movie, creating a table row with a column for the movie name and
+rating.
+
+## Serve some static resources
+
+Now that our templates are in place, we need to handle serving static resources. In the base
+template, you may have noticed we included a CSS file in the `<head>`:
+`<link rel="stylesheet" type="text/css" href="/static/styles.css">`. `styles.css` is a static
+resource served by our application from the route `/static/styles.css`.
+
+To serve these static resources, we make use of Go’s `http.FileServer` from the `http` package. This
+`FileServer` will return a handler that serves HTTP requests with the contents of the file system –
+perfect for serving static resources like CSS.
+
+In the `main` function of `main.go`, there are a handful of routes that get registered:
+
+```go
+// Serves our main template
+http.HandleFunc("/", handleRoot(db))
+// Serves our static css assets
+http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(STATIC_DIR))))
+// Handles POST requests to add new Items to the database for display
+http.HandleFunc("/item/", handleCreateItem(db))
+```
+
+The other two handlers will be discussed below, but `http.Handle("/static/", ...)` is the route we
+use to serve static resources. `http.FileServer(http.Dir(STATIC_DIR))` creates a `FileServer` that
+will serve the contents of the directory `STATIC_DIR`, which is defined at the top of the file to be
+"static". Finally, `http.StripPrefix("/static/", ...)` is necessary so that `/static/` is stripped
+from the route `/static/your-static-resource.css`, and `your-static-resource.css` will be looked up
+in the `STATIC_DIR`.
+
+When `/static/styles.css` is referenced now, the `/static/` handler will be used to serve the file
+`styles.css` from the static directory.
+
+## Render templates and handle POST requests
+
+The last step to get our app working is to render the `item_rating.tmpl` template to display the
+list of movie ratings and handle POST requests to `/item/` when a new rating is submitted.
+
+These two things are accomplished with the other two routes mentioned above.
+
+```go
+func main() {
+    db := ConfigureDb()
+    // Serves our main template
+    http.HandleFunc("/", handleRoot(db))
+    // ...
+}
+```
+
+When / is hit, we call the handleRoot function and pass a reference to the configured database so
+that movie ratings can be queried. Because HandleFunc expects a function, func(http.ResponseWriter,
+\*http.Request), in order to process requests to the specified route, handleRoot returns a function
+with this signature. Any request that doesn’t match the other more specific routes will match "/",
+and therefore the first thing done is checking if r.URL.Path != "/". If somebody tries navigating to
+/foo, our app will return a 404 via the handle404 function.
+
+```go
+func handle404(w http.ResponseWriter) {
+    w.WriteHeader(http.StatusNotFound)
+    fmt.Fprintf(w, "Not Found")
+}
+```
+
+This is a simple function that writes the status code 404 to the HTTP response and adds the message
+“Not Found” to the body.
+
+If the route is valid, we need to query movie ratings from the database and render our template with
+the array of movies it is expecting.
+
+```go
+var items []Item
+db.Find(&items)
+data := struct {
+     Items []Item
+}{
+     Items: items,
+}
+renderTemplate(w, "item_rating", data)
+```
+
+db.Find(&items) uses GORM to find all records matching the given condition and adds those records to
+the destination &items, a pointer to an array of movies. In this case, we want all movie ratings, so
+no conditions are passed in.
+
+The item_ratings template expects a struct field called Items that contains this array of movie
+ratings so that struct is created and passed to the helper function renderTemplate.
+
+```go
+func renderTemplate(w http.ResponseWriter, template_name string, data any) {
+    // The base template is always included in whatever template we render.
+    base_template := fmt.Sprintf("%v/base.tmpl", TEMPLATE_DIR)
+    template_to_render := fmt.Sprintf("%v/%v.tmpl", TEMPLATE_DIR, template_name)
+    t, err := template.ParseFiles(base_template, template_to_render)
+    if err != nil {
+        log.Fatal(err)
+    }
+    if err := t.Execute(w, data); err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+This function constructs a path to the base template and the template we have passed in, setting
+those values to base_template and template_to_render, respectively. Next, the html/template package
+has a ParseFiles function that will create a new template that combines the base template with our
+template_to_render. Finally, t.Execute(w, data) will use the combined template to apply the template
+to the data object containing the array of movie ratings and write the output to the writer (which
+is our HTTP response).
+
+At this point, the / route is rendered and displays the list of movie ratings! The last step is
+handling the form submission to create new ratings so that the table isn’t eternally empty. The
+handler for the /item/ route looks very similar to /:
+
+```go
+http.HandleFunc("/item/", handleCreateItem(db))
+```
+
+handleCreateItem has a couple of different responsibilities. It first needs to deal with some basic
+data validation, and upon successfully validating that the movie rating data is acceptable, it needs
+to write the movie rating to the database and redirect the user back to /.
+
+r.ParseForm() will handle parsing the POST body as a form and put the results into r.PostForm for us
+to access.
+
+```go
+name := r.PostForm.Get("name")
+rating := r.PostForm.Get("rating")
+if name == "" {
+    redirect(w, r, "/")
+    return
+}
+rating_number, err := strconv.Atoi(rating)
+if err != nil || rating_number < 1 || rating_number > 5 {
+    redirect(w, r, "/")
+    return
+}
+```
+
+If any validation fails, the user is redirected to the input form again. The redirect function is a
+simple wrapper around http.Redirect(w, r, path, http.StatusFound) for convenience. The validation,
+in this case, is very basic: As long as the movie name is not an empty string and as long as the
+rating_number can be parsed as an integer between 1 and 5, the rating is accepted.
+
+```go
+db.Create(&Item{Name: name, Rating: uint(rating_number)})
+redirect(w, r, "/")
+```
+
+After validation passes, GORM’s db. Create is used to add a new row to the items table. An Item
+struct is created with the name and rating_number converted to an unsigned integer. Once the rating
+is created, users are redirected to /, which will display the rating in the table.
+
+## Deploy the application
+
+At this point, all the code needed for our simple app is ready! All that is left is deployment, so
+your friends and family can finally rate movies. The Architect CLI will be used to run this locally
+and will also be used to eventually deploy it to the cloud.
+
+In order to use Architect to run this application locally and on a remote Kubernetes cluster, the
+repo contains a file called architect.yml. This configuration file looks a lot like a Docker Compose
+file – when running architect dev, it will be converted into a docker-compose.yml and will be run
+with docker compose. When deploying to the cloud, the architect.yml is used to generate Terraform.
+
+The architect.yml file in this starter project is heavily annotated to describe what each block of
+configuration is doing – more information about the architect.yml file and what options are
+available can be found in the Architect docs.
+
+### Run locally
+
+Before deploying to a cloud environment, it is always a good idea to first run your application
+locally. You can do this using Architect by executing a single command from the top-level directory
+of the cloned repository:
+
+```bash
+$ architect dev .
+```
+
+You’ll see the container build and then start running. The gateway containers that you see manage
+incoming network traffic and allow Architect to serve the applications on fixed domains.
+
+```bash
+Once the containers are running, they will be accessible via the following URLs:
+https://app.localhost.architect.sh:443/ => go-demo--app
+http://localhost:443/ => gateway:443
+http://localhost:8080/ => gateway:8080
+http://localhost:50000/ => go-demo--app:8000
+http://localhost:50001/ => go-demo--app-db:5432
+```
+
+When the container startup is complete, Architect will serve the Go application at
+https://app.localhost.architect.sh:443/, which will open in a tab in your browser automatically. You
+can now rate movies!
+
+### Deploy to the cloud
+
+Now that we have tested the application locally, we are ready to deploy it to the cloud. First,
+we’ll deploy using AWS native tools. Then we’ll use Architect to deploy the application using a
+single command.
+
+#### Use AWS native tooling
+
+You’ll need an EKS cluster for these next steps. If you need help creating a cluster or installing
+`kubectl`,
+[follow these steps](https://www.architect.io/blog/2023-01-19/kubernetes-cluster-in-aws/).
+
+Before you can deploy the application, you’ll need to build it and push it to a remote registry. To
+build the image locally and push it to Docker Hub, run the following command, substituting your
+Docker repo name:
+
+```bash
+docker build -t YOUR_DOCKER_REPO_NAME/go-app:latest .
+docker push YOUR_DOCKER_REPO_NAME/go-app:latest
+```
+
+Alternatively, you can push a private image to ECR and set up IAM permissions so that you can push
+your image from the command line.
+
+Now that your container is available in a remote registry, we’ll need to create a couple of
+deployments and services. First, create a deployments.yml file:
+
+```yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-go-deployment
+  namespace: sample-app
+  labels:
+    app: sample-go
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sample-go
+  template:
+    metadata:
+      labels:
+        app: sample-go
+    spec:
+      containers:
+        - name: go-app
+          image: YOUR_DOCKER_REPO_NAME/go-app:latest
+          ports:
+            - name: http
+              containerPort: 8000
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PORT
+              value: '8000'
+            - name: DB_NAME
+              value: 'app-db'
+            - name: DB_USER
+              value: 'architect'
+            - name: DB_PASSWORD
+              value: 'secret'
+            - name: DB_HOST
+              value: 'postgres'
+            - name: DB_PORT
+              value: '5432'
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-volume
+  namespace: sample-app
+  labels:
+    type: local
+    app: postgres
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+  hostPath:
+    path: /mnt/data
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: postgres-pv-claim
+  namespace: sample-app
+  labels:
+    app: postgres
+spec:
+  storageClassName: gp2
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: sample-app
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:12
+          imagePullPolicy: 'IfNotPresent'
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: 'app-db'
+            - name: POSTGRES_USER
+              value: 'architect'
+            - name: POSTGRES_PASSWORD
+              value: 'secret'
+            - name: PGDATA
+              value: /var/lib/postgresql/data/db
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgredb
+      volumes:
+        - name: postgredb
+          persistentVolumeClaim:
+            claimName: postgres-pv-claim
+```
+
+Be sure to replace `YOUR_DOCKER_REPO_NAME/go-app:latest` with your Docker repo name! This
+deployments.yml will create a few resources – the Go application, a PostgreSQL 12 database, and a
+volume for the database to use to store data persistently.
+
+Next, we need to set up some network services so that our Go application can connect to the database
+and so we can reach the Go application from outside the cluster. Create a file called
+`network_services.yml` with the following contents:
+
+```yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: sample-app
+  labels:
+    app: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-app-lb
+  namespace: sample-app
+  labels:
+    app: sample-go
+spec:
+  type: LoadBalancer
+  selector:
+    app: sample-go
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+```
+
+And finally, we’ll use kubectl to apply these changes by running:
+
+```bash
+kubectl create namespace sample-app
+kubectl apply -f deployments.yaml -f network_services.yml
+```
+
+In order to access the application, you’ll need the external IP address, which you can find by
+running:
+
+```bash
+$ kubectl get services --namespace=sample-app
+NAME        TYPE        CLUSTER-IP      EXTERNAL-IP
+go-app-lb   LoadBalancer   172.20.181.57   <omitted>.us-east-2.elb.amazonaws.com
+postgres    ClusterIP   172.20.103.61   <none>
+```
+
+If you navigate to the go-app-lb resource’s external IP in your browser, you will see the app
+running!
+
+### Use Architect
+
+Architect offers a free cloud where you can deploy your application. You can even integrate
+Architect with GitOps to launch the application in a new environment with every pull request.
+However, for this post, we are going to show you how to use Architect to deploy to an external EKS
+cluster.
+
+#### Login
+
+You’ll need to create a free Architect account for these next steps. Once you’ve created an account,
+you can log in with the CLI by running the following command:
+
+```bash
+$ architect login
+```
+
+This command prompts you to log into your account through the browser, and then your requests made
+via the CLI will be authenticated.
+
+#### Setup your cluster environment
+
+Next, you’ll connect your EKS cluster to Architect. For this step, you’ll need the kubeconfig for
+your cluster. You can store it in the default location, ./kube/config, or you can pass the location
+of the file on the command line. Run the following command to connect your EKS cluster to Architect:
+
+```bash
+$ architect cluster:create <cluster-name> --kubeconfig <kubeconfig-file-path>
+```
+
+If you have more than one Architect account, a dropdown list of accounts will be displayed.
+Architect will also display a list of all the clusters it found in your kubeconfig, so you’ll need
+to select the one you wish to connect. When the command completes, the output will look similar to
+the following:
+
+```bash
+% architect cluster:create aws
+? Select an account to register the cluster with <account-name>
+? Which kube context points to your cluster? arn:aws:eks:us-west-2:914808004132:cluster/<cluster-name>
+Creating the service account... done
+Registering cluster with Architect... done
+Cluster registered: https://cloud.architect.io/sp-demo/clusters/new?cluster_id=757d4894-0b9e-452c-94c9-d0eeaad280aa
+Installing the agent... done
+? Would you like to install the requisite networking applications? This is a required step before using Architect with this cluster. More details at the above URL. (Y/n)
+```
+
+Now that Architect has access to your EKS cluster, you’ll need to create a new environment. A
+cluster environment is similar to a namespace, and enables logical separation of deployed
+components.
+
+Run the following command to create an environment, and select your cluster name from the dropdown
+list:
+
+```bash
+architect environments:create <environment-name>
+```
+
+When the command completes, you should see output similar to the following:
+
+```bash
+% architect environments:create <environment-name>
+? Select a cluster <cluster-name>
+Registering environment with Architect... done
+Environment created: https://cloud.architect.io/<account-name>/environments/<environment-name>
+```
+
+#### Deploy
+
+Now that you have connected your cluster and created an environment, you only need to run a single
+command to deploy any application. Run the following command from the top-level directory of your
+project, and select the environment you just created from the drop-down list:
+
+```bash
+% architect deploy .
+```
+
+Once you run the command above, you’ll be asked “Would you like to apply?” to confirm the deployment
+pipeline. Select Yes to complete the deployment, or feel free to follow the link to the “Pipeline
+ready for review” in the Architect UI. When the component has been deployed, your terminal will look
+similar to this:
+
+```bash
+$ architect deploy .
+[ Image building and registration removed for clarity ]
+Creating pipelines... done
+Pipeline ready for review: https://cloud.architect.io/<account-name>/environments/<environment -name>/pipelines/<pipeline-id>
+? Would you like to apply? Yes
+go-demo:architect.environment.<environment-name> Deployed
+Deploying... done
+```
+
+## That's a wrap
+
+At this point, you’ve built an application in Go that can be run locally and deployed to the cloud
+with only a handful of commands. You should now understand how to write some simple HTTP endpoints
+using Go, how to use Go’s template language to write templates, and how to string it all together to
+build a website that can read and write from a database!
+
+For more best practices and tutorials, check out these other posts from the Architect blog:
+
+- [A Developer’s Guide to Containers](/blog/2022-10-27/containers-developers-guide/)
+- [Developer tutorial: Set up your test environment](/blog/2023-01-26/developer-test-environment-tutorial/)
+- [Test environments: Everything you need to know](/blog/2022-08-09/test-environment-guide/)
+
+As always, feel free to hit us up with comments and suggestions on Twitter at
+[@architect_team](https://www.architect.io/blog/2023-04-05/go-build-and-deploy-tutorial/@architect_team)!

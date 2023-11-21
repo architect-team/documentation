@@ -1,0 +1,95 @@
+---
+title: "YAML Ain't Markup Language: A guide to the basics"
+description:
+  Discover YAML – the simple and human-readable data serialization format. Simplify your data
+  representation needs with YAML.
+author: tyler.aldrich
+---
+
+When it comes to data serialization, there are many options. But, among the sea of XML, JSON, and
+other formats, one stands out for its simplicity and human readability: YAML. That’s right, YAML
+(short for “YAML Ain’t Markup Language“) is a lightweight data interchange format that’s easy on the
+eyes and easy to use. But before we dive into how to write a YAML file, let’s first talk about what
+exactly YAML is and what it’s used for.
+
+{/* truncate */}
+
+At its core, YAML is a way to represent data structures, such as lists and dictionaries, in a
+human-readable format. It’s often used for configuration files, as it’s easy for humans and machines
+to understand. Unlike XML and JSON, YAML doesn’t use tags or braces to denote the structure of the
+data. Instead, it uses indentation and special characters to indicate nesting, similar to how Python
+uses indentation to signify code blocks, enforcing formatting while writing code.
+
+Is YAML a programming language? While it does have some similarities to programming languages, YAML
+is not a programming language. It’s a data serialization format similar to JSON and XML. You can’t
+write programs in YAML, but you can use them to represent data that can be used.
+
+Now that we’ve got the basics down let’s look at how to write a YAML file. There are two main types
+of data structures in YAML: scalars and collections. Scalars are single values, such as strings,
+numbers, and booleans. Collections, on the other hand, are groups of values, such as lists and
+dictionaries.
+
+Scalars are the most basic type of data in YAML. They’re represented by plain text with no special
+characters. For example, the following is a scalar value:
+
+```yml
+name: John Doe
+```
+
+As you can see, the scalar value “John Doe” is associated with the key “name.” In YAML, key-value
+pairs are separated by a colon.
+
+Collections, on the other hand, are groups of values. The two main types of collections in YAML are
+lists and dictionaries. Lists are ordered collections of values, while dictionaries are unordered
+collections of key-value pairs.
+
+Here’s an example of a list in YAML:
+
+```yaml
+fruits:
+  - apple
+  - banana
+  - orange
+```
+
+As you can see, the list is represented by a series of dash-prefixed values, each on a new line and
+indented the same amount.
+
+Here’s an example of a dictionary in YAML:
+
+```yml
+person:
+  name: John Doe
+  age: 30
+  address:
+    street: 123 Main St
+    city: Anytown
+    state: CA
+```
+
+As you can see, the dictionary is represented by a series of key-value pairs, each on a new line and
+indented the same amount. The nested dictionary is also indented under the parent dictionary.
+
+YAML also supports more complex data types like dates, timestamps, and binary data, but the above
+examples should give you a good idea of how it works.
+
+In conclusion, YAML is a lightweight data serialization format. It is often used for configuration
+files, as it’s easy for humans and machines to understand. Unlike XML and JSON, YAML doesn’t use
+tags or braces to denote the structure of the data. Instead, it uses indentation and special
+characters to indicate nesting. This makes it more akin to programming languages like Python, which
+also use indentation to indicate code blocks. YAML supports two main types of data structures:
+scalars and collections, including scalars, lists, and dictionaries. With its simplicity and human
+readability, YAML is an excellent choice for any data serialization needs, whether for configuration
+files or data exchange between systems.
+
+## Learn more
+
+Want to learn more about YAML and the technologies that use it? Check out these other posts from our
+blog!
+
+- [Five tips for successfully managing dependencies](/blog/2023-03-06/five-tips-for-successfully-managing-dependencies/)
+- [Manage networking with Docker Compose](/blog/2023-03-23/manage-networking-with-docker-compose/)
+- [How does microservice communication work?](/blog/2023-03-21/microservices-communication/)
+
+As always, feel free to leave your comments and questions below. Also, don’t forget to
+[follow us on Twitter](https://twitter.com/architect_team)!

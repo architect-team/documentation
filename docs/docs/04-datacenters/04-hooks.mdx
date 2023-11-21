@@ -1,0 +1,61 @@
+---
+title: Hooks
+---
+
+## Supported hook types
+
+### `database`
+
+```hcl
+environment {
+  database {
+    when = node.inputs.databaseType == "postgres"
+
+    module "dbCluster" {
+      source = "./db/cluster"
+      inputs = {
+        # ...
+      }
+    }
+
+    outputs = {
+      host = module.dbCluster.host
+      port = module.dbCluster.port
+      username = module.dbCluster.username
+    }
+  }
+}
+```
+
+### `databaseUser`
+
+```hcl
+environment {
+  databaseUser {
+    when = node.inputs.databaseType == "postgres"
+
+    module "pgUser" {
+      source = "./pg/user"
+      inputs = {
+        rootUser = node.inputs.username
+        rootPass = node.inputs.password
+      }
+    }
+
+    outputs = {
+      username = module.dbCluster.username
+      password = module.dbCluster.password
+    }
+  }
+}
+```
+
+### `deployment`
+
+### `service`
+
+### `ingress`
+
+### `cronjob`
+
+### `secret`

@@ -1,0 +1,87 @@
+---
+title: Ingresses
+description: Learn how to expose services to end-users and client devices over the internet
+---
+
+Like [services](./04-services.mdx), ingresses are a way to expose applications. Unlike services
+however, ingresses are designed to expose applications to end-users and client applications (e.g.
+SPAs, mobile apps, etc). Ingresses are most commonly used for web applications and externally facing
+APIs.
+
+The simplest (and most common) ingress definitions only require a service name that traffic should
+be forwarded to:
+
+```yml
+services:
+  backend:
+    deployment: backend
+    port: 8080
+
+ingresses:
+  backend:
+    service: backend
+```
+
+## Integrating ingresses
+
+One of the key benefits of declaring ingresses alongside components is the ability to integrate with
+them from other applications. A client-side web application needs to connect to a backend API in
+order to query or write data. By using ingresses, the application can treat said API like a
+dependency and integrate with the correct URL in each environment automatically.
+
+To integrate ingresses into deployments, use the Component expression syntax,
+`${{ ingresses.<name>.<key> }}`:
+
+```yml
+ingresses:
+  backend:
+    service: backend
+
+deployments:
+  frontend:
+    environment:
+      BACKEND_ADDR: ${{ ingresses.backend.url }}
+```
+
+## Private ingresses
+
+Not all applications are meant to be accessed by the general public on the open internet. Some
+applications, like internal tools and admin panels, are only meant to be accessed by your own team.
+
+Ingresses can be marked as private indicating that they should be allocated client-accessible
+addresses, but should only be resolvable from within the network. This means only team members with
+VPN access will be able to resolve them:
+
+```yml
+ingresses:
+  auth:
+    service: auth
+    private: true
+```
+
+## Custom response headers
+
+Ingresses are often handled by application load balancers - specialized services designed for load
+balancing, fast throughput, and basic rules engines so they can route traffic to multiple downstream
+services. However, this also means that these applications sometimes need to be configured
+separately for CORS to allow traffic through from appropriate client applications.
+
+To accomplish this, ingresses can be annotated with specific response headers that every request to
+the ingress will return. These headers can also use the Component expression syntax to reference
+dynamic values:
+
+```yml
+variables:
+  allowed_return_urls:
+    description: URLs that the service can safely redirect to after auth flows
+    merge: true
+
+ingresses:
+  auth:
+    service: auth
+    headers:
+      Access-Control-Allow-Origin: ${{ variables.allowed_return_urls }}
+      Access-Control-Allow-Methods: '["GET", "OPTIONS", "POST", "PUT", "DELETE"]'
+      Access-Control-Allow-Headers: '*'
+      Access-Control-Allow-Credentials: 'true'
+```

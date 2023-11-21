@@ -1,0 +1,34 @@
+---
+title: Deploy
+---
+
+The `deploy` command is the most common command used in GitOps and when deploying into shared
+environments. It allows developers to add and configure specific components into existing
+environments without impacting the other components in the environment.
+
+```sh
+$ arcctl deploy architectio/twitter-clone:latest --environment test
+```
+
+## Updating multiple environments
+
+The `deploy` command can push changes to multiple environments at the same time, which can be useful
+when dealing with different environments for multiple tenants:
+
+```sh
+$ arcctl deploy architectio/twitter-clone:latest \
+  --environment tenant1 \
+  --environment tenant2
+```
+
+## Assigning ingress subdomains
+
+By default, all component ingresses are automatically assigned human-readable, deterministic
+subdomains, but these subdomains can be overridden with the `--ingress` flag:
+
+```sh
+$ arcctl deploy architectio/twitter-clone:latest \
+  --environment test \
+  --ingress app:frontend \
+  --ingress api:backend
+```

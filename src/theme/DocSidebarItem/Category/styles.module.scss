@@ -1,0 +1,8 @@
+.listWithStaticCategory {
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
+
+  > div {
+    padding-left: var(--ifm-menu-link-padding-horizontal);
+  }
+}

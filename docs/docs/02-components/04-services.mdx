@@ -1,0 +1,61 @@
+---
+title: Services
+description: Learn how to expose APIs internally and externally for other applications and end users
+---
+
+Component Services offer a way for developers to expose their applications to other applications
+within the same environment. A key benefit of defining services as part of components is that they
+offer a consistent way for applications to integrate with one another without having to learn
+unfamiliar service discovery tools and tactics.
+
+Defining a basic service is easy. All that's needed is a deployment the service will target and a
+port the deployment responds to:
+
+```yml
+deployments:
+  auth:
+    # ...
+
+services:
+  auth:
+    deployment: auth
+    port: 8080
+```
+
+## Integrating services
+
+Once a service is defined, it can be integrated into other applications with ease. Simply reference
+the service using the Component expression syntax, `${{ services.<name>.<key> }}`:
+
+```yml
+services:
+  auth:
+    deployment: auth
+    port: 8080
+
+deployments:
+  auth:
+    # ...
+  backend:
+    environment:
+      AUTH_URL: ${{ services.auth.url }}
+```
+
+## External services
+
+Sometimes it's necessary to create virtual services. This can be useful to aid with cloud migration
+or to enable egress to specific services from within secure environments.
+
+Virtual services can be defined by specifying an existing URL for the service instead of a target
+deployment and port:
+
+```yml
+services:
+  auth:
+    url: https://auth.example.com
+
+deployments:
+  backend:
+    environment:
+      AUTH_URL: ${{ services.auth.url }}
+```

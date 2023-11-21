@@ -1,0 +1,124 @@
+---
+title: Introduction
+description: Learn what Architect has to offer and why you should use it for your IDP
+---
+
+import { Button } from '@site/src/components/Button';
+
+## What is Architect?
+
+Architect is a next-gen toolset that helps teams create and deploy cloud-native applications. It
+takes the best of infrastructure-as-Code (IaC), like declarative configuration, execution plans,
+resource graphs, and change automation, and splits it into a pair of twin frameworks:
+[Components](/docs/components/overview) & [Datacenters](/docs/datacenters/overview).
+
+The purpose of this split is simple: **self-service**. Team members are at their best when they are
+capable of doing their job without needing to wait on others. These two frameworks are designed to
+highlight the skills of Developers and Operators alike to make everyone successful.
+
+### What is a Component?
+
+A Component is an application bundle that includes all of the resources and integration metadata
+needed to deploy your application. Unlike infrastructure-as-code, Architect Components don't require
+developers to learn or codify any of their own infrastructure. Instead, developers use a
+docker-compose-like syntax to describe their application in familiar terms.
+
+Want a private dev environment? Want to create test environments on every pull request? Need to run
+a component created by another team or company? By stripping components of infrastructure details
+they can be run by anyone in any Datacenter w/out needing to learn anything about how they work.
+
+<Button to="/docs/components/overview" color="slate-blue" size="lg">
+  <span>
+    Learn more <span aria-hidden="true">→</span>
+  </span>
+</Button>
+
+### What is a Datacenter?
+
+Datacenters are like infrastructure-as-code templates - a declarative way to manage infrastructure
+and automate changes. Unlike traditional IaC however, Architect Datacenters include hooks to bind
+infrastructure to individual environments and application resources created by other developers.
+
+These hooks allow Datacenters to do things like create namespaces and DNS zones for each
+environment, run application workloads on k8s or ECS, and even generate and issue unique application
+credentials. When developers make environments and deploy components, Architect matches the request
+to these hooks in the datacenter to create the corresponding infrastructure.
+
+This capability allows Datacenters to relinquish control of environment creation and application
+deployment to Developers while ensuring that infrastructure behaves the way your organization needs.
+
+<Button to="/docs/datacenters/overview" color="slate-blue" size="lg">
+  Learn more <span aria-hidden="true">→</span>
+</Button>
+
+## Why Architect?
+
+Architect was created to help platform teams create and manage an Internal Developer Platform (IDP)
+for their organization. The Datacenter gives platform teams control over how their plaform behaves
+while simultaneously allowing them to offer the developer-friendly Component framework to their dev
+teams as a way to create, test, and deploy cloud-native applications.
+
+Today, platform teams build their own abstractions on top of IaC tools like Terraform to create
+IDPs. They curate a set of "blessed" modules and a set of template repositories for popular
+languages that come pre-baked with CI workflows. However, even for those willing and able to spend
+the time to curate these resources, engineering teams are still left with needs that are beyond
+their grasp.
+
+### On-demand dev environments
+
+In the days of the monolith, dev environments were relatively easy. Ensure the required software is
+available on your machine, run your database, and run your application. If your personal computer
+didn't have enough compute, teams could always setup private dev boxes on remote servers.
+
+However, in the days of microservices and distributed systems, it is exponentially more difficult to
+create cloud environments. Developers know how to run their own database and application, but what
+about the payments service, the auth service, the shopping cart API, or the dozens/hundreds of other
+services that must exist in the environment for your application to run?
+
+Architect ensures that every developer can create end-to-end cloud environments for their Components
+with a single command. The dependency management system automatically deploys and integrates with
+dependencies avoiding issues with discovery and integration, and the separation of Components from
+infrastructure means they can be deployed to the same Datacenter as the Component being tested -
+thus ensuring developers don't need to learn the infrastructure requirements of their dependencies.
+
+### Feature environments
+
+The ability to create on-demand environments is useful for more than just discrete developer
+testing, but can also be used to automate integration tests. Simply create a CI workflow using your
+favorite CI system (GitHub Actions, CircleCI, etc.) that creates an environment, deploys your
+Component, runs your tests, and destroys the environment. This simple workflow is perfect for
+running against pull requests to build confidence in new features.
+
+### Unique credentials for applications
+
+Managing credentials for applications is one of the hardest parts of securing cloud environments.
+Even if you have the capability of setting up rotating credential policies with your secret manager,
+your developers still have to tell you when they need new credentials setup. This is exactly the
+type of friction that often pushes developers down easier paths and compromises security for the
+whole cloud.
+
+Architect uses its native dependency graphing features to determine when one application needs to
+talk to another, and uses that metadata to queue up credential generation. Whenever developers
+connect to their database or secure dependencies, they'll be automatically issued their own
+credentials at deploy-time (if the Datacenter is configured to do so).
+
+### Zero-trust networking
+
+Another benefit of understanding the relationship between cloud-native applications is the ability
+to create strict network policies. With Architect, Datacenter creators automatically configure their
+favorite CNI to lock down traffic within their cloud so that only the applications designed to talk
+to each other can resolve one another. No more relying on the walled garden for network security.
+
+### Portability
+
+The ability to run a single Component in on-demand dev environments, feature environments, staging,
+and production can be considered **vertical** portability. As stated earlier, Architect thrives at
+this thanks to the recursive delivery offered by Components and their dependency management
+features.
+
+However, Architect also enables another type of portability: portability across cloud providers, or
+**horizontal** portability. Components can easily be moved from one datacenter to another making
+cloud migration easier than every. Components can also be shared with all your customers allowing
+each to use a different datacenter to run your Component in _their_ production. By allowing
+customers to control their datacenter, you can roll out constant updates to your application without
+lengthy engagements to understand the customer's infrastructure needs.

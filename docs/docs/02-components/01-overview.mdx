@@ -1,0 +1,171 @@
+---
+title: Overview
+---
+
+import { Button } from '@site/src/components/Button';
+
+# Architect Components
+
+For developers, infrastructure and CI/CD is a nuisance. Once it "works on my machine", cloud
+applications should be able to run anywhere. Docker and containers have made that true for
+application runtimes, but developers still spend too much time writing CI workflows and IaC
+templates for the things outside the container. That's why we created the component framework.
+
+Components are application bundles that can be run anywhere and always deploy everything they need
+to run. Creating a component doesn't require developers to learn any cloud infrastructure, and
+instead focuses on the details they already know about their applications. Details like:
+
+- What database(s) does it need?
+- What APIs does it connect to?
+- What APIs does it expose?
+- What events does it broadcast?
+- What events does it listen on?
+
+By cataloging the application's dependencies, Architect is able to guarantee the existance of those
+dependencies every time the component is deployed. If they can't be found, Architect will deploy
+those too!
+
+## Writing Components
+
+An Architect Component is a collection of cloud resources declared in a single file, usually called
+`architect.yml`. The Component framework was modeled after two popular developer tools:
+[Docker Compose](https://docs.docker.com/compose/) and [NPM](https://www.npmjs.com/) (or any other
+package manager). Docker compose provided a great foundation allowing developers to declare what
+applications or services they want to deploy, and package managers provided the inspiration for
+Architect's own [dependency management](../dependencies) capabilities that allow Components to
+connect to one another.
+
+The Component framework is constantly growing to support new application features, but today it
+supports several key building blocks:
+
+- [**services**](../services): List the discrete workloads your application needs to run and how
+  they communicate with one another
+- [**databases**](../databases): Assert what database types and versions your application needs
+- [**cronjobs**](../cronjobs): Schedule cronjobs to be run and integrate them with databases and
+  services
+- [**dependencies**](../dependencies): Connect the services and cronjobs inside your application to
+  endpoints exposed by other Components
+
+## Building Components
+
+Like Docker images, Architect Components are get built and pushed to cloud registries so they can be
+distributed to individuals and cloud platforms alike. Components are built into OCI-compliant images
+that can be pushed into popular artifact registries like Docker Hub, AWS ECR, and more.
+
+The workflow for publishing these images also mirrors the workflow for building and pushing docker
+images:
+
+### 1. Build
+
+Components can be built using the [`arcctl build component`](/docs/cli/build/components) command as
+follows. The build command will compile the component itself as well as any containers that the
+application needs to build.
+
+```bash
+$ arcctl build component ./component/dir
+Digest: 9c3a6c7bccd9
+```
+
+### 2. Tag
+
+Once built, Components can be tagged as many times as needed. Tags represent locations where the
+artifact can be found once published - kind of like a permalink.
+
+:::info
+
+Tagging only creates a symlink to the digest on your local machine. It does NOT push the image to
+any matching registries.
+
+:::
+
+```bash
+$ arcctl tag 9c3a6c7bccd9 registry.architect.io/org/component:latest
+Tagged: component:test
+Deployment Tagged: component:test-deployments-frontend
+```
+
+Tagging a Component will also create a tag of any containers that were built from source. The
+tagging strategy Architect employs uses the same tag as the component, but with a suffix matching
+the container reference within the component. This ensures that the artifacts for the Component and
+its corresponding containers all live in the same repository when published.
+
+Tagging can also be done as part of the build command to consolidate workflow steps:
+
+```bash
+$ arcctl build component ./component/dir --tag component:latest --tag registry.architect.io/org/component:latest
+Component Digest: 477e6db80b4a
+Component Tagged: component:latest
+Component Tagged: registry.architect.io/org/component:latest
+```
+
+### 3. Push
+
+Once you've created your Component tags locally, you can use the push command to ship the artifacts
+into a cloud registry:
+
+```bash
+$ arcctl push component registry.architect.io/org/component:latest
+```
+
+<hr className="border-solid" />
+
+## Deploying Components
+
+Now that you know how to get a Component and its container artifacts into a remote registry, you're
+ready to deploy it. Deploying a Component to an existing Environment is as easy as running
+`arcctl deploy`, but we'll walk through the full workflow assuming you've never created an
+environment before:
+
+### 1. Create your first datacenter
+
+The details of how a datacenter works aren't material to a Component, but you'll still need a
+datacenter to back the environments you create. You can learn more about creating Datacenters in the
+[Datacenters documentation](/docs/datacenters/overview), or you can use the command below to create
+a local datacenter from one of our examples:
+
+```bash
+$ arcctl create datacenter local architect-team/local-datacenter:latest
+```
+
+The command above will create a datacenter named `local` that we'll use to back our environment.
+
+### 2. Create an environment
+
+Now that we have a datacenter to back our resources, let's create our first environment:
+
+```bash
+$ arcctl create environment test1 --datacenter local
+```
+
+This will create an environment named `test1` on our `local` datacenter.
+
+### 3. Deploy
+
+Now that we have an environment, we can deploy our Component to it:
+
+```bash
+$ arcctl deploy registry.architect.io/org/component:latest --environment test1
+```
+
+If your Component exposes any [ingresses](../services/) the URLs will be shown in the logs.
+
+### 4. Cleanup the environment
+
+Congratulations! You've deployed your first component! Now let's clean up the environment so it
+doesn't hog any resources unnecessasrily.
+
+```bash
+$ arcctl destroy environment test1
+```
+
+We're leaving the datacenter up so you can more easily create environments going forward, but if you
+want to clean it up you can do so with `arcctl destroy datacenter local`.
+
+<hr />
+
+Want to learn more about deploying and managing Environments? Check out the
+[Environment docs](/docs/environments/overview).
+
+<Button to="/docs/environments/overview" color="slate-blue" size="lg">
+  Environment Docs <span aria-hidden="true">→</span>
+</Button>

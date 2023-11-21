@@ -1,0 +1,60 @@
+---
+title: Variables
+description: Define variables that should be injected into your component at deploy-time
+---
+
+Architect helps automate a huge chunk of application configuration by injecting the addresses and
+details of other components and services, but there are still many cases where you'd need to provide
+critical values manually like credentials for external services.
+
+Architect makes it easy for component authors to declare the variables their application needs by
+using `variables`:
+
+```yaml
+variables:
+  my_key:
+    default: default-value
+    description: My description
+    required: false
+```
+
+## Merging values
+
+By default, values for variables are intended to be provided manually by the developer who deploy's
+the component. However, there are some cases where we want to collect variable values from upstream
+components (e.g. components that cite this ones as a dependency) instead. To enable this, variables
+can be annotated with the `merge` flag indicating that values provided from each source should be
+merged together in an array.
+
+A good example of this is collecting a list of allowed return URLs to prevent XSS attacks. Upstream
+applications can provide one or more values for the variable when they declare the component:
+
+```yaml
+# architect/backend component
+variables:
+  allowed_return_urls:
+    description: URLs that the service can safely redirect to after auth flows
+    merge: true
+
+ingresses:
+  auth:
+    service: auth
+    headers:
+      Access-Control-Allow-Origin: ${{ variables.allowed_return_urls }}
+      Access-Control-Allow-Methods: '["GET", "OPTIONS", "POST", "PUT", "DELETE"]'
+      Access-Control-Allow-Headers: '*'
+      Access-Control-Allow-Credentials: 'true'
+
+---
+# architect/frontend component
+ingresses:
+  app:
+    service: app
+
+dependencies:
+  backend:
+    component: architect/backend
+    variables:
+      allowed_return_urls:
+        - ${{ ingresses.app.url }}
+```

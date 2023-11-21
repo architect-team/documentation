@@ -1,0 +1,7 @@
+label: AWS
+link:
+  type: generated-index
+  title: AWS Datacenters
+  description:
+    Learn how to create Architect Datacenters that leverage common AWS services to power
+    applications and environments.

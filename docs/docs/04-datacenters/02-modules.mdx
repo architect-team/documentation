@@ -1,0 +1,174 @@
+---
+title: Modules
+---
+
+Modules are containers for IaC templates that can be executed by Architect. A module consists of a
+collection of IaC templates written using one of our supported IaC frameworks. Supported frameworks
+include:
+
+- [Pulumi](https://www.pulumi.com/)
+- [OpenTofu](https://opentofu.org/)
+- _[CloudFormation](https://aws.amazon.com/cloudformation/)_ (coming soon)
+
+:::info
+
+Want to see another framework on the list?
+[Let us know on Github](https://github.com/architect-team/arcctl/issues).
+
+:::
+
+## Creating modules
+
+Modules are quite simply infrastructure-as-code resources/modules packaged up as docker containers.
+The packaging allows these modules to be published into any docker-supported registry, and allows
+Architect to be fully framework agnostic. Even though each module must be composed using a single
+IaC framework, datacenters can be constructed with modules that use a variety of different
+frameworks.
+
+### Pulumi example
+
+One of the first frameworks we enrolled was Pulumi - an open-source IaC framework that uses your
+favorite programming languages to make authoring infrastructure as easy as possible. For the most
+part, the file system for a pulumi module will mirror the Pulumi docs exactly. The only difference
+is the need for a Dockerfile that helps Architect package the module:
+
+```
+|- cluster-module
+|--- Dockerfile
+|--- index.ts
+|--- package.json
+|--- pulumi.yaml
+|--- tsconfig.json
+```
+
+For those unfamiliar with Pulumi, you can check out the example code below which creates a DOKS
+cluster in DigitalOcean:
+
+```ts
+// index.ts
+import * as digitalocean from '@pulumi/digitalocean';
+import * as pulumi from '@pulumi/pulumi';
+
+const config = new pulumi.Config();
+const vpcId = config.require('vpcId');
+const region = config.require('region');
+const name = config.require('name');
+
+const cluster = new digitalocean.KubernetesCluster('cluster', {
+  name,
+  region,
+  vpcUuid: vpcId,
+  version: '1.27.6-do.0',
+  nodePool: {
+    name: `${name}-pool-1`,
+    size: 's-1vcpu-2gb',
+    nodeCount: config.getNumber('node_count') || 3,
+  },
+});
+
+export const id = cluster.id;
+export const kubernetesVersion = cluster.version;
+export const kubeconfig = cluster.kubeConfigs[0].rawConfig;
+```
+
+Lastly you might be wondering what the Dockerfile looks like to help package this module.
+Fortunately, it's quite simple:
+
+```Dockerfile
+FROM pulumi/pulumi-nodejs
+
+COPY . .
+
+RUN npm install
+```
+
+### OpenTofu
+
+Another framework we currently support is OpenTofu - a fork of the popular framework, Terraform,
+which aims to continue the original framework's efforts with a community-driven approach.
+
+:::info
+
+We don't yet support Terraform due to the confusion about what can and can't be done using their new
+license. We hope to add support in the future.
+
+:::
+
+Authoring OpenTofu modules has a much simpler filesystem than pulumi modules. All that's needed are
+the `*.tf` files themselves. Not even a Dockerfile is needed since there's never any case where the
+runtime would need alternative language support. Architect automatically bundles OpenTofu modules
+into a docker image w/out the need for a dockerfile.
+
+```
+|- vpc-module
+|--- main.tf
+```
+
+For those unfamiliar with Terraform or OpenTofu, check out the example below which creates an AWS
+VPC:
+
+```hcl
+variable "name" {
+  type = string
+}
+
+module "vpc" {
+  source = "terraform-aws-modules/vpc/aws"
+
+  name = var.name
+  cidr = "10.0.0.0/16"
+
+  azs             = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+
+  enable_nat_gateway = true
+  enable_vpn_gateway = true
+}
+```
+
+## Using modules
+
+Now that you know how modules are created, we'll show you a bit about how to use them to power your
+Architect Datacenters. Modules can be referenced anywhere within a datacenter and will be executed
+at the appropriate time accordingly.
+
+In the example below, we've used modules to:
+
+1. Create a single k8s cluster that lives/dies with the lifecycle of the datacenter,
+2. Create a namespace that lives/dies with each [environment](./03-environments.mdx) powered by the
+   datacenter, and
+3. Create a deployment that lives/dies with each deployment [resource](./04-hooks.mdx) deployed to
+   the datacenter
+
+```hcl
+module "k8s" {
+  build = "./k8s-cluster"
+  inputs = {
+    name = "${datacenter.name}-cluster"
+    region = variable.region
+    vpcId = module.vpc.id
+    "digitalocean:token" = variable.do_token
+  }
+}
+
+environment {
+  module "namespace" {
+    build = "./k8s-namespace"
+    inputs = {
+      name = environment.name
+      kubeconfig = module.k8s.kubeconfig
+    }
+  }
+
+  deployment {
+    module "deployment" {
+      build = "./k8s-deployment"
+      inputs = merge(node.inputs, {
+        namespace = module.namespace.id
+        kubeconfig = module.k8s.kubeconfig
+      })
+    }
+  }
+}
+```

@@ -1,0 +1,101 @@
+---
+title: Dependencies
+description: Integrate with other APIs using common dependency management tactics
+---
+
+import { Button } from '@site/src/components/Button';
+
+Historically cloud teams have tried to avoid dependencies and coupling between microservices and
+APIs because it creates a lot of infrastructure and CI/CD complexity. However, its all too natural
+for developers to try to extend what exists rather than reinvent it, and many teams ended up with
+complex webs of microservices nonetheless.
+
+Fortunately, this problem of "dependencies" has been solved before. Every language and operating
+system on earth has tools for dependency management to help developers collaborate and extend each
+others work. Now Architect is here to provide the same value for APIs and microservices.
+
+## Why use dependencies?
+
+Citing dependencies as part of your component is not the most natural way for developers to
+integrate with software made by other teams, but its also the only way to achieve
+[on-demand environments](/environments/pull-request) for
+[distributed applications](/architecture/microservices).
+
+Every time a component is deployed with Architect, it will automatically deploy (if needed) and
+connect to cited dependencies. Perhaps even more impressive than that is that it will also deploy
+the dependencies OF your component's dependencies and ensure they're integrated as well.
+
+Without dependency management integrated into deployments, each and every application would have to
+maintain a complex web of CI pipelines or centralized infrastructure-as-code (IaC) templates to
+create new environments which can be an educational and logistical nightmare. With Architect, all
+you ever need to know is your immediate dependencies and the rest will be automated for you.
+
+## Registering dependencies
+
+Before we can begin using dependencies, we need to create a component that we want to act as a
+dependency for another. Let's start by creating a new component that we'll call the `backend` of our
+project. The command below will help you create a new component from one of Architect's starter
+projects.
+
+```sh
+$ architect init backend
+```
+
+Now that we have the project created, let's go ahead and register it with Architect. This will
+simply build the services into docker images and publish everything to Architect's cloud registry.
+
+```sh
+$ architect register ./backend --tag latest --account my-account
+```
+
+## Using dependencies
+
+Now that we have a component in the registry, we can use it as a dependency for another one. Let's
+create a second project and call it `frontend`.
+
+```sh
+$ architect init frontend
+```
+
+Next, let's open up `./frontend/architect.yml` in our favorite IDE so we can add the dependency.
+First, let's cite the dependency so that the backend will be deployed alongside the frontend. Add
+the following to the component configuration:
+
+```yaml architect.yml
+dependencies:
+  backend: {}
+```
+
+Next, we'll need to ensure the frontend service has access to the backend API. Find the
+`environment` variables of the `app` service and add the following:
+
+```yaml architect.yml
+services:
+  app:
+    build:
+      context: ./
+    environment:
+      BACKEND_ADDR: ${{ dependencies.backend.services.api.interfaces.main.url }}
+```
+
+<Button href="/architecture/static-websites" size="xl" color="slate-blue">
+  Learn how to run SPAs and static websites
+</Button>
+
+Finally, let's deploy our application! We haven't written any code to connect to the backend API,
+but you'll see that the backend got automatically deployed, and you're welcome to go try writing
+features that leverage it.
+
+## Debugging dependencies
+
+By default Architect will pull dependencies down from the cloud registry on every deployment. But if
+you want to test changes to, two components at once, you can do so by linking the dependency to your
+host machine with `architect link`:
+
+```sh
+# Tells architect to use the local source code to fulfill dependencies on the `backend`
+$ architect link ./backend/
+
+# Will build and connect to the backend code found locally instead of the docker images pulled from Architect Cloud
+$ architect dev ./frontend/
+```

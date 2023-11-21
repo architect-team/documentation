@@ -1,0 +1,71 @@
+---
+title: Databases
+description: Add databases to your Architect Components
+---
+
+Databases represent a common building block in cloud architecture, and Architect makes it easier
+than ever for developers to create applications that require databases. Simply declare them as part
+of your component and they'll be automatically deployed alongside your applications.
+
+## Creating databases
+
+Ensuring your application has the databases it needs is as simple. Just give them a name, and
+specify the type and version of database you need:
+
+```yaml
+databases:
+  users:
+    description: Store user information
+    type: postgres:15
+  cache:
+    description: Cache query results for faster responses
+    type: redis:7
+```
+
+## Integrating databases
+
+Once you've created your database, it can be easily integrated into your application using
+Component's expression syntax:
+
+```yaml
+deployments:
+  api:
+    image: nginx:latest
+    environment:
+      # You can access the whole connection string
+      DB_URL: ${{ databases.users.url }} # postgresql://<user>:<pass>@<host>:<port>/<db>
+      # Or just the individual parts
+      DB_PROTOCOL: ${{ databases.users.protocol }}
+      DB_HOST: ${{ databases.users.host }}
+      DB_PORT: ${{ databases.users.port }}
+      DB_USER: ${{ databases.users.username }}
+      DB_PASS: ${{ databases.users.password }}
+      DB_NAME: ${{ databases.users.database }}
+```
+
+## Zero-trust security
+
+One of the perks of treating databases by reference instead of dealing with credentials yourself is
+that it allows Architect to infer which applications are accessing each database. This means that
+each application can be issued different credentials:
+
+```yaml
+deployments:
+  auth:
+    environment:
+      DB_USER: ${{ databases.users.username }} # user-1
+      DB_PASS: ${{ databases.users.password }} # secure-pass-1
+
+  payments:
+    environment:
+      DB_USER: ${{ databases.users.username }} # user-2
+      DB_PASS: ${{ databases.users.password }} # secure-pass-2
+```
+
+:::caution
+
+Architect sends the metadata necessary to Datacenters so that they can issue unique credentials, but
+not all Datacenters choose to do so. If your applications are getting the same credentials, talk to
+the team responsible for your Datacenter to learn more.
+
+:::

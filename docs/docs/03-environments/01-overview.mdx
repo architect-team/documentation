@@ -1,0 +1,20 @@
+---
+title: Overview
+---
+
+Even with a strong separation between application and infrastructure configuration thanks to
+Components and Datacenters, the concept of an Environment remains an important element facilitating
+collaboration and managing shared configuration. An Environment, which is basically a namespace,
+serves as a way for teams to collaborate with one another - teams creating and operating Components
+that depend on one another, and Component teams collaborating with the platform teams managing the
+Datacenter.
+
+For developers, there are three main ways to interact with an Environment:
+
+- [**up**](./02-up.mdx): The `arcctl up` command allows developers to create ephemeral environments
+  that automatically clean themselves up.
+- [**deploy**](./03-deploy.mdx): The `arcctl deploy` command adds or updates Component configuration
+  in an existing Environment, leaving other Components untouched.
+- [**apply**](./04-apply.mdx): The `arcctl apply` command takes in an entire Environment
+  configuration and updates the target environment to match said configuration - adding any new
+  resources and cleaning up resources that are no longer needed.
