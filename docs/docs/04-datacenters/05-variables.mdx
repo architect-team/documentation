@@ -1,3 +1,90 @@
 ---
 title: Variables
 ---
+
+Variables represent a datacenter's need to receive input from operators to function properly.
+Oftentimes this is simply the credentials needed to access the cloud providers the datacenter uses,
+but can also include configuration settings like default log levels, regions to deploy into, etc.
+
+## Declaring variables
+
+```hcl
+variable "do_token" {
+  description = "The digital ocean API token"
+  type = "string"
+}
+
+variable "region" {
+  description = "The region to create resources in"
+  type = "string"
+  default = "nyc1"
+}
+
+variable "dns_zone" {
+  description = "DNS zone to use for ingress rules"
+  type = "string"
+}
+```
+
+## Using variables
+
+Declared variables can then be used to enrich any modules throughout the datacenter using HCL
+references like `${variable.do_token}`.
+
+```hcl
+module "vpc" {
+  build = "./vpc"
+  inputs = {
+    region = variable.region
+  }
+}
+
+environment {
+  module "postgresCluster" {
+    build = "./databaseCluster"
+    inputs = {
+      region = variable.region
+    }
+  }
+
+  database {
+    when = node.inputs.databaseType == "postgres"
+
+    module "database" {
+      build = "./database"
+      inputs = {
+        "digitalocean:token" = variable.do_token
+      }
+    }
+
+    outputs = {}
+  }
+}
+```
+
+## Setting values
+
+Setting variable values can be done every time changes are applied to your datacenters using the
+`--var` command line flag:
+
+```sh
+$ arcctl apply datacenter --var do_token=abc123 --var region=nyc1
+```
+
+Alternatively, you can set these values using environment variables which can be helpful for CI
+systems or re-used values. You can set any value with an environment variable prefixed with `ARC_`:
+
+```
+ARC_do_token=abc123
+ARC_region=nyc1
+```
+
+## Variable storage
+
+The variable values need to be persisted so that they can be used when developers create
+environments or trigger deployments. These requests need to use these values for their configuration
+even though the datacenter configuration hasn't been changed.
+
+Architect stores the variable values inside the datacenter's state file.
+[Click here](../01-getting-started/04-state-management.mdx) to learn more about Architect's state
+management.

@@ -101,8 +101,18 @@ const genSchemaString = (
       res += '\n';
     });
 
-    if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
-      res += genSchemaString(schema.additionalProperties);
+    if (
+      schema.additionalProperties &&
+      typeof schema.additionalProperties === 'object' &&
+      schema.additionalProperties.type === 'object'
+    ) {
+      if (schema.additionalProperties.description) {
+        res += '  # ' + schema.additionalProperties.description + '\n  #\n';
+        delete schema.additionalProperties.description;
+      }
+
+      res += '  [key]:\n\n';
+      res += indent(genSchemaString(schema.additionalProperties), 2);
     }
   }
 

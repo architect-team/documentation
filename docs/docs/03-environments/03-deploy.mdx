@@ -32,3 +32,13 @@ $ arcctl deploy architectio/twitter-clone:latest \
   --ingress app:frontend \
   --ingress api:backend
 ```
+
+## Passing variables
+
+The `deploy` command can pass variables to components using the `--var` flag:
+
+```sh
+$ arcctl deploy architectio/twitter-clone:latest \
+  --environment test \
+  --var log_level=error
+```

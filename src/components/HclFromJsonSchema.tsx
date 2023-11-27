@@ -25,45 +25,74 @@ const addLinePrefix = (str: string, prefix: string) =>
     .map((line) => prefix + line)
     .join('\n');
 
+/**
+ * Generate the HCL string to render
+ */
 const genSchemaString = (
   schema: JSONSchemaType<unknown>,
-  propertyName?: string,
-  required?: boolean
-): string => {
+  options?: {
+    propertyName?: string;
+    required?: boolean;
+    hideComments?: boolean;
+  }
+) => {
   let res = '';
-  if (schema.title || (propertyName && required)) {
-    res += '##';
+
+  const isRequired = options?.propertyName && options?.required;
+
+  if (!options?.hideComments) {
+    if (schema.title || isRequired) {
+      res += '##';
+    }
+
+    if (isRequired) {
+      res += ' [Required]';
+    }
+
+    if (schema.title) {
+      res += ' ' + schema.title;
+    }
+
+    if (schema.title || isRequired) {
+      res += '\n#\n';
+    }
+
+    if (schema.description) {
+      res += addLinePrefix(schema.description, '# ') + `\n#\n`;
+    }
+
+    if (schema.default !== undefined) {
+      res += `# Default value: ${schema.default === '' ? '""' : schema.default}\n#\n`;
+    }
+
+    if (schema.examples && Array.isArray(schema.examples) && schema.examples.length > 0) {
+      res += '# Examples:\n';
+      res += addLinePrefix(yaml.dump(schema.examples), '# ');
+      res += '\n';
+    }
   }
 
-  if (propertyName && required) {
-    res += ' [Required]';
-  }
-
-  if (schema.title) {
-    res += ' ' + schema.title;
-  }
-
-  if (schema.title || (propertyName && required)) {
-    res += '\n#\n';
-  }
-
-  if (schema.description) {
-    res += addLinePrefix(schema.description, '# ') + `\n#\n`;
-  }
-
-  if (schema.default !== undefined) {
-    res += `# Default value: ${schema.default === '' ? '""' : schema.default}\n#\n`;
-  }
-
-  if (schema.examples && Array.isArray(schema.examples) && schema.examples.length > 0) {
-    res += '# Examples:\n';
-    res += addLinePrefix(yaml.dump(schema.examples), '# ');
-    res += '\n';
-  }
-
-  if (propertyName) {
-    res += `${propertyName}: `;
-
+  if (schema.type === 'object' && schema.properties) {
+    Object.entries(schema.properties || {}).forEach(([key, value]) => {
+      const nestedSchema = value as JSONSchemaType<unknown>;
+      res += genSchemaString(nestedSchema, {
+        propertyName: key,
+        required: schema.required?.includes(key),
+      });
+    });
+  } else if (
+    schema.type === 'object' &&
+    schema.additionalProperties &&
+    schema.additionalProperties.type === 'array'
+  ) {
+    res += `${options?.propertyName} "item" {\n`;
+    res += indent(genSchemaString(schema.additionalProperties.items), 2).trimEnd() + '\n';
+    res += '}\n\n';
+  } else if (schema.type === 'array') {
+    res += `${options?.propertyName} {\n`;
+    res += indent(genSchemaString(schema.items as JSONSchemaType<unknown>), 2).trimEnd() + '\n';
+    res += '}\n\n';
+  } else if (options?.propertyName) {
     let value: any;
     if (schema.default !== undefined) {
       value = schema.default;
@@ -71,39 +100,24 @@ const genSchemaString = (
       value = schema.examples[0];
     }
 
+    res += `${options?.propertyName} = `;
+
     if (value !== undefined) {
       if (Array.isArray(value) || typeof value === 'object') {
-        res += '\n' + indent(yaml.dump(value).replace(/\n$/, ''), 2);
+        res += JSON.stringify(value, null, 2).replace(
+          /^(\s*)"([^:]+)":\s*([^,\n]+),?/gm,
+          '$1$2 = $3'
+        );
       } else if (value === '') {
         res += '""';
+      } else if (typeof value === 'string') {
+        res += `"${value}"`;
       } else {
         res += value;
       }
     }
 
     res += '\n\n';
-  }
-
-  if (schema.type === 'object') {
-    Object.entries(schema.properties || {}).forEach(([key, value]) => {
-      const nestedSchema = value as JSONSchemaType<unknown>;
-      const nestedSchemaString = genSchemaString(nestedSchema, key, schema.required?.includes(key));
-      const lines = nestedSchemaString.split('\n');
-      if (!lines[0]) {
-        lines.shift();
-      }
-
-      if (!lines[lines.length - 1]) {
-        lines.pop();
-      }
-
-      res += lines.map((line) => `  ${line}`).join('\n');
-      res += '\n';
-    });
-
-    if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
-      res += genSchemaString(schema.additionalProperties);
-    }
   }
 
   return res;
@@ -138,21 +152,5 @@ export const HclFromJsonSchema = (props: HclFromJsonSchemaProps) => {
     return <HclFromJsonSchema schema={definition} />;
   }
 
-  let schemaString = '';
-  if (schema.title) {
-    schemaString += `## ${schema.title}\n#\n`;
-  }
-
-  if (schema.description) {
-    schemaString += `# ${schema.description}\n#\n`;
-  }
-
-  if (schema.type === 'object' && schema.properties) {
-    Object.entries(schema.properties).forEach(([key, value]) => {
-      const nestedSchema = value as JSONSchemaType<unknown>;
-      schemaString += genSchemaString(nestedSchema, key);
-    });
-  }
-
-  return <CodeBlock language="yaml">{schemaString}</CodeBlock>;
+  return <CodeBlock language="hcl">{genSchemaString(schema)}</CodeBlock>;
 };
