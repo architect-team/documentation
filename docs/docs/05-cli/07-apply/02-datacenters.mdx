@@ -1,0 +1,26 @@
+---
+title: 'Command: apply datacenter'
+sidebar_label: datacenter
+---
+
+Apply changes to a new or existing datacenter from the specified config file. The command will show
+a preview of the changes and await for approval before proceeding unless the `--auto-approve` flag
+is set.
+
+```sh
+$ arcctl apply datacenter dev ./dev-datacenter.arc
+```
+
+## Arguments
+
+| Index | Description                                                                |
+| ----- | -------------------------------------------------------------------------- |
+| 0     | The name of the datacenter to create or update                             |
+| 1     | The path to the new datacenter config file to use as the new configuration |
+
+## Flags
+
+| Name             | Type            | Description                                                                                                                   |
+| ---------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `--var`          | Array\<String\> | A key/value string that uses an equals sign as a separator indicating the variable name and target value (e.g. `region=nyc1`) |
+| `--auto-approve` | Boolean         | Automatically push the built image to the registries associated with each tag                                                 |

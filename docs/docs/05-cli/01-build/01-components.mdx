@@ -1,4 +1,25 @@
 ---
-title: 'Command: build components'
-sidebar_label: components
+title: 'Command: build component'
+sidebar_label: component
 ---
+
+Builds a [Component](../../02-components/01-overview.mdx) from its source.
+
+```sh
+$ arcctl build component ./backend
+$ arcctl build component ./frontend --tag architectio/frontend:latest
+```
+
+## Arguments
+
+| Index | Description                                                                  |
+| ----- | ---------------------------------------------------------------------------- |
+| 0     | The path to the component's source directory an architect.yml file directly. |
+
+## Flags
+
+| Name         | Type            | Description                                                                                                                     |
+| ------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `--tag`      | Array\<String\> | A tag that will point to the built component                                                                                    |
+| `--push`     | Boolean         | Automatically push the built image to the registries associated with each tag                                                   |
+| `--platform` | String          | A comma-separated list of platforms to build the component and corresponding docker images for (e.g. `linux/arm64,linux/amd64`) |

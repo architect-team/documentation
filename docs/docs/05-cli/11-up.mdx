@@ -1,0 +1,26 @@
+---
+title: 'Command: up'
+sidebar_label: up
+---
+
+Creates a new ephemeral environment and keeps the process open waiting for a sigterm event. When the
+event is received the environment will be destroyed.
+
+```sh
+$ arcctl up architectio/frontend:latest ./backend --datacenter local
+```
+
+## Arguments
+
+| Index     | Description                                                                                                      |
+| --------- | ---------------------------------------------------------------------------------------------------------------- |
+| \[0...N\] | A component to deploy to the ephemeral environment. Can be either a tag or a path to a local component to build. |
+
+## Flags
+
+| Name            | Type    | Description                                                                                                    |
+| --------------- | ------- | -------------------------------------------------------------------------------------------------------------- |
+| `--datacenter`  | String  | The datacenter to create the environment in                                                                    |
+| `--environment` | String  | (optional) An environment name to use for the new environment. One will be generated for you if not specified. |
+| `--debug`       | Boolean | If true, components deployed from source will do so in debug mode.                                             |
+| `--verbose`     | Boolean | If true, show the log output from each module execution.                                                       |

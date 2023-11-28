@@ -1,4 +1,26 @@
 ---
-title: 'Command: build datacenters'
+title: 'Command: build datacenter'
 sidebar_label: datacenters
 ---
+
+Builds a [Datacenter](../../04-datacenters/01-overview.mdx) and all its modules into an artifact
+that can be shared with others.
+
+```sh
+$ arcctl build datacenter ./digitalocean
+$ arcctl build datacenter ./digitalocean --tag architectio/digitalocean-datacenter:latest
+```
+
+## Arguments
+
+| Index | Description                            |
+| ----- | -------------------------------------- |
+| 0     | The path to the datacenter config file |
+
+## Flags
+
+| Name         | Type            | Description                                                                                                                   |
+| ------------ | --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `--tag`      | Array\<String\> | A tag that will point to the built datacenter                                                                                 |
+| `--push`     | Boolean         | Automatically push the built image to the registries associated with each tag                                                 |
+| `--platform` | String          | A comma-separated list of platforms to build the modules and corresponding docker images for (e.g. `linux/arm64,linux/amd64`) |

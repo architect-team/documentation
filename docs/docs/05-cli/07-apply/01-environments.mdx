@@ -1,0 +1,32 @@
+---
+title: 'Command: apply environment'
+sidebar_label: environment
+---
+
+Apply changes to a new or existing environment from the specified config file. The command will show
+a preview of the changes and await for approval before proceeding unless the `--auto-approve` flag
+is set.
+
+```sh
+$ arcctl apply environment test ./test.env.yml
+$ arcctl create env preview-123 ./env.yml --datacenter dev
+```
+
+The `--datacenter` flag is required the first time an environment is created, but can be omitted on
+subsequent updates. If the `--datacenter` flag is provided with a different value than previous
+requests, the environment will remove the previous resources and create new ones in the new
+datacenter.
+
+## Arguments
+
+| Index | Description                                                                |
+| ----- | -------------------------------------------------------------------------- |
+| 0     | The name of the datacenter to create or update                             |
+| 1     | The path to the new datacenter config file to use as the new configuration |
+
+## Flags
+
+| Name               | Type    | Description                                                                                                                   |
+| ------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `--datacenter, -d` | string  | A key/value string that uses an equals sign as a separator indicating the variable name and target value (e.g. `region=nyc1`) |
+| `--auto-approve`   | Boolean | Automatically push the built image to the registries associated with each tag                                                 |

@@ -1,4 +1,19 @@
 ---
-title: 'Command: tag components'
-sidebar_label: components
+title: 'Command: tag component'
+sidebar_label: component
 ---
+
+Creates a new tag for an existing component. Tags can be made that point to other tags or directly
+to image digests:
+
+```sh
+$ arcctl tag component architectio/frontend:latest archtiectio/frontend:1.0.1
+$ arcctl tag component abcdef123456 architectio/frontend:1.0.1
+```
+
+## Arguments
+
+| Index | Description                                          |
+| ----- | ---------------------------------------------------- |
+| 0     | The source tag or digest to create a tag pointing to |
+| 1     | The target tag to create pointed to the source       |

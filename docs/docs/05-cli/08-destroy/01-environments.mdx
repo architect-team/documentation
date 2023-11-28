@@ -1,0 +1,17 @@
+---
+title: 'Command: destroy environment'
+sidebar_label: environment
+---
+
+Destroys an existing environment. If the environment contains any cloud resources, those will be
+destroyed before the environment is removed from the state backend.
+
+```sh
+$ arcctl destroy environment preview-123
+```
+
+## Arguments
+
+| Index | Description                        |
+| ----- | ---------------------------------- |
+| 0     | Name of the environment to destroy |

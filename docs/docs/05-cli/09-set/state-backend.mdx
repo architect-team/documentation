@@ -1,0 +1,16 @@
+---
+title: 'Command: set state.backend'
+sidebar_label: state.backend
+---
+
+Changes the state backend that the CLI uses to find and store environments and datacenters.
+
+```sh
+$ arcctl set state.backend --creds key=value
+```
+
+## Flags
+
+| Name      | Type            | Description                                                                                 |
+| --------- | --------------- | ------------------------------------------------------------------------------------------- |
+| `--creds` | Array\<String\> | A set of key/value pairs to use for the state backend credentials (e.g. `client_id=abc123`) |

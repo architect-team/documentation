@@ -1,0 +1,29 @@
+---
+title: 'Command: deploy'
+sidebar_label: deploy
+---
+
+Deploy a component to one or more environments. You can deploy a built component by specifying its
+tag, or (when the datacenter supports it) deploy a component from source:
+
+```sh
+$ arcctl deploy architectio/frontend:latest --environment production
+$ arcctl deploy ./frontend --environment production
+```
+
+## Arguments
+
+| Index | Description                                                               |
+| ----- | ------------------------------------------------------------------------- |
+| 0     | The tag of the component to deploy or path to a component to build/deploy |
+
+## Flags
+
+| Name                | Type            | Description                                                                                                                            |
+| ------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `--environment, -e` | Array\<String\> | Environment(s) to deploy the component to                                                                                              |
+| `--ingress, -i`     | Array\<String\> | A set of mappings between ingresses and subdomains to associate with said ingress (e.g. `app:frontend`)                                |
+| `--variable, --var` | Array\<String\> | A set of variable values to apply to the component (e.g. `stripe_api_key=abc123`)                                                      |
+| `--auto-approve`    | Boolean         | If true, skips the confirmation step and begins applying changes right away                                                            |
+| `--refresh`         | Boolean         | Forces the update of all resources. This doesn't necessarily make changes, but ensures that the state file has up-to-date information. |
+| `--debug, -d`       | Boolean         | Uses the debug configuration for the resources in the component.                                                                       |

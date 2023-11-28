@@ -1,0 +1,17 @@
+---
+title: 'Command: destroy datacenter'
+sidebar_label: datacenter
+---
+
+Destroys an existing datacenter. If the datacenter contains any cloud resources, those will be
+destroyed before the datacenter is removed from the state backend.
+
+```sh
+$ arcctl destroy datacenter dev
+```
+
+## Arguments
+
+| Index | Description                       |
+| ----- | --------------------------------- |
+| 0     | Name of the datacenter to destroy |

@@ -1,4 +1,19 @@
 ---
-title: 'Command: tag datacenters'
-sidebar_label: datacenters
+title: 'Command: tag datacenter'
+sidebar_label: datacenter
 ---
+
+Creates a new tag for an existing datacenter. Tags can be made that point to other tags or directly
+to image digests:
+
+```sh
+$ arcctl tag datacenter architectio/digitalocean:latest archtiectio/digitalocean:1.0.1
+$ arcctl tag datacenter abcdef123456 architectio/digitalocean:1.0.1
+```
+
+## Arguments
+
+| Index | Description                                          |
+| ----- | ---------------------------------------------------- |
+| 0     | The source tag or digest to create a tag pointing to |
+| 1     | The target tag to create pointed to the source       |
