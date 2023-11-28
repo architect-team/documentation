@@ -34,7 +34,12 @@ the container) and the `host_path` (the path that contains the files on the host
 container will want to access). So for a Postgres container image, you might want to mount a volume
 to point to the database files that Postgres uses. Something like:
 
-volumes: src: mount_path: /var/lib/postgresql host_path: ./db/files
+```yaml
+volumes:
+  src:
+    mount_path: /var/lib/postgresql
+    host_path: ./db/files
+```
 
 In a regular Dockerfile, this would mean that every time you went to `/var/lib/postgresql` in the
 container, you would actually be using the files in the local machine's current directory
@@ -61,9 +66,9 @@ containers.
 
 If you'd like to learn more about volumes or microservices, check out the links below!
 
-- [Architect Documentation on Volumes](https://docs.architect.io/reference/architect-yml/#volumespec)
-- [Microservice tools: The top 10 for monitoring and testing](/blog/2022-08-30/microservices-top-10-testing-monitoring/)
-- [Test environments: Everything you need to know](/blog/2022-08-09/test-environment-guide/)
+- [Architect Documentation on Volumes](/docs/components/deployments/)
+- [Microservice tools: The top 10 for monitoring and testing](/blog/2022/08/30/microservices-top-10-testing-monitoring/)
+- [Test environments: Everything you need to know](/blog/2022/08/09/test-environment-guide/)
 
 Also, don't forget to follow us on [Twitter](https://twitter.com/architect_team) so that you never
 miss a post or feature update from Architect!

@@ -93,12 +93,12 @@ The specific Kubernetes Network Policies you should configure depend on the stru
 application, but there are some essential guidelines you should apply when designing your network
 policies.
 
-![](https://www.architect.io/wp-content/uploads/2023/01/ztn1-2.png)
+![](./ztn1-2.png)
 
 Given a simple application with a frontend, an API, and a backend database, the minimum policy
 configuration needed to secure your network boils down to these.
 
-### 1\. Deny all ingress traffic
+### 1. Deny all ingress traffic
 
 Ingress rules specify which inbound traffic is allowed by each service. Since Kubernetes allows all
 inbound and outbound traffic by default, you will first need to deny all external ingress traffic as
@@ -106,9 +106,9 @@ well as ingress traffic between services within your application stack and then 
 particular ingress connections necessary to run your application. Some applications, such as
 financial systems, may also need to deny all egress traffic, or traffic going outbound.
 
-![](https://www.architect.io/wp-content/uploads/2023/01/ztn2.png)
+![](./ztn2.png)
 
-### 2\. Set up an API gateway
+### 2. Set up an API gateway
 
 Your individual services typically don't have publicly accessible IP addresses. To allow users to
 reach those services without exposing them externally, use an API gateway, such as
@@ -118,30 +118,30 @@ outside your cluster and route it to the services and pods inside your cluster. 
 utilize your application through the public IP address of the API gateway, and you can control where
 the traffic gets routed within your application stack.
 
-![](https://www.architect.io/wp-content/uploads/2023/01/ztn2-1.png)
+![](./ztn2-1.png)
 
-### 3\. Configure ingress for your gateway
+### 3. Configure ingress for your gateway
 
 The gateway makes your applications reachable and handles routing traffic to and from the entry
 point of your application stack. You'll need to define an ingress rule so that it can receive
 traffic from the outside world.
 
-![](https://www.architect.io/wp-content/uploads/2023/01/ztn7.png)
+![](./ztn7.png)
 
-### 4\. Configure ingress for your frontend application
+### 4. Configure ingress for your frontend application
 
 Configure ingress for your frontend application so it can receive traffic routed to it by the
 gateway.
 
-![](https://www.architect.io/wp-content/uploads/2023/01/ztn8.png)
+![](./ztn8.png)
 
-### 5\. Configure ingress for your API
+### 5. Configure ingress for your API
 
 You'll need to configure ingress for your API service to receive traffic from the frontend.
 
-![](https://www.architect.io/wp-content/uploads/2023/01/ztn9.png)
+![](./ztn9.png)
 
-### 6\. Configure ingress for your database pod
+### 6. Configure ingress for your database pod
 
 Finally, you must configure ingress from your API service to your database to complete the
 connections necessary to run this example application stack.
@@ -149,7 +149,7 @@ connections necessary to run this example application stack.
 Once you have configured these Kubernetes Network Policies, you are on your way to creating a zero
 trust network in your cluster.
 
-![](https://www.architect.io/wp-content/uploads/2023/01/ztn10-1.png)
+![](./ztn10-1.png)
 
 ## What about egress?
 
@@ -161,12 +161,11 @@ leaving egress open is enough protection.
 ## Learn more about microservices architecture best practices
 
 There are many benefits to a microservices architecture once you learn the ropes. To find out more
-best practices, check out these other posts on the
-[Architect.io blog](https://www.architect.io/blog/):
+best practices, check out these other posts on the [Architect.io blog](/blog/):
 
-- [Microservice Tools: The Top 10 for Monitoring and Testing](https://www.architect.io/blog/2022-08-30/microservices-top-10-testing-monitoring/)
-- [The CI/CD pipeline: A developer's guide](https://www.architect.io/blog/2022-10-24/cicd-pipeline-guide/)
-- [Microservice orchestration or choreography: Which one do you need?](https://www.architect.io/blog/2022-06-30/microservices-orchestration-primer/)
+- [Microservice Tools: The Top 10 for Monitoring and Testing](/blog/2022/08/30/microservices-top-10-testing-monitoring/)
+- [The CI/CD pipeline: A developer's guide](/blog/2022/10/24/cicd-pipeline-guide/)
+- [Microservice orchestration or choreography: Which one do you need?](/blog/2022/06/30/microservices-orchestration-primer/)
 
 As always, feel free to hit us up with comments and suggestions on Twitter at
-[@architect_team](@architect_team)!
+[@architect_team](https://x.com/architect_team)!
