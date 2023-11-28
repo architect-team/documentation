@@ -160,7 +160,7 @@ const config: Config = {
             },
             {
               label: 'Component guides',
-              to: '/guides/components/full-stack-apps',
+              to: '/guides/components/architecture/full-stack-apps',
             },
             {
               label: 'Datacenter guides',

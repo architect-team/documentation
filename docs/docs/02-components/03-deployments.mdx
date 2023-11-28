@@ -12,9 +12,9 @@ deployment will look a lot like
 [services](https://docs.docker.com/compose/compose-file/05-services/), but with two main
 differences:
 
-1. The use of [expressions](/docs/components/reference/#expression-options), or pointers, to connect
-   to other resources, and
-2. The removal of `ports` in favor of the more feature rich [services](../services) block.
+1. The use of [expressions](./09-reference/v2.mdx#expression-options), or pointers, to connect to
+   other resources, and
+2. The removal of `ports` in favor of the more feature rich [services](./04-services.mdx) block.
 
 The most basic of deployments only require a single field: `image`. The `image` field tells the
 deployment what docker image to use to run the application.
@@ -111,9 +111,8 @@ deployments:
 ```
 
 Want to learn how to configure values for these variables? Head over to the
-[environment docs](/environments/) and check out how to configure values for
-[local environments](/environments/local) and [remote environments](/environments/remote)
-respectively.
+[environment docs](../03-environments/04-apply.mdx#variables) to learn how to set values and apply
+changes.
 
 ## Volumes
 
@@ -254,4 +253,4 @@ deployments:
 Want to learn how to setup hot-reloading for your component? We've got some great guides for a
 variety of languages.
 
-[Learn more about hot-reloading](/guides/components/tutorials/hot-reloading/nextjs/)
+[Learn more about hot-reloading](../../guides/components/02-tutorials/01-hot-reloading/01-nextjs.mdx)

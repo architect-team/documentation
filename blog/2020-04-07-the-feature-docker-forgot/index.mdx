@@ -1,12 +1,13 @@
 ---
 title: The feature Docker forgot
 description:
-  It’s been seven years since Docker was first announced at PyCon, and containers have since
+  It's been seven years since Docker was first announced at PyCon, and containers have since
   inspired sweeping changes in the roles and responsibilities of DevOps…
-author: david.thor
+authors:
+  - david.thor
 ---
 
-It’s been seven years since Docker was first announced at PyCon, and containers have since inspired
+It's been seven years since Docker was first announced at PyCon, and containers have since inspired
 sweeping changes in the roles and responsibilities of DevOps engineers around the world. The
 performance optimizations of a shared OS with the help of an open-source engine gave many developers
 their first taste of production-ready virtualization; making virtualization approachable to the devs
@@ -22,10 +23,10 @@ has similarly inspired us to be bolder with how we design applications – yield
 microservice architectures, service-oriented design, and cloud-native development.
 
 While this new-found portability and trust has been a valuable enabler, our resulting pursuit of
-cloud-native development has created its own set of hurdles. While we’ve developed trust in our
-virtualization and enabled developers to create their own services, the applications we’ve built
+cloud-native development has created its own set of hurdles. While we've developed trust in our
+virtualization and enabled developers to create their own services, the applications we've built
 have become vastly more complex. As we look back at these increasingly complex applications, we must
-ask ourselves if they’re still as portable as they were seven years ago.
+ask ourselves if they're still as portable as they were seven years ago.
 
 ## Are our apps portable?
 
@@ -47,16 +48,16 @@ cloud providers.
 ![Complex app](./complex-app.png)
 
 Cloud-native, multi-service applications are not portable out of the box – at least not as a unit.
-While each individual service can maintain it’s own pipeline and be released into de-coupled and
+While each individual service can maintain it's own pipeline and be released into de-coupled and
 autonomous scaling groups, the final user-facing application often has implicit dependencies on many
 different systems in order to fulfill its duties.
 
 This complexity is unreasonable, and often impossible, for any single developer to keep track of.
 They know how to run and operate the service(s) that their team created, but often rely on mock
 responses or shared QA environments for testing and debugging integrations with peers. This means
-that apps aren’t being run end-to-end until all the services reach a shared, static environment, and
+that apps aren't being run end-to-end until all the services reach a shared, static environment, and
 this environment is locked to the tools and technology that were setup when it was created. As a
-result, these apps aren’t portable vertically or horizontally like the containers that power each
+result, these apps aren't portable vertically or horizontally like the containers that power each
 service are.
 
 ## Make apps portable with network-awareness
@@ -67,12 +68,12 @@ vertical and horizontal mobility? The answer becomes clear when you step back an
 examples above – the networking.
 
 In distilling the application down to the containers and relationships between them, we can see that
-what we’re left with is a series of nodes and edges – just like any other graph. While the nodes of
+what we're left with is a series of nodes and edges – just like any other graph. While the nodes of
 this graph are independently portable, the edges are the key bit of information preventing us from
 achieving the full application portability we hoped to get from containerization.
 
 So how do we acquire the information about the relationships between these services? These
-relationships didn’t materialize to power our applications by accident, so what source of truth
+relationships didn't materialize to power our applications by accident, so what source of truth
 maintains this knowledge, and how do we collect it so we can make this app portable?
 
 While there may not be a single source of truth like one would hope for end-to-end insights into
@@ -84,7 +85,7 @@ whole.
 
 ## Doesn't this sound familiar?
 
-While the use case for cloud-native apps is heavily weighted toward networking, the concept we’ve
+While the use case for cloud-native apps is heavily weighted toward networking, the concept we've
 just described is one we use every day: dependencies. Every language, framework, and operating
 system has introduced one or more ways for developers to build on top of the work of others by
 asserting and resolving dependencies, and it seems only natural that we adopt the same patterns for
@@ -97,9 +98,9 @@ relationships to derive everything each service needs in order to run!
 Even though these tools provide an ideal developer experience, they unfortunately were not designed
 to support microservices dependencies. While you could repurpose the tools to host artifacts, serve
 them, and index the relationships between them, the container artifacts that would be downloaded
-can’t simply be imported into your application like language-specific libraries can. When it comes
+can't simply be imported into your application like language-specific libraries can. When it comes
 to microservices, each service is designed to be an independent unit that can run and scale entirely
-on its own. What this means for a dependency resolver is that services aren’t ready to fulfill
+on its own. What this means for a dependency resolver is that services aren't ready to fulfill
 traffic and handle incoming requests simply because the artifacts have been downloaded – they have
 to be running too.
 
@@ -125,7 +126,7 @@ and said platform will be able to setup replicasets for every service in your st
 Now that we have a way of running each service, we need a standardized way of connecting them
 together over a network. Fortunately the problem of cloud networking has had a lot of love in recent
 years, and we now have a number of tools we can use to instrument service discovery and networking
-rules across our application. Most recently we’ve seen a wave of innovative solutions in the newly
+rules across our application. Most recently we've seen a wave of innovative solutions in the newly
 defined category of service meshes that are designed specifically to broker traffic between services
 inside an app safely and consistently.
 
@@ -150,7 +151,7 @@ coordination, it also means that any weakness in the firewall exposes access to 
 
 Knowledge of a dependency graph and relationships between services in an application afford teams
 the ability to automatically set up ingress and egress policies between services and leverage a
-zero-trust security model instead of the walled garden approach. Whether it’s setting up Kubernetes
+zero-trust security model instead of the walled garden approach. Whether it's setting up Kubernetes
 NetworkPolicy resources enforced by Cilium, or generating unique credentials for each service
 relationship, the only way to set up correct rules is by knowing what traffic patterns are allowed –
 something teams get automatically when mapping dependencies.
@@ -175,8 +176,8 @@ different microservices, and as such each is often released via independent depl
 give each team autonomy. When some of these services are consumed by others however, it is left up
 to the service being called to either a) maintain its API contract perfectly, or b) collaborate with
 every upstream team to ensure they are prepared to handle impending changes. Without proper
-coordination, it’s easy for breaking releases to make their way into shared environments and cripple
-upstream callers that aren’t prepared for the changes.
+coordination, it's easy for breaking releases to make their way into shared environments and cripple
+upstream callers that aren't prepared for the changes.
 
 Mitigating issues with service versioning has been a value-add of dependency managers for years. It
 can also be applied to cloud environments! With each upstream caller citing the version (or semantic
@@ -186,14 +187,14 @@ down entire products or regions.
 
 ## In closing...
 
-Obviously, Docker didn’t “forget” to add network dependencies to their product. However, their
+Obviously, Docker didn't “forget” to add network dependencies to their product. However, their
 success has led to such widespread adoption of service-oriented design that we find ourselves with
 new problems. These problems can be solved by continuing the pursuit of portability that Docker and
 other virtualization tools started.
 
-Despite the literature around decoupling the world of microservices, it’s clearly natural for
+Despite the literature around decoupling the world of microservices, it's clearly natural for
 developers and teams to build upon the work of others to make bigger and better software together.
 In an effort to maintain the portability that containers provided, we need to lean into service
 dependencies and set up the same systems and methods we have in lower-level systems. By doing so, we
-will achieve the collaboration benefits provided by package managers. We’ll also finally be able to
-ship services that others can run! It’s time we had a dependency resolver for microservices.
+will achieve the collaboration benefits provided by package managers. We'll also finally be able to
+ship services that others can run! It's time we had a dependency resolver for microservices.

@@ -1,12 +1,13 @@
 ---
 title: The importance of software portability
 description:
-  The evolution of software might be a story of innovation in delivery channels – the mainframe to
+  The evolution of software might be a story of innovation in delivery channels - the mainframe to
   the personal computer, hardware-specific applications to cross-architecture compilation,
-author: daniel.barrett
+authors:
+  - daniel.barrett
 ---
 
-The evolution of software might be a story of innovation in delivery channels – the mainframe to the
+The evolution of software might be a story of innovation in delivery channels - the mainframe to the
 personal computer, hardware-specific applications to cross-architecture compilation, desktop to
 mobile, on-premise to cloud. These new delivery methods represented a unique opportunity for
 developers to reach more users with the same application. The benefits are obvious: write once, make
@@ -21,13 +22,13 @@ teams. In modern microservice architectures, developers also play the role of co
 the services and APIs created by other teams both inside and outside of their organization. Thus,
 application portability matters significantly to the internal operations of software companies.
 
-Today, we’ll shed light on what portability means in the context of cloud software and why it’s
+Today, we'll shed light on what portability means in the context of cloud software and why it's
 important for both your customers and your team members.
 
 ## "It works on my machine"
 
 Software teams generally use the word “environment” to describe the context in which an application
-runs. It’s a broad term- you might use it to refer to a specific machine, an OS, or an entire
+runs. It's a broad term- you might use it to refer to a specific machine, an OS, or an entire
 network. Importantly, the word captures a fundamental concept with a serious implication: context
 differs across environments, and if your software depends on context, its behavior will differ
 across environments! This distinction is often the culprit of poorly functioning software: it
@@ -36,10 +37,10 @@ seemingly works in one place but is buggy when you run it somewhere else.
 ![Works on my machine](./works-on-my-machine.jpeg)
 
 Picking apart the logic of your software from the characteristics of the environment is a central
-skill in developing any software application, and it’s a skill that strives toward the above prize:
+skill in developing any software application, and it's a skill that strives toward the above prize:
 portability. A developer who has isolated their software from its environment finds themselves with
 an elegant bundle of business logic that will behave the same regardless of where it is run: their
-own machine, the company QA environment, their production cloud, even their customer’s cloud!
+own machine, the company QA environment, their production cloud, even their customer's cloud!
 
 ## Who benefits from software portability
 
@@ -68,8 +69,8 @@ overhead for anyone involved in moving new versions of the software across envir
 ### Sales: increasing addressable market
 
 Many potential customers prefer to run vendor software on their own premises for security reasons.
-If a business makes rigid software – requiring specific operating systems, cloud providers, embedded
-security, and extensive environment configuration – the business is inadvertently limiting its
+If a business makes rigid software - requiring specific operating systems, cloud providers, embedded
+security, and extensive environment configuration - the business is inadvertently limiting its
 addressable market to those customers that satisfy these conditions. A company that ships portable
 software, on the other hand, removes these restrictions on their addressable market.
 
@@ -83,7 +84,7 @@ application that provides full portability and is easy for developers to run is 
 top of. An application with great portability lends itself to great extensibility.
 
 So how do we know if our apps and services are portable? Can they be portable in some ways and not
-others? To determine this for ourselves, let’s evaluate three different dimensions in which our
+others? To determine this for ourselves, let's evaluate three different dimensions in which our
 application can be portable:
 
 ### 1. Replication (deep)
@@ -100,7 +101,7 @@ portability.
 ### 2. Platform/provider migration (horizontal)
 
 The second dimension of portability is typically the first that most think of when they consider
-cloud portability – cloud migration and/or multi-cloud deployments. The ability for your application
+cloud portability - cloud migration and/or multi-cloud deployments. The ability for your application
 to be run on multiple platforms is a great defensive strategy. It ensures that cloud apps can remain
 cost-effective and protected from outages. Designing applications to be run on commodity
 infrastructure (e.g., Linux vs. Windows) or on multiple cloud providers (e.g., AWS vs. Azure vs.
@@ -125,7 +126,7 @@ compiled .jar file and any OS and display identical behavior. With Docker, appli
 step further: an entire OS can be shipped as a lightweight artifact and run anywhere.
 
 Note the caveats, and note the seeming inconsistencies with the entire concept of portability! If
-java needs a JVM installed, isn’t that a hard violation of everything we’ve discussed? Alas, it
+java needs a JVM installed, isn't that a hard violation of everything we've discussed? Alas, it
 seems so. Here lies another, related- even inverse- concept to portability: the platform. Portable
 software still needs be executed by something; a platform, an OS, an environment. As developers
 struggle to make their applications more portable, companies struggle to make the “universal

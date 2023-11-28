@@ -1,0 +1,8 @@
+version: v2
+
+static:
+  website:
+    directory: ./
+    build:
+      context: ./
+      command: npm run build

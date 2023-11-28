@@ -13,10 +13,10 @@ which can create the need to configure CORS explicitly.
 [Click here to learn more about what CORS is and why it exists](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
 
 Architect helps application developers automatically configure CORS for their applications by
-facilitating the injection of the external [ingress](/components/ingress-rules) URLs into the
-application. This is normally used to help client-side applications connect to the external address
-of backend APIs, but can also be used by the backend APIs to allow the frontend address to be used
-as a valid CORS origin.
+facilitating the injection of the external [ingress](../../../docs/02-components/05-ingresses.mdx)
+URLs into the application. This is normally used to help client-side applications connect to the
+external address of backend APIs, but can also be used by the backend APIs to allow the frontend
+address to be used as a valid CORS origin.
 
 ```yaml architect.yml
 services:

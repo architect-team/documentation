@@ -53,22 +53,22 @@ deployed to an environment can be summarized as follows:
 
 1. **Component deployment**: Whenever a developer deploys a Component to an Environment, Architect
    merges in the Component configuration with the existing Environment configuration. The
-   Environment configuration is stored in the [state backend](/docs/cli/managing-state) the CLI has
-   been configured to use.
+   Environment configuration is stored in the [state backend](../04-state-management.mdx) the CLI
+   has been configured to use.
 2. **Resource extraction**: Once we have the target state of the Environment, Architect walks
    through every Component the Environment needs (both explicitly cited ones, and ones needed
    implicitly as a dependency of others). It extracts all the resources each Component needs, infers
    the relationships between each resource, and spits it out as an application graph.
 3. **Datacenter enrichment**: Armed with a graph of resources that should exist in the environment,
    we then call on the Datacenter to find out what kind of infrastructure should be used for each
-   resource. Each resource gets matched against a [hook](/docs/datacenters/hooks) in the datacenter
-   that tells what modules to execute, how to configure them, and how to extract the output values
-   needed for any resources that depend on it.
+   resource. Each resource gets matched against a [hook](../../04-datacenters/04-hooks.mdx) in the
+   datacenter that tells what modules to execute, how to configure them, and how to extract the
+   output values needed for any resources that depend on it.
    - _The graph produced as part of resource extraction represents a contract between the Components
      and Datacenters. Each node contains a normalized input/output schema from one of Architect's
-     [supported resources](/docs/datacenters/hooks), and the edges help determine which order to
-     deploy the resources in. This helps Datacenters control the infrastructure without getting into
-     the weeds of which resources depend on which others._
+     [supported resources](../../04-datacenters/04-hooks.mdx), and the edges help determine which
+     order to deploy the resources in. This helps Datacenters control the infrastructure without
+     getting into the weeds of which resources depend on which others._
 4. **Plan and apply**: By combining the extract resources with the infrastructure templates from the
    Datacenter, what we're left with at the end is basically an IaC template representing the target
    state of the environment. That means the final step is to generate the plan to determine what

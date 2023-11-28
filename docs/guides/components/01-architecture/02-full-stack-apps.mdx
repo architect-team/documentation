@@ -62,8 +62,9 @@ services:
 ```
 
 As you can see, we also included a reference to the database inside the `DATABASE_ADDR` environment
-variable. This uses Architect's [expression syntax](/components/architect-yml) to automatically fill
-the value with our database address every time we deploy.
+variable. This uses Architect's
+[expression syntax](../../../docs/02-components/09-reference/v2.mdx#expression-context) to
+automatically fill the value with our database address every time we deploy.
 
 ## The frontend
 
@@ -133,4 +134,4 @@ services:
 Did you catch the `CORS_ORIGIN` address in the backend service this time? Check out our guide on
 configuring CORS to learn more.
 
-[Learn more about CORS configuration with Architect](/guides/cors)
+[Learn more about CORS configuration with Architect](../02-tutorials/02-cors.mdx)

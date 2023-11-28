@@ -1,0 +1,134 @@
+---
+title: Why distributed apps need dependency management
+authors:
+  - david.thor
+---
+
+Distributed cloud applications (aka microservices) have introduced an enormous amount of complexity
+into the design and operation of cloud software. What used to manifest itself as complexity hidden
+within a single process or runtime now finds itself spread across tens or hundreds of loosely
+coupled services. While all of these services can use different languages and can scale
+independently from one another, the distributed nature can often make the app as a whole hard to
+navigate, hard to deploy, and hard secure.
+
+{/* truncate */}
+
+This new complexity makes it increasingly difficult to manage and contribute to cloud-native
+applications, and beckons questions as to how we can maintain healthy cloud software. How can we
+take advantage of the benefits of service-oriented design without introducing friction and cost
+elsewhere?
+
+Fortunately we've run into this problem before. Microservices aren't the first pattern that has
+forced developers to figure out how to collaborate and contribute to endless webs of interconnected
+components. For the last few decades the solution has been the same: dependency management.
+
+We use dependency managers every day to re-use public and private software packages, build upon the
+work of others, and gracefully encapulate the details of our own work into consumable formats. There
+are a number of reasons why dependency management is the key to unlocking the power of distributed
+software, and it's high time we learn from the past to power the future of cloud-native development.
+
+## 1. Developer collaboration
+
+One of the most important functions of dependency managers like [NPM](https://www.npmjs.com/),
+[Pip](https://pip.pypa.io/), [Maven](https://maven.apache.org/what-is-maven.html), and others, is to
+broker collaboration amongst developers. By providing a consistent packaging mechanic that
+seamlessly enables code to be extended, dependency managers have enabled otherwise unrelated teams
+to consume each other's work. While these tools can be used within the walls of enterprises to
+enable teams to publish and collaborate on their work, we've seen dependency managers used at a much
+grander scale to broker collaboration within the open-source community. The consistency of the
+tooling and width of adoption has enabled the creation of enormously powerful and freely accessible
+libraries for all to use and continue to build upon.
+
+While this level of collaboration has been realized within the communities for individual languages
+(NPM for Javascript, Pip for Python, etc.), it has yet to be fully realized within the cloud-native
+community. We fortunately have Docker to create consistency in how cloud services are packaged, but
+containers don't have enough information about the relationships between services to resolve and
+extend dependencies. Adding proper dependency management to index and resolve relationships to peer
+apps and services is critical if we want to realize for microservices what others already do with
+libraries in individual languages.
+
+## 2. Self-service environments
+
+The collaborative effects of dependency managers don't happen by magic. The main reason consistent
+dependency resolvers are so powerful is because developers all around the world are able to
+reproduce their effects using the same commands and processes. Reproducibility is a key element of
+dependency managers. Without it, no one would be able to download and operate libraries and packages
+created by others without complex, custom bootstrapping logic – the creation of which would be an
+enormous barrier to adoption and distribution.
+
+Service-oriented applications are no different from language-specific libraries in this regard. Our
+ability to extend the work of others is predicated on our ability to run or otherwise access the
+services and applications we hope to make calls to. Teams have been able to make due by operating
+centralized QA or sandbox environments, but the inability to reproduce these environments creates a
+new set of problems. Engineers can't operate their own development environments, services that
+depend on others can't be easily shipped, developers are forced to write their own scripts to run
+their app locally and remotely, and every team needs to about production-grade tools, networking,
+and network security. By leveraging a consistent, dependency management solution, teams need only to
+assert the network dependencies for their services to give everyone in the org a consistent way to
+spin up services in their stack along with its dependencies – allowing everyone to operate their own
+environments.
+
+## 3. Automation
+
+The self-service benefits of consistent dependency management doesn't just mean that developers can
+operate their own environments. It also means that environments can be provisioned and torn down
+through automation. The consistency of a single command or process to resolve dependencies, enrich
+networking, and automate security is the perfect recipe for integration into CI/CD pipelines!
+
+If every service can be run consistently (e.g. with container platforms) and is aware of its own
+dependencies, new environments can be provisioned for each merge request and changes can be
+seamlessly promoted into staging and production when merged into relevant branches. This means that
+every team can achieve scalable
+[GitOps](https://thenewstack.io/what-is-gitops-and-why-it-might-be-the-next-big-thing-for-devops/)
+for every developer and every new service added to the application.
+
+## 4. Security
+
+One of the risks introduced by microservice architectures is the need for each service to expose
+APIs that broker access to their functionality. Since these services live as separate processes,
+communication over a network is one of the only ways for them to connect to each other and receive
+requests for processing. This means that each new service exposes an interface that can be accessed
+by others, and if developers aren't careful they can accidentally expose it to the wrong parties.
+
+![](./declare-data-breach.png)
+
+Preventing accidental exposure of network interfaces is yet another area where dependency management
+can provide support. With developers providing a structured index of their own service's network
+dependencies, not only can we automatically resolve those dependencies, but we can also enrich the
+environment with the corresponding network policies required to lock it down – only services that
+depend on each other can access each other. This structured approach drastically reduces the need
+for developers to understand network security tooling, and opens them up to create new services more
+freely.
+
+## 5. Flexibility
+
+Another benefit of dependency management with respect to microservices and distributed applications
+is flexibility. With developers capturing the details of their immediate dependencies and
+associating them with their own services, the resolver itself is free to instrument the
+relationships in unique ways in each environment that gets deployed. Want to try out a different API
+gateway or service mesh? Want to instrument distributed tracing by capturing ingress and egress
+traffic from each service? With automation that can hook into the dependency resolver, operators are
+free to experiment with new tools and configs without any code changes to existing services or
+distractions for developers.
+
+## Why doesn't it already exist?
+
+Dependency resolution would be an enormously powerful tool solution to enable developers to
+collaborate and contribute to cloud-native applications, but can't we use the vast number of package
+managers that already exist to help with instrumentation? While it would be nice to use existing
+tools, resolving dependencies for networked applications isn't the same as resolving the
+relationships between libraries and binaries.
+
+The download of code artifacts that fulfill dependency requirements for libraries all happens at
+build-time to create one master binary/library. Microservices however don't get bundled into single
+binaries and instead need to be run as independent services and then connected to over a network.
+This means that the resolution strategy has additional steps, and happens at an entirely different
+lifecycle stage than regular libraries. Turns out, the earliest point in an application lifecycle
+that we can properly resolve dependencies for distributed applications is at deploy-time. It is at
+this point that we know both the relationships between all services in the stack as well as the
+tooling and details of the target environment needed to properly provision and connect services.
+
+To sum it up, it's hard to create a large scale resolver for network dependencies, but doing so
+would provide enormous benefits to engineering teams and the cloud community as a whole. If we're to
+properly navigate the growing landscape of cloud-native tools, we'll need to learn from dependency
+management practices of the past.

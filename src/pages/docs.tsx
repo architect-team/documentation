@@ -68,17 +68,17 @@ const DocsHomePage = () => {
             />
 
             <DocSectionLink
-              label="Architectural Guides"
+              label="Component Guides"
               description="Build Components using the latest strategies in cloud architecture"
               icon="BuildingOffice2Icon"
-              to="/docs/architecture/overview"
+              to="/guides/components/architecture/full-stack-apps/"
             />
 
             <DocSectionLink
-              label="Providers & Tools"
+              label="Datacenter Guides"
               description="Learn how to incorporate your favorite cloud providers and tools into your Architect Datacenters"
               icon="CloudIcon"
-              to="/docs/providers/overview"
+              to="/guides/datacenters/starters/local/"
             />
           </div>
         </div>
