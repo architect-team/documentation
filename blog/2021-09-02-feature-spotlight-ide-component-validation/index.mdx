@@ -1,0 +1,70 @@
+---
+title: 'Feature Spotlight: Validating component schemas in your IDE'
+---
+
+We're excited today to announce improvements in our tooling for validating Component files, which
+includes JSON Schema Store support as well as a new
+[`validate` command for the CLI](https://github.com/architect-team/architect-cli#architect-validate-configs_or_components)!
+
+{/* truncate */}
+
+## JSON Schema Store Support
+
+Your editor can automatically show reference docs and validate your architect component files,
+giving a more streamlined developer experience while reducing context switching. There is varying
+support for the JSON Schema Store across editors, so if your editor doesn't have built-in support
+you may need to download an extension.
+
+### IntelliJ by JetBrains
+
+IntelliJ has built-in support for JSON Schema Store, but is disabled by default and needs to be
+manually enabled. If you haven't already enabled this feature, you can do so by following the
+[IntelliJ JSON documentation](https://www.jetbrains.com/help/idea/json.html#ws_json_using_schemas).
+
+### VSCode by Microsoft
+
+The
+[YAML extension by Red Hat](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml)
+for VSCode provides great support for the JSON schema store by automatically fetching schema from
+the store and providing validation tooltips for any matching yaml files. If you prefer to avoid
+extensions, VSCode does have built-in support for the schema store, but
+[requires some manual configuration](https://code.visualstudio.com/docs/languages/json#_mapping-in-the-json).
+
+This image is an example of the json schema being used to validate my architect file in VSCode. At
+the top it shows which schema is used for validating the file, and is highlighting a mistake I've
+made in my cpu setting in the service debug block.
+
+![VSCode syntax highlighting.](https://www.architect.io/wp-content/uploads/2021/09/vscode-syntax-highlighting.png)
+
+### Component filename patterns
+
+The schema applies to all `architect.yml` and `*.architect.yml` files, so most of your component
+files will be validated by the schema automatically. Component files with names other than
+`architect.yml` will need to be renamed for the schema validations to be applied by your editor.
+
+For example you might have two components for a repo named as follows:
+
+    architect.yml
+    architect-worker.yml
+
+The first architect file will receive validation as expected, but the second won't. This can be
+remedied by renaming it to match the pattern `*.architect.yml`:
+
+    architect.yml
+    worker.architect.yml
+
+## Updated CLI Validation
+
+The `validate` command has been added to the CLI for running validations locally. Prior to this,
+validations were run as part of the `register` command, but that wasn't helpful in cases where you
+wanted to check your work without pushing the component to Architect.
+
+The following example shows the Architect CLI catching a mistake I've made in my component file. The
+new validation messages show exactly where the problem is in the file and what needs to be fixed.
+
+![CLI validation error in a terminal window.](https://www.architect.io/wp-content/uploads/2021/09/cli-validation-errors.png)
+
+Once the issue is resolved, validation will confirm that the file is structured properly and the
+component can be registered.
+
+![CLI successful validation in a terminal window.](https://www.architect.io/wp-content/uploads/2021/09/cli-validation-successful.png)

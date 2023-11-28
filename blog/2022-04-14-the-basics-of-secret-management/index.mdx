@@ -1,0 +1,151 @@
+---
+title: The basics of secret management
+authors: michael.muesch
+---
+
+The need for secret management exists in just about every application that is developed, which is to
+say, every application needs to be able to run locally and in production at a minimum. In most
+cases, an application will also need a staging server and ways to dynamically spin up
+[test environments](https://www.architect.io/use-cases/preview-environments/) to try out some new
+idea your team cooked up. This leads every application to have some sort of configuration system as
+a way to change how the system operates at runtime.
+
+{/* truncate */}
+
+While some configuration options are straightforward, such as which environment you are running in.
+Other configuration options can be sensitive. If you are following best practices such as the
+Principle of Least Privilege then not everyone on your team should have access to:
+
+- Third-party API keys
+- Database credentials
+- Production environment
+
+## How can I keep these a secret?
+
+The general idea for managing secrets is to use a secret management solution such as
+[Vault](https://www.vaultproject.io/) or to use something built into your CI\\CD pipelines, as in
+the case of
+[Gitlab](https://about.gitlab.com/blog/2021/12/02/gitops-with-gitlab-secrets-management/). No matter
+what solution you choose, each one provides the following.
+
+- A secure backend to store your secret in
+- A mechanism to allow you to retrieve your secrets
+- A user management system to put restraints on who can access your secrets.
+- A way to set the same secret for different environments
+
+Using one of these mechanisms, you can inject your secret into your application usually through an
+environment variable or a provided API.
+
+## How we manage secrets at Architect
+
+To keep these a secret, we first need to look at how your application can get access to outside
+configuration options. To do this, let's take a look at an `architect.yml` file.
+
+```yml
+name: component
+description: Human-readable description of my component
+parameters:
+  google_api_key:
+    required: true
+    description: Google API Key
+services:
+  my-api:
+    environment:
+      GOOGLE_API_KEY: ${{ parameters.google_api_key }}
+```
+
+We have specified a new parameter called `google_api_key`, that we can use when deploying our app.
+Architect can then pass that parameter into our service as an environment variable.
+
+As an example, we could deploy this application as follows:
+
+```sh
+architect deploy account/component -p google_api_key=SOMEKEY
+```
+
+Then, for instance, if this was a Node.js service, we could access the passed in parameter as
+follows:
+
+```
+process.env.GOOGLE_API_KEY // "SOMEKEY"
+```
+
+So we were able to define a required configuration parameter for the
+[deployment](https://www.plutora.com/blog/deployment-diagrams-explained-in-detail-with-examples) of
+this component and then set it when we deploy the application. From there, our application was able
+to read an environment variable with the same name to get the value
+
+## What happens if I have a lot of secrets?
+
+Most applications tend to have more than one secret, and while we could pass them all in one at a
+time with the -p flag, this is not scalable. So instead, we can make a file that contains our
+secrets and pass it in the file instead.
+
+```yml
+# secrets.yml
+account/component:*:
+  google_api_key: SOMEKEY
+```
+
+The secret file requires two pieces of information:
+
+- A scope that lets us know who these secrets should be deployed to. In this instance, we only want
+  to pass this information to account/component. No other component can access this secret.
+- A set of key values that contain the name of the parameter from the `architect.yml` file and the
+  value we want it to be.
+
+To use this, we just deploy with the secret file:
+
+```sh
+architect deploy account/component -s secrets.yml
+```
+
+These secret files can also be used to set up the secrets that developers may need to run locally.
+Instead of having complex commands we just need to make a developer secrets.yml and distribute it to
+each developer.
+
+## How do I keep my secrets secret though?
+
+While Architect does allow you to pass in a secret or secrets file during deploy time, we need to
+now store our sensitive secrets in some backend that has user restrictions on them. This is where
+the Architect website comes in.
+
+To do this we are going to go to one of our accounts or environments and then access the “Secrets”
+tab on the side menu. We will then be brought to the following page.
+
+![](https://www.architect.io/wp-content/uploads/2022/04/image-1024x505.png)
+
+This is the same data we saw in the `secrets.yml` file above. We have a scope, a key, and a value
+for each secret. If you are an admin or owner of the account you can view the secret value.
+Otherwise, if you are a member you can only view which secrets are being set.
+
+Now if we were to deploy our application again, it would use the secret we set up in the UI.
+
+```sh
+architect deploy account/component
+```
+
+When our application is deployed it will look for the secrets it needs from either the account
+secrets or environment secrets. If neither contains the secret and it is set as required then the
+deployment will fail.
+
+## What comes next when it comes to secret management
+
+For more information please check out the documentation on
+[configuration management](https://docs.architect.io/deployments/local-environments/). To try it
+yourself you can fork one of our [templates](https://github.com/architect-team/template-nuxt-tsx)
+and attempt to deploy it with parameters set using our secret store.
+
+If you'd like to learn more about dependency-aware continuous delivery with Architect., or secret
+management, we encourage you to check out these resources:
+
+- [Use Hashicorp Vault and Node.js to enable credential cycling](/blog/2020/05/28/using-hashicorp-vault-to-enable-credential-cycling/)
+- [A Comprehensive Guide to Managing Secrets in Your Terraform Code](https://blog.gruntwork.io/a-comprehensive-guide-to-managing-secrets-in-your-terraform-code-1d586955ace1)
+- [Secure Secrets with Spring Cloud Config and Vault](https://developer.okta.com/blog/2020/05/04/spring-vault)
+- [Why distributed apps need dependency management](/blog/2020/09/16/why-distributed-apps-need-dependency-management/)
+- [Create and manage and AWS ECS cluster with Terraform](/blog/2021/03/30/create-and-manage-an-aws-ecs-cluster-with-terraform/)
+- [Understand the Principle of Least Privilege](https://www.cisa.gov/uscert/bsi/articles/knowledge/principles/least-privilege#:~:text=The%20Principle%20of%20Least%20Privilege%20states%20that%20a%20subject%20should,control%20the%20assignment%20of%20rights)
+
+And as always, we'd love to have you follow us for more cool content and product updates. Find our
+channels on [LinkedIn](https://www.linkedin.com/company/architect-io/) and
+[Twitter](https://twitter.com/architect_team)!

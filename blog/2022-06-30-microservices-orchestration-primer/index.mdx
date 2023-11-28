@@ -1,0 +1,154 @@
+---
+title: Microservice orchestration or choreography?
+authors: lee.brandt
+---
+
+The adoption of microservice architecture came into fruition due to advancements in technology (such
+as GPU) and the exponential rise in data generation. At present, microservices are a
+well-established architecture framework that allows organizations to deliver large-scale
+applications rapidly. This blog post will cover the difference between microservice orchestration
+and microservice choreography, enabling microservices to communicate and coordinate.
+
+{/* truncate */}
+
+Here's what you'll learn:
+
+- What is microservice orchestration?
+- What is microservice choreography?
+- Orchestration versus choreography
+- Which one should you choose?
+
+Owing to their packet size, microservices are easily implementable and reusable. They ensure rapid
+delivery, save resources, and are highly scalable. There's no reason not to adapt to a microservice
+architecture. However, these small moving components (microservices) must be able to communicate and
+work together to develop applications and software. Microservice orchestration and choreography
+enable effective implementation and interaction of numerous microservices.
+
+## Microservice orchestration
+
+An orchestra's most prominent feature is how each musician plays an instrument while also ensuring
+that they stay in sync with the other musicians. The conductor of the orchestra is responsible for
+administering the so-called sync.
+
+Like a musical orchestra, microservice orchestration enables the execution of a query or process by
+allowing each microservice to implement tasks assigned by the orchestrator (conductor). While each
+microservice implements the task and reports the progress, the orchestrator stores the required
+information within its storage space (common storage). This accounts for the “sync” component of the
+orchestra.
+
+By following the commands of the orchestrator, any software transaction or website query is executed
+efficiently. The role of each microservice is to execute the task or workflow. And the role of the
+orchestrator is to track the microservices: their status, progress, and so on. This makes
+orchestration a centralized workflow execution mechanism with the orchestrator playing the “godlike”
+entity.
+
+For example, consider a website transaction that entails ordering many items. In such a situation,
+the orchestrator receives the task and queues it to assign it to microservices. Each microservice
+works on responding to some API request by querying data. The orchestrator collects the data and
+sends it to the client. Thus, the orchestrator manages the overall communication and interaction of
+the workflow.
+
+## Microservice choreography
+
+Like most things in nature, there exists a dichotomous alternative to the workflow that enables
+communication (interaction) between microservices. As opposed to the orchestration workflow,
+microservice choreography follows a decentralized mechanism.
+
+In choreography, the orchestrator does not exist. Instead, the microservices follow an asynchronous
+approach that entails executing queries when an event is raised.
+
+The asynchronous approach allows microservices to cooperate and fulfill an event. In this approach,
+an event queue (message queue) acts as a placeholder for client requests. Only the relevant
+microservices receive the message and then implement the task listed in the message. Once the task
+is done, the microservices respond with a success or failure token. This way of communication
+enables the microservices to coordinate without requiring an orchestrator.
+
+Choreography enables microservices to work autonomously, removing any issues caused by dependencies.
+This is important because it allows for the parallelization of tasks or events.
+
+## Orchestration vs. choreography: What's the difference?
+
+Both microservices orchestration and microservices choreography have their pros and cons. Let's now
+cover the differences between these communication workflows and patterns.
+
+### Overall approach
+
+In microservices orchestration, the orchestrator is the brain, or logic component, that assigns
+tasks to the microservices. On obtaining a transaction request or a query, the orchestrator decides
+on the workflow and distributes tasks to the microservices. Each microservice is concerned only with
+the assigned task and not the overall workflow.
+
+On the other hand, microservices choreography is a more bottom-up approach wherein the
+decision-making capability is distributed among the microservices. This makes it a decentralized
+system. The microservices are part of the decision/logic mechanism, and each microservice knows how
+and when to communicate with other services, implement tasks, and so on.
+
+> Microservices are a part of the decision/logic mechanism, and each microservice knows how and when
+> to communicate with other services, when to implement tasks, and so on.
+
+### Dependencies
+
+Orchestration is characterized by actively interacting and orchestrating (for lack of a better word)
+events and microservices. What does this imply? It implies that while withdrawing a query request or
+event, one has to consider the point-to-point
+[interconnections](https://en.wikipedia.org/wiki/Interconnection) (dependencies) between
+microservices. This makes it difficult to remove or modify a defective service.
+
+In a choreography, however, each microservice acts autonomously, and there are no point-to-point
+connections. This means there is no active orchestrator that is relaying tasks to and fro.
+
+### Organization
+
+When there are numerous processes or events in a choreography, their execution can get messy. This
+is because there are too many individualistic components and no controlling unit. Things can get
+chaotic.
+
+On the other hand, in an orchestration, a controlling unit (i.e., the orchestrator) regulates the
+events and their execution.
+
+### Communication
+
+In a choreography, the services must keep track of not only their task execution at hand but also
+the event or the workflow of the event. The workflow represents the communication and interactions
+with other services. Thus, each service must be rigorous in responding to requests if they fail to
+execute the task.
+
+However, each service only carries out the assigned task in an orchestration. The orchestrator is
+accountable for the logic of the workflow and keeps track of the whereabouts of the microservices.
+
+> Each service must be rigorous in responding to requests in case they fail to execute the task.
+
+## Which method should you choose?
+
+Choosing the right communication pattern for your microservices depends on the task at hand, the
+scale of the organization, and a variety of other factors. Choreography is more reasonable when your
+application or software requires constant updates and new features. This is because any existing
+events or processes are not disrupted. If, however, you have a more dependent and centralized
+system, it can be rather challenging to perform constant updates.
+
+When there are complex workflows with thousands of microservices requiring levels of coordination
+and sync, it is better to choose an orchestration. This is because the orchestrator can act as a
+controlling unit and smoothly orchestrate complex workflows.
+
+An alternative view is adapting to a hybrid system that uses orchestration and choreography when
+needed. This is beneficial because it protects the system from a single point of failure (when the
+orchestrator fails) and allows for complex workflows. The decision depends on the context and the
+goal of the organization.
+
+I hope you now understand microservice orchestration and choreography and how they differ.
+
+## Learn more about container orchestration and choreography
+
+If you'd like to learn more about containers, orchestration, and choreography check out these other
+posts:
+
+- [Get Started with the Terraform Kubernetes Provider](/blog/2021/02/17/terraform-kubernetes-tutorial/)
+- [What the Heck is Event-Driven Architecture?](/blog/2021/02/09/event-driven-architecture/)
+- [What is a Staging Environment?](/blog/2022/04/20/what-is-staging-environment/)
+
+If your organization has an interest in choosing a microservices communication pattern, make sure to
+check out [Architect](https://www.architect.io/). Architect.io provides automation and
+operations-based services, including microservice orchestration.
+
+If you have questions or comments, feel free to reach out to the team! You can find us on Twitter at
+[@architect_team](https://twitter.com/architect_team).

@@ -1,0 +1,137 @@
+---
+title: A simple guide to continuous deployment
+---
+
+Continuous Deployment (CD) is a software development practice that enables teams to quickly and
+frequently release code changes to production environments. This practice is closely related to, and
+often used in conjunction with, Continuous Integration (CI) and Continuous Delivery (CD). In this
+blog post, we will discuss what continuous deployment is, how it differs from CI/CD, and the
+benefits it can bring to developer velocity and business innovation.
+
+{/* truncate */}
+
+## What is continuous deployment?
+
+In a nutshell, continuous deployment is a process of automatically building, testing, and deploying
+code changes to production environments without requiring manual intervention. CD allows teams to
+respond quickly to customer feedback and iterate on their product, resulting in faster and more
+frequent releases.
+
+### Continuous integration
+
+Continuous Integration (CI) is the practice of automatically building and testing code changes as
+soon as they are committed to a code repository. CI helps to identify and fix errors early in the
+development process before they make their way into production.
+
+### Continuous delivery
+
+Continuous Delivery (CD) automatically tests and deploys code changes to a staging environment,
+where they can be further tested and validated before being deployed to production. CD helps to
+ensure that code changes are thoroughly tested and validated before production releases.
+
+### So CI and CD both perform tests? Where's the difference?
+
+The main difference stems from when the tests occur and what is being tested. CI testing is run
+against raw source code, whereas CD can run tests against a deployed version of the code.
+
+CI tests can range from linting to unit tests to ensure the code works as intended. The code will
+exist as a branch in the repository when CI occurs. CD is run against a deployed version of the
+code; a good CD test that could block a merge would be whether a deployment can succeed! CD tests
+can also include other verifications that the deployment to a staging environment was successful –
+such as running integration tests to make sure there are no unwanted side effects from the new code,
+overall system tests, or usability tests such as end-to-end testing of an onboarding flow, or
+ensuring the new code doesn't break when going through deployment steps like minification.
+
+## Beyond CI/CD
+
+While CI and CD are essential practices that help to ensure code changes are thoroughly tested and
+validated, continuous deployment takes it one step further by automatically deploying code changes
+to production environments. Implementing CI/CD allows teams to respond quickly to customer feedback
+and iterate on their product, resulting in faster and more frequent releases.
+
+## Continuous deployment, development velocity, and innovation
+
+Implementing continuous deployment will positively impact developer velocity within your
+organization.
+
+By automating the deployment process, developers can spend less time on manual tasks such as testing
+and deploying code changes and more time writing code. This leads to increased productivity as
+developers can focus on what they do best, writing code. Additionally, the deployment process
+automation can eliminate human error and reduce the risk of issues arising when deploying code
+changes.
+
+Faster time-to-market for new features and products is another benefit of continuous deployment. By
+automating the deployment process, teams can quickly and frequently release code changes, allowing
+them to respond to customer feedback and iterate on their product. This can lead to new, innovative
+features and products that better meet customer needs.
+
+Continuous deployment also promotes a culture of experimentation and learning. Teams can quickly
+test new ideas and features in production environments and make adjustments based on customer
+feedback, allowing teams to quickly identify and address areas for improvement and stay ahead of the
+competition.
+
+Moreover, continuous deployment can help achieve faster recovery times for production issues; the
+process allows teams to quickly roll back to a previous version of the application in case of any
+problems. CD can minimize downtime and reduce the impact on customers.
+
+## Continuous deployment isn't for everyone
+
+Continuous deployment is a powerful software development practice that can benefit an organization,
+such as faster time-to-market for new features and products and increased developer productivity.
+However, it's important to remember that it may only suit some organizations or teams.
+
+Implementing continuous deployment requires a high level of automation and testing, which means that
+teams must have the necessary infrastructure and resources to automate the build, test, and
+deployment process. With this automation, it is easier to ensure that code changes are thoroughly
+tested and validated before deployment to production, which can lead to issues and downtime.
+
+Additionally, a culture of collaboration and communication is essential for successful continuous
+deployment. This culture should foster open communication channels, shared knowledge, and a shared
+understanding of the goals and objectives of the project. With this culture, it can be easier to
+ensure that everyone is working towards the same goal and that changes are thoroughly tested and
+validated before deployment to production.
+
+A robust monitoring and rollback plan is also necessary in case of production issues, including
+monitoring the application and infrastructure performance and having a plan in place to roll back
+changes in case of issues quickly. With monitoring and a rollback plan, it can be easier to quickly
+identify and address issues, leading to increased downtime and potential loss of revenue. It also
+makes it hard to identify the root cause of an issue and take corrective action to prevent the same
+issue from happening again. A monitoring and rollback plan should include automated monitoring and
+alerting and established procedures for identifying, troubleshooting, and resolving issues. Robust
+monitoring and rollback plans can help teams identify and address issues quickly, minimizing
+downtime and customer impact.
+
+Additionally, it's crucial to have a versioning control system (VCS) in place for your services and
+infrastructure; this allows teams to roll back to a specific version of the service in case of
+issues. VCS helps ensure that the rollback process is smooth and efficient. Furthermore, it's
+essential to have a disaster recovery plan in place to ensure service availability in case of a
+major incident.
+
+## Summary
+
+Continuous deployment is a powerful software development practice that can bring many benefits to an
+organization, such as faster time-to-market for new features and products, increased productivity
+for developers, and a culture of experimentation and learning. However, it's important to remember
+that it may only be suitable for some organizations or teams. Implementing continuous deployment
+requires a high level of automation and testing, a culture of collaboration and communication, and a
+robust monitoring and rollback plan in case of issues in production.
+
+Additionally, having a monitoring and rollback plan, a versioning system, and a disaster recovery
+plan can help organizations quickly identify and address issues, minimizing downtime and customer
+impact. Overall, continuous deployment is a powerful tool that can help organizations to stay
+competitive and responsive to customer needs. Still, it needs to be implemented carefully and with
+the right resources.
+
+![](https://secure.gravatar.com/avatar/569dcc89bc0d6965c153ba5e945b39b1?s=96&d=retro&r=g)
+
+[Zachary Jansma](https://www.architect.io/blog/author/zach/)
+
+Architect.io Team
+
+- [Twitter](https://twitter.com/)
+
+- [Simplify your deployments with CI/CD and Kubernetes](https://www.architect.io/blog/2023-03-22/deploy-cicd-kubernetes-tutorial/)
+- [A simple guide to continuous deployment](https://www.architect.io/blog/2023-03-09/a-simple-guide-to-continuous-deployment/)
+- [Master Terraform: A cheat sheet for infrastructure automation](https://www.architect.io/blog/2023-02-02/terraform-cheat-sheet/)
+
+## Add your thoughts

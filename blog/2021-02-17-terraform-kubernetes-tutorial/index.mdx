@@ -1,0 +1,518 @@
+---
+title: Get started with the Terraform Kubernetes provider
+authors: ryan.cahill
+---
+
+Kubernetes is a powerful yet complicated container orchestration system. It can be used to run
+resilient workloads on virtually any cloud platform, including AWS, GCS, Azure, DigitalOcean, and
+more. In this tutorial, you'll explore some of the most commonly-used building blocks of a
+Kubernetes application – Pods, Deployments, and Services. These resources could be created with
+standard Kubernetes manifests if desired, but the method of using manifests has faults, including
+one major drawback which is that there's no state preservation.
+
+{/* truncate */}
+
+Terraform is an infrastructure-as-code tool created by Hashicorp to make handling infrastructure
+more straightforward and manageable. Terraform files use a declarative syntax where the user
+specifies resources and their properties such as pods, deployments, services, and ingresses. Users
+then leverage the Terraform CLI to preview and apply expected infrastructure. When changes are
+desired, a user simply updates and reapplies the same file or set of files; then, Terraform handles
+resource creation, updates, and deletion as required.
+
+For this tutorial, start by creating a Kubernetes cluster on your cloud provider of choice. By
+following along with this guide, you'll learn how to define Kubernetes resources using Terraform and
+apply the configuration to the cluster. When everything is up and running, you'll have your own
+“Hello World” service running on the cloud!
+
+## Project dependencies for Kubernetes and Terraform
+
+You'll be using [`terraform`](https://learn.hashicorp.com/tutorials/terraform/install-cli) to deploy
+all of the required resources to the Kubernetes cluster.
+[`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) can optionally be installed if
+you'd like more insights into what has been created. Also, be sure to have an account with a cloud
+provider that has Kubernetes hosting. [DigitalOcean](https://www.digitalocean.com/) is one of the
+simplest cloud providers when it comes to getting started with Kubernetes. Once those requirements
+are met, you're ready to get started!
+
+## Define Kubernetes Resources with Terraform
+
+Terraform requires that the user uses its special language called HCL, which stands for Hashicorp
+Configuration Language. Create a folder called `terraform-example` where the HCL files will live,
+then change directories to that folder. Terraform providers will need to be defined and installed to
+use certain types of resources. This tutorial will use the
+[Kubernetes](https://registry.terraform.io/providers/hashicorp/kubernetes/latest) and the
+[Helm](https://registry.terraform.io/providers/hashicorp/helm/latest) providers. Providers are
+easily downloaded and installed with a few lines of HCL and a single command. Be sure that you have
+downloaded your cluster's kubeconfig, as it will be necessary for the rest of the tutorial. Create a
+file called `versions.tf` where providers will be defined and add the following code:
+
+```hcl
+terraform {
+  required_providers {
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.0.0"
+    }
+    helm = {
+      source = "hashicorp/helm"
+      version = ">= 2.0.0"
+    }
+  }
+}
+provider "kubernetes" {
+  config_path = "<your_kubeconfig_path>"
+}
+provider "helm" {
+  kubernetes {
+    config_path = "<your_kubeconfig_path>"
+  }
+}
+```
+
+Be sure to replace `<your_kubeconfig_path>` in each `provider` block with the location of the
+kubeconfig you've downloaded. Now that the required providers are defined, they can be installed by
+running the command `terraform init`. Ensure that the command is run in the same folder that
+`versions.tf` is in. The command should print something like what's below, indicating success:
+
+```sh
+Initializing the backend...
+
+Initializing provider plugins...
+- Finding hashicorp/kubernetes versions matching ">= 2.0.0"...
+- Finding hashicorp/helm versions matching ">= 2.0.0"...
+- Installing hashicorp/kubernetes v2.14.0...
+- Installed hashicorp/kubernetes v2.14.0 (signed by HashiCorp)
+- Installing hashicorp/helm v2.7.1...
+- Installed hashicorp/helm v2.7.1 (signed by HashiCorp)
+
+Terraform has created a lock file .terraform.lock.hcl to record the provider selections it made above. Include this file in your version control repository so that Terraform can guarantee to make the same selections by default when you run "terraform init" in the future.
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see any changes that are required for your infrastructure. All Terraform commands should now work.
+
+If you ever set or change modules or backend configuration for Terraform, rerun this command to reinitialize your working directory. If you forget, other commands will detect it and remind you to do so if necessary.
+```
+
+Note that a folder has been created alongside `versions.tf` called `.terraform`. This folder is
+where the installed providers are stored to be used for later `terraform` processes. Now that the
+prerequisites to run `terraform` are out of the way, the resource definitions can be created. Add a
+file alongside `versions.tf` called `main.tf`. Create all resources in the same file for simplicity.
+Add the following resource definition to `main.tf`:
+
+```hcl
+resource "kubernetes_namespace" "hello_world_namespace" {
+  metadata {
+    labels = {
+      app = "hello-world-example"
+    }
+    name = "hello-world-namespace"
+  }
+}
+```
+
+This block defines the Kubernetes namespace that will be created for all of the other resources to
+live in. A Kubernetes namespace helps separate resources into groups when certain things do not need
+to interact. It's not truly necessary in this case, but using namespaces is a good practice to
+ensure that strange collisions don't occur down the line. Next, add the resource definition for a
+simple Kubernetes deployment to `main.tf`:
+
+```hcl
+resource "kubernetes_deployment" "hello_world_deployment" {
+  metadata {
+    name = "kubernetes-example-deployment"
+    namespace = kubernetes_namespace.hello_world_namespace.metadata.0.name
+    labels = {
+      app = "hello-world-example"
+    }
+  }
+
+  spec {
+    replicas = 1
+    selector {
+      match_labels = {
+        app = "hello-world-example"
+      }
+    }
+    template {
+      metadata {
+        labels = {
+          app = "hello-world-example"
+        }
+      }
+      spec {
+        container {
+          image = "registry.gitlab.com/architect-io/artifacts/nodejs-hello-world:latest"
+          name  = "hello-world"
+        }
+      }
+    }
+  }
+}
+```
+
+The deployment spec is where a user defines the expected state of a set of pods. The deployment
+controller in the cluster will then update pods to that expected state. Note that the deployment is
+scoped to the namespace that has just been created, `hello-world-namespace`. The `spec` block in the
+deployment is where the expected state of a pod or set of pods is defined and, in this case, where
+the single “Hello World” service is defined. All it takes is specifying the container that needs to
+be run because the pod will be running a public Docker image. The Kubernetes service is the next
+resource that needs to be defined. Add the service to `main.tf` with the code below:
+
+```hcl
+resource "kubernetes_service" "hello_world_service" {
+  depends_on = [kubernetes_deployment.hello_world_deployment]
+
+  metadata {
+    labels = {
+      app = "hello-world-example"
+    }
+    name = "hello-world-example"
+    namespace = kubernetes_namespace.hello_world_namespace.metadata.0.name
+  }
+
+  spec {
+    port {
+      name = "api"
+      port = 3000
+      target_port = 3000
+    }
+    selector = {
+      app = "hello-world-example"
+    }
+    type = "ClusterIP"
+  }
+}
+```
+
+A Kubernetes service defines how a group of pods should be accessed. It's important that the service
+is created after the deployment and the pods are, so Terraform has the handy `depends_on` keyword to
+handle that. `depends_on` is an array that exists on many Terraform resource definitions that allows
+the user to specify what resources a service should be created after. Like the deployment, the
+service is also created in the `hello-world-namespace` to only target pods running there. The
+service's `selector` defines labels of pods that it should be targeting to enable access. The
+`app = "hello-world-example"` selector is defined here because it matches the labels that are set on
+the deployment's pods. The service also defines what ports can be accessed. In this case, when
+traffic is sent to port 3000 of the service, it will then be routed to port 3000 of one of the
+selected group's pods.
+
+## Use Terraform to create Kubernetes resources that enable cluster access
+
+The Terraform resources that have been defined so far create everything that's needed to run an
+application accessible to the cluster, but more resources are needed to access the application from
+the outside world. Most importantly, a load balancer should be put in front of the “Hello World”
+service to handle the traffic. This tutorial uses the
+[Nginx Ingress Controller](https://kubernetes.github.io/ingress-nginx/) and the Helm Terraform
+provider to create it. Add the following to `main.tf` to create the Nginx ingress controller:
+
+```hcl
+resource "helm_release" "ingress_nginx" {
+  name       = "ingress-nginx"
+  repository = "https://kubernetes.github.io/ingress-nginx"
+  chart      = "ingress-nginx"
+  version    = "4.3.0"
+  namespace  = kubernetes_namespace.hello_world_namespace.metadata.0.name
+  timeout    = 300
+
+  values = [<<EOF
+controller:
+  admissionWebhooks:
+    enabled: false
+  electionID: ingress-controller-leader-internal
+  ingressClass: nginx-hello-world-namespace
+  podLabels:
+    app: ingress-nginx
+  service:
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+  scope:
+    enabled: true
+rbac:
+  scope: true
+EOF
+  ]
+}
+```
+
+Using the Helm Terraform provider and, in turn, the Helm chart makes creating the required
+Kubernetes resource much easier because it's not necessary to add a bunch of boilerplate to the
+Terraform file. Check out the Helm chart
+[here](https://github.com/kubernetes/ingress-nginx/tree/master/charts/ingress-nginx) to explore more
+about the load balancer than is covered in this tutorial. When Terraform creates the `helm_release`
+resource, it will create an `ingress-nginx-controller` deployment, pod, replica set, and other
+resources required to run the load balancer within the cluster. One more resource needs to be added
+to expose the Nginx controller to the outside world. Create a Kubernetes ingress for the Nginx
+controller by adding the following resource definition to `main.tf`:
+
+```hcl
+resource "kubernetes_ingress_v1" "ingress" {
+  metadata {
+    labels = {
+      app = "ingress-nginx"
+    }
+    name = "api-ingress"
+    namespace = kubernetes_namespace.hello_world_namespace.metadata.0.name
+    annotations = {
+      "kubernetes.io/ingress.class": "nginx-hello-world-namespace"
+    }
+  }
+
+  spec {
+    rule {
+      http {
+        path {
+          path = "/"
+          backend {
+            service {
+              name = "hello-world-example"
+              port {
+                number = 3000
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Note that the ingress resource is created in the `hello-world-namespace` namespace like all other
+resources in this tutorial. It's also important that the annotation `kubernetes.io/ingress.class` is
+named `nginx-<namespace_name>` so that the Nginx ingress controller knows to handle the ingress
+rules. The spec portion of the ingress definition defines how Nginx should be configured. In this
+case, all traffic is routed to the service named “hello-world-example” at port 3000 and, in turn, to
+the pods backing the service which are running the “Hello World” application. Now that all required
+resources are defined, you're ready to run the Terraform deployment!
+
+Before running the deployment, it may be useful to see what exactly it is that Terraform will create
+based on the template. That's especially useful as the infrastructure grows. Run the command
+`terraform plan -out=tfplan` to see what resources Terraform will add, change, or destroy. On the
+first run, your output should look something like this:
+
+```sh
+Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # helm_release.ingress_nginx will be created
+  + resource "helm_release" "ingress_nginx" {
+      + atomic                     = false
+      + chart                      = "ingress-nginx"
+
+...
+
+          + session_affinity_config {
+              + client_ip {
+                  + timeout_seconds = (known after apply)
+                }
+            }
+        }
+    }
+
+Plan: 5 to add, 0 to change, 0 to destroy.
+
+------------------------------------------------------------------------
+
+Saved the plan to: tfplan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "tfplan"
+```
+
+Each resource that will be created along with details about its properties is shown in the terminal.
+Once you're ready to actually create the resources in the cluster, run the command
+`terraform apply tfplan` and wait for it to complete. The load balancer may take a couple minutes to
+provision. Once completed, you should have seen something like below:
+
+```sh
+kubernetes_namespace.hello_world_namespace: Creating...
+kubernetes_ingress.ingress: Creating...
+kubernetes_deployment.hello_world_deployment: Creating...
+helm_release.ingress_nginx: Creating...
+kubernetes_namespace.hello_world_namespace: Creation complete after 1s [id=hello-world-namespace]
+kubernetes_ingress.ingress: Creation complete after 1s [id=hello-world-namespace/api-ingress]
+kubernetes_deployment.hello_world_deployment: Creation complete after 9s [id=hello-world-namespace/kubernetes-example-deployment]
+kubernetes_service.hello_world_service: Creating...
+kubernetes_service.hello_world_service: Creation complete after 0s [id=hello-world-namespace/hello-world-example]
+helm_release.ingress_nginx: Still creating... [10s elapsed]
+helm_release.ingress_nginx: Still creating... [20s elapsed]
+
+...
+
+helm_release.ingress_nginx: Still creating... [2m20s elapsed]
+helm_release.ingress_nginx: Still creating... [2m30s elapsed]
+helm_release.ingress_nginx: Creation complete after 2m36s [id=ingress-nginx]
+
+Apply complete! Resources: 5 added, 0 changed, 0 destroyed.
+
+The state of your infrastructure has been saved to the path
+below. This state is required to modify and destroy your
+infrastructure, so keep it safe. To inspect the complete state
+use the `terraform show` command.
+
+State path: terraform.tfstate
+```
+
+And that's it; you now have an application running in the cloud! But how can it be accessed? You can
+find out how with one `kubectl` command. Enter the following command in a terminal and be sure to
+replace `<your_kubeconfig_file_path>`:
+
+```sh
+kubectl get service ingress-nginx-controller -n hello-world-namespace --kubeconfig=<your_kubeconfig_file_path>
+```
+
+Copy the IPv4 address under the header `EXTERNAL-IP`, then on the command line, enter
+`curl -X GET <IPv4_address>` being sure to replace `<IPv4_address>` with the external IP of the
+Kubernetes service. You should see “Hello World” printed to the console. That's the response from
+your cloud application running on Kubernetes! Now, what happens when more and more people start
+using your service?
+
+## Use Terraform to modify existing Kubernetes resources
+
+There's only one replica of the application running right now, and more may be needed in the future
+to handle traffic. Fortunately, Terraform can help add more replicas of the application. Confirm
+that only one replica exists by running the command
+`kubectl get pods -n hello-world-namespace --kubeconfig=<your_kubeconfig_file_path>` and notice that
+only one pod exists that is prefixed with `kubernetes-example-deployment`. To increase the number of
+pods running the “Hello World” application, the deployment will need to be updated. Find the line in
+`main.tf` where replicas for the applications are defined as `replicas = 1` and update `1` to `3`.
+Now in a terminal, run the following command to see what will be updated in the cluster:
+
+```sh
+terraform plan -out=tfplan
+```
+
+The output should look like the following:
+
+```sh
+kubernetes_namespace.hello_world_namespace: Refreshing state... [id=hello-world-namespace]
+kubernetes_ingress_v1.ingress: Refreshing state... [id=hello-world-namespace/api-ingress]
+helm_release.ingress_nginx: Refreshing state... [id=ingress-nginx]
+kubernetes_deployment.hello_world_deployment: Refreshing state... [id=hello-world-namespace/kubernetes-example-deployment]
+kubernetes_service.hello_world_service: Refreshing state... [id=hello-world-namespace/hello-world-example]
+
+Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+Terraform will perform the following actions:
+
+  # kubernetes_deployment.hello_world_deployment will be updated in-place
+  ~ resource "kubernetes_deployment" "hello_world_deployment" {
+        id               = "hello-world-namespace/kubernetes-example-deployment"
+        # (1 unchanged attribute hidden)
+
+      ~ spec {
+          ~ replicas                  = "1" -> "3"
+            # (4 unchanged attributes hidden)
+
+            # (3 unchanged blocks hidden)
+        }
+
+        # (1 unchanged block hidden)
+    }
+
+Plan: 0 to add, 1 to change, 0 to destroy.
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: tfplan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "tfplan"
+```
+
+Because Terraform knows the state of the existing Kubernetes resources, it will only need to change
+the deployment. Run the command `terraform apply tfplan` to update the number of running replicas.
+They may take a few seconds to spin up, but re-running the command
+`kubectl get pods -n hello-world-namespace --kubeconfig=<your_kubeconfig_file_path>` should now show
+that there are three replicas of the application running! These can have traffic routed to them
+through the load balancer and the service which was defined already.
+
+When you're ready to clean up the resources from this guide, Terraform offers another command that
+can help with that. Because it tracks state, it knows everything that needs to be removed. To see
+what that would look like, enter `terraform plan -destroy -out=tfplan` in a terminal and be sure to
+still be in the same working folder that contains `terraform.tfstate`. Something like what's below
+should be printed to the console:
+
+```sh
+kubernetes_namespace.hello_world_namespace: Refreshing state... [id=hello-world-namespace]
+kubernetes_ingress_v1.ingress: Refreshing state... [id=hello-world-namespace/api-ingress]
+helm_release.ingress_nginx: Refreshing state... [id=ingress-nginx]
+kubernetes_deployment.hello_world_deployment: Refreshing state... [id=hello-world-namespace/kubernetes-example-deployment]
+kubernetes_service.hello_world_service: Refreshing state... [id=hello-world-namespace/hello-world-example]
+
+Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+  - destroy
+
+Terraform will perform the following actions:
+
+  # helm_release.ingress_nginx will be destroyed
+  - resource "helm_release" "ingress_nginx" {
+      - atomic                     = false -> null
+      - chart                      = "ingress-nginx" -> null
+
+...
+
+                            - protocol    = "TCP" -> null
+              - target_port = "3000" -> null
+            }
+        }
+    }
+
+Plan: 0 to add, 0 to change, 5 to destroy.
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: tfplan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "tfplan"
+```
+
+When you're sure that you're comfortable with everything being torn down, enter the command
+`terraform apply tfplan` and wait for it to complete. Every resource that was created by any apply
+step will now be gone. The output should look similar to what's below:
+
+```sh
+kubernetes_namespace.hello_world_namespace: Destroying... [id=hello-world-namespace]
+kubernetes_ingress_v1.ingress: Destroying... [id=hello-world-namespace/api-ingress]
+kubernetes_service.hello_world_service: Destroying... [id=hello-world-namespace/hello-world-example]
+helm_release.ingress_nginx: Destroying... [id=ingress-nginx]
+kubernetes_ingress_v1.ingress: Destruction complete after 1s
+kubernetes_service.hello_world_service: Destruction complete after 1s
+kubernetes_deployment.hello_world_deployment: Destroying... [id=hello-world-namespace/kubernetes-example-deployment]
+kubernetes_deployment.hello_world_deployment: Destruction complete after 0s
+helm_release.ingress_nginx: Destruction complete after 4s
+kubernetes_namespace.hello_world_namespace: Still destroying... [id=hello-world-namespace, 10s elapsed]
+kubernetes_namespace.hello_world_namespace: Still destroying... [id=hello-world-namespace, 20s elapsed]
+
+...
+
+kubernetes_namespace.hello_world_namespace: Still destroying... [id=hello-world-namespace, 2m30s elapsed]
+kubernetes_namespace.hello_world_namespace: Still destroying... [id=hello-world-namespace, 2m40s elapsed]
+kubernetes_namespace.hello_world_namespace: Destruction complete after 2m44s
+
+Apply complete! Resources: 0 added, 0 changed, 5 destroyed.
+```
+
+## Learn more about how Architect can deploy your application to Kubernetes and elsewhere
+
+Terraform can deploy your application to Kubernetes easily once templates are written, and all of
+the resources are defined. Terraform templates can be difficult to maintain though as your
+application and customer needs become more and more complex. With Architect, your application only
+needs to be defined once to be deployed both for local testing and remote deployments to any
+Kubernetes cluster. Find out more about deploying Architect components in our
+[docs](https://www.architect.io/docs/) and [try it out](https://cloud.architect.io/signup)!
+
+For more reading, have a look at some of our other tutorials!
+
+[Implement RabbitMQ on Docker in 20 Minutes](https://www.architect.io/blog/rabbitmq-docker-tutorial)
+
+[Implement Kafka on Docker in 20 Minutes](https://www.architect.io/blog/kafka-docker-tutorial)
+
+[A Developer's Guide to GitOps](https://www.architect.io/blog/gitops-developers-guide)
+
+If you have any questions or comments, don't hesitate to reach out to the team on Twitter
+[@architect_team](https://twitter.com/architect_team)!

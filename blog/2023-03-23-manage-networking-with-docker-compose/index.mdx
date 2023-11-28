@@ -1,0 +1,365 @@
+---
+title: Manage networking with Docker Compose
+author: Eric Goebelbecker
+---
+
+Docker is a powerful tool for distributing, running, and managing applications. But complex
+applications often need more than one container, and need a way for them to communicate. This
+ability is essential for distributed applications. Fortunately, Docker Compose makes this
+information exchange simple with robust and flexible tools for managing networking.
+
+{/* truncate */}
+
+Let's look at what you can do with Docker Compose networking.
+
+## What is Docker Compose?
+
+Docker Compose is a tool for defining and running multi-container Docker applications. It allows you
+to create an application with multiple Docker containers, networks, and volumes with a simple
+configuration that can start and stop an application with a single command.
+
+You define your application with a YAML domain-specific language (DSL) that's an intuitive interface
+for defining and configuring applications, volumes, and networks. It also has tools to build Docker
+images as part of application startup.
+
+Here's a sample file from the
+[Docker Compose network documentation.](https://docs.docker.com/compose/networking/)
+
+```yml
+services:
+  web:
+    build: .
+    ports:
+      - '8000:8000'
+  db:
+    image: postgres
+    ports:
+      - '8001:5432'
+```
+
+This file defines two **services**:
+
+- **web** is a container Compose builds from a Dockerfile. It looks for in the working directory
+  that the user runs it from.
+- **db** is a PostgreSQL data server created from the **postgres** Docker image.
+
+Since the configuration doesn't specify a custom network, Compose creates one for the containers to
+share. Let's take a close look at that.
+
+### How does Docker Compose networking work?
+
+Docker Compose's default approach to networking is a default network that all the containers in the
+application share. They join the network and can locate each other by service name. This is one of
+the features that makes Compose so easy to use, since getting containers to connect to each manually
+can be a lot of work.
+
+Compose also manages how external programs connect to the containers in your application. Let's look
+more closely at the sample Compose file above.
+
+```yml
+db:
+  image: postgres
+  ports:
+    - '8001:5432'
+```
+
+The **db** service has a **ports** entry that tells Compose to allow external access via port 8001
+on the host. When an application connects to **HOST_PORT** 8001 on the host, Docker will route them
+to **CONTAINER_PORT** 5432 on the database container.
+
+This **HOST_PORT:CONTAINER_PORT** syntax is the same as the command line docker syntax.
+
+```sh
+$ docker run -p 8001:5432 postgres
+```
+
+It's worth reiterating that Compose makes it possible for the containers to reach each other by
+name. In the example, **web** and **db** are valid host names that resolve to the internal IP
+address of the two containers. So, the **web** service can connect to **db** with a connection
+string of postgres://db:5432. So, Docker can assign IP addresses at runtime while you configure your
+applications using names.
+
+Docker Compose networking has access to all of Docker's networking features. So, you can create
+additional networks and load custom or standard Docker network drivers.
+
+Let's use an example to introduce a few advanced concepts.
+
+## Docker Compose networking example
+
+Let's go over a Docker Compose example from
+[Docker's Awesome Compose repository.](https://github.com/docker/awesome-compose) You'll need a host
+with Docker installed. Recent versions of Docker Desktop come with Compose built-in. I'll be showing
+shell sessions from Linux, but everything works the same on macOS and Windows with WSL.
+
+We'll use the
+[nginx-flask-mysql](https://github.com/docker/awesome-compose/tree/master/nginx-flask-mysql)
+project. Check out the project from GitHub so you can follow the example.
+
+This app defines two custom networks at the bottom of the file: **backnet** and **frontnet**.
+
+```yml
+networks:
+  backnet:
+  frontnet:
+```
+
+All you need to define two custom networks are names. Compose takes care of allocating address space
+for you.
+
+The application has three services:
+
+The **db** service is a MariaDB server. The service is configured with:
+
+- A health check script that pings it every three seconds and restarts it as needed.
+- A volume named **db-data** that it uses for its relational tables, so its data is persistent
+  across application restarts.
+- One network connection to the **backnet** network, where it **exposes** two ports. We'll cover
+  what expose means below.
+
+This service does not have a connection to **frontnet**.
+
+```yml
+services:
+  db:
+    image: mariadb:10-focal
+    restart: always
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'mysqladmin ping -h 127.0.0.1 --password="$$(cat /run/secrets/db-password)" --silent',
+        ]
+      interval: 3s
+      retries: 5
+      start_period: 30s
+    secrets:
+      - db-password
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - backnet
+    environment:
+      - MYSQL_DATABASE=example
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db-password
+    expose:
+      - 3306
+      - 33060
+```
+
+The **backend** service is a Python app Compose builds on startup from files in the backend
+subdirectory. It has connections to both networks and is **forwarding** port 8000 to the host
+network.
+
+```yml
+backend:
+  build:
+    context: backend
+    target: builder
+  restart: always
+  secrets:
+    - db-password
+  ports:
+    - 8000:8000
+  networks:
+    - backnet
+    - frontnet
+  depends_on:
+    db:
+      condition: service_healthy
+```
+
+**Proxy** is an Nginx container Compose builds on startup from the proxy subdirectory. It's
+forwarding port 80. It has an Nginx configuration that forwards HTTP requests on port 80 to port
+8000 on the **backend** service.
+
+```yml
+proxy:
+  build: proxy
+  restart: always
+  ports:
+    - 80:80
+  depends_on:
+    - backend
+  networks:
+    - frontnet
+```
+
+This application uses the two custom networks to isolate the network traffic between the database
+and web application from the host network and load balancer. But, it could be better. Let's see why,
+and how to fix it.
+
+Let's run this application and see how the networking looks at runtime.
+
+The configuration is ready to run on any host with Docker installed. Move into the
+**awesome-compose/nginx-flask-mysql** directory and run **docker compose up -d.**
+
+```sh
+~/src/awesome-compose/nginx-flask-mysql$ docker compose up -d
+[+] Running 5/5
+ ⠿ Network nginx-flask-mysql_backnet      Created                                         0.1s
+ ⠿ Network nginx-flask-mysql_frontnet     Created                                         0.1s
+ ⠿ Container nginx-flask-mysql-db-1       Healthy                                         4.2s
+ ⠿ Container nginx-flask-mysql-backend-1  Star...                                         4.6s
+ ⠿ Container nginx-flask-mysql-proxy-1    Starte...
+```
+
+**Docker ps** tells us a lot about the networking in this application:
+
+```sh
+~/src/awesome-compose/nginx-flask-mysql$ docker ps
+CONTAINER ID   IMAGE                       COMMAND                  CREATED              STATUS                        PORTS                                       NAMES
+36e7f372dc0e   nginx-flask-mysql-proxy     "nginx -g 'daemon of…"   About a minute ago   Up About a minute             0.0.0.0:80->80/tcp, :::80->80/tcp           nginx-flask-mysql-proxy
+f729b4ef689d   nginx-flask-mysql-backend   "flask run"              About a minute ago   Up About a minute             0.0.0.0:8000->8000/tcp, :::8000->8000/tcp   nginx-flask-mysql-backend
+75a8998e06da   mariadb:10-focal            "docker-entrypoint.s…"   About a minute ago   Up About a minute (healthy)   3306/tcp, 33060/tcp                         nginx-flask-mysql-db
+```
+
+We can drill down a bit further with **docker inspect**.
+
+This command inspects a container and filters for the network settings.
+
+Pipe the output to [**jq**](https://stedolan.github.io/jq/) for pretty printing.
+
+```json
+~/src/awesome-compose/nginx-flask-mysql$ docker inspect --format='{{json .NetworkSettings}}' nginx-flask-mysql-backend|jq
+{
+  "Bridge": "",
+  "SandboxID": "81a9820e1345567596c17d037eaa134d8c5261814500a0fccf0dfb420eade98d",
+  "HairpinMode": false,
+  "LinkLocalIPv6Address": "",
+  "LinkLocalIPv6PrefixLen": 0,
+  "Ports": {
+    "8000/tcp": null
+  },
+  "SandboxKey": "/var/run/docker/netns/81a9820e1345",
+  "SecondaryIPAddresses": null,
+  "SecondaryIPv6Addresses": null,
+  "EndpointID": "",
+  "Gateway": "",
+  "GlobalIPv6Address": "",
+  "GlobalIPv6PrefixLen": 0,
+  "IPAddress": "",
+  "IPPrefixLen": 0,
+  "IPv6Gateway": "",
+  "MacAddress": "",
+  "Networks": {
+    "nginx-flask-mysql_backnet": {
+      "IPAMConfig": null,
+      "Links": null,
+      "Aliases": [
+        "nginx-flask-mysql-backend",
+        "backend",
+        "26b36187c2ea"
+      ],
+      "NetworkID": "80bd0d20df08faa1ed4d91f387cae1cf5d6c33484498d9b898949ceca552518c",
+      "EndpointID": "7853c7d411188b204298c0e3f3f508951d13723428c98a32fec7f886fbb13863",
+      "Gateway": "172.24.0.1",
+      "IPAddress": "172.24.0.3",
+      "IPPrefixLen": 16,
+      "IPv6Gateway": "",
+      "GlobalIPv6Address": "",
+      "GlobalIPv6PrefixLen": 0,
+      "MacAddress": "02:42:ac:18:00:03",
+      "DriverOpts": null
+    },
+    "nginx-flask-mysql_frontnet": {
+      "IPAMConfig": null,
+      "Links": null,
+      "Aliases": [
+        "nginx-flask-mysql-backend",
+        "backend",
+        "26b36187c2ea"
+      ],
+      "NetworkID": "cc921202ac9b83ef425bc9a28eeca22809d9c45e4215b5a09f932517de004e3c",
+      "EndpointID": "4515cceb3f63f35b64760306ce1d4ed257b16da81e72851c7fd85fe48ecf4237",
+      "Gateway": "172.25.0.1",
+      "IPAddress": "172.25.0.2",
+      "IPPrefixLen": 16,
+      "IPv6Gateway": "",
+      "GlobalIPv6Address": "",
+      "GlobalIPv6PrefixLen": 0,
+      "MacAddress": "02:42:ac:19:00:02",
+      "DriverOpts": null
+    }
+  }
+}
+```
+
+The **Networks** section shows that **backend** is connected to two networks.
+
+If you look back to **docker ps**, you can see that the **proxy** and **backend** services are
+reachable via **0.0.0.0:80** and **0.0.0.0:8000** respectively. **Db**, however, is not forwarding
+its two ports.
+
+We can confirm that port 80 is reachable with a web browser:
+
+![port80.png](https://lh3.googleusercontent.com/sUI1SVBReP4p3ww7hACq45QHeMJ5rCbLxVqlPemm9MQz5CvbOprKHxknoeuOmhrBiygWQT3t3ugWoSoy3qUMec56K09_y6mPdvIT4S96-m9ppK8aCWZpOim09s5GZdQul1GKjYnl1JO9zy9WkDPpCBU)
+
+So is port 8000:
+
+![port8000.png](https://lh5.googleusercontent.com/3lvnKbowZ3Ovt_jemc5ZCfUBHacaJ9ySngEXYNsJkXa2HWZTi2ubu4Pyt4FU_5ehKGtRl71G_-_eiVnmbcwS8zAT0FmiU0Zer8J6LBWMmifcifEkZcMRzEMizgf310pAWtU3ZLj7bQ8LiAptWDCPNnk)
+
+That doesn't make sense. Why bother running a proxy if users can reach the application with a direct
+connection?
+
+Let's fix that. Open the compose file and edit the service definition for **backend.** Change the
+**ports** keyword to **expose** and remove the port mappings.
+
+```yml
+backend:
+  build:
+    context: backend
+    target: builder
+  restart: always
+  secrets:
+    - db-password
+  expose:
+    - 8000
+  networks:
+    - backnet
+    - frontnet
+  depends_on:
+    db:
+      condition: service_healthy
+```
+
+Run **docker compose up -d** again.
+
+```sh
+~/src/awesome-compose/nginx-flask-mysql$ docker compose up -d
+[+] Running 3/3
+ ⠿ Container nginx-flask-mysql-db-1       Healthy                                           1.8s
+ ⠿ Container nginx-flask-mysql-backend-1  Started                                           2.4s
+ ⠿ Container nginx-flask-mysql-proxy-1    Started
+```
+
+Now, **docker ps** tells a different story.
+
+```sh
+~/src/awesome-compose/nginx-flask-mysql$ docker ps
+CONTAINER ID   IMAGE                       COMMAND                  CREATED          STATUS                    PORTS                               NAMES
+3623f1799e0d   nginx-flask-mysql-proxy     "nginx -g 'daemon of…"   6 minutes ago    Up 6 minutes              0.0.0.0:80->80/tcp, :::80->80/tcp   nginx-flask-mysql-proxy-1
+02f065db02d1   nginx-flask-mysql-backend   "flask run"              6 minutes ago    Up 6 minutes              8000/tcp                           nginx-flask-mysql-backend-1
+75a8998e06da   mariadb:10-focal            "docker-entrypoint.s…"   16 minutes ago   Up 16 minutes (healthy)   3306/tcp, 33060/tcp                 nginx-flask-mysql-db-1
+```
+
+You can verify this by pointing a browser at [127.0.0.1:8000](http://127.0.0.1:8000) again.
+
+In this post, we discussed how Docker Compose networking works, and how it makes it easy to create
+distributed applications. Then, we used a sample application to demonstrate how port forwarding and
+multiple networks operate in a Docker Compose environment.
+
+Architect has tools to make building and deploying containerized applications easier than Docker
+Compose. We even have tools for importing Compose configuration into our continuous deployment
+environment. [Get started](https://cloud.architect.io/signup) today!
+
+## Learn more about Docker
+
+If you want to learn more about Docker and containerization in general, check out some of our other
+outstanding posts:
+
+- [A developer's guide to containers](/blog/2022/10/27/containers-developers-guide/)
+- [A developer's guide to zero trust networking](/blog/2023/01/05/zero-trust-networking/)
+- [Open Container Initiative: A technical overview of its specifications and benefits](/blog/2023/03/14/open-container-initiative-guide/)
+
+Also, if you have any questions or comments, leave a comment below or hit us up on
+[Twitter](https://twitter.com/architect_team)!

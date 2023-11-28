@@ -1,0 +1,256 @@
+---
+title: How to manage secrets in Kubernetes
+authors: lee.brandt
+---
+
+Whenever you set up a system or develop and publish an application, there will be secrets involved.
+Previously, we published this [article](/blog/2022/04/14/the-basics-of-secret-management/)
+explaining the basics of secrets and secret management. In this follow-up piece, we explore how to
+manage secrets in a Kubernetes environment and how you can achieve this using **kubectl** and YAML.
+
+{/* truncate */}
+
+Secrets can refer to either service authentication or configuration parameters. They can also enable
+parts of an application topology to connect securely. For example, consider the connection string
+you specify in your web server configuration settings to establish connectivity to a database.
+Typically, the connection string contains the names of the server and database. It also holds the
+administrative user name and password.
+
+In a Kubernetes environment, it is often recommended to use secrets to enable Pods to interact or to
+allow applications to connect to external services like databases. Moreover, API keys should always
+be stored as secrets. However, managing secrets in a Kubernetes architecture is different from doing
+so within traditional application architectures. Therefore, you should manage your secrets on the
+Kubernetes level rather than at an application or Pod-specific level. This practice is recommended
+for several reasons.
+
+First, this method makes your design more Kubernetes-friendly. Your secrets are stored inside the
+Kubernetes clusters. If your application requirements change, such as during a scaling operation
+that requires creating multiple Pods in different Kubernetes nodes, your secrets are always
+available from the Kubernetes secret store.
+
+Furthermore, Kubernetes stores secrets using Base64 encoding to ensure that any secrets stored in
+binary format are handled properly by media that deals only in ASCII.
+
+This article guides you through the management of secrets from creation to viewing using kubectl —
+the Kubernetes command-line interface (CLI). Then, it guides you through creating and using secrets
+using a secret YAML file.
+
+## Prerequisites
+
+To follow along, you need:
+
+A running Kubernetes infrastructure with both nodes and Pods  
+Administrative permissions (or access to a singular namespace on the cluster) to connect using
+kubectl  
+A [free developer account](https://cloud.architect.io/signup) with Architect
+
+## Create a secret using kubectl
+
+Let's start with creating a secret using kubectl.
+
+First, verify that the Kubernetes cluster is running with the following command:
+
+kubectl get nodes
+
+Then, check for running Pods (assuming you have them). The `-A` parameter lists all Pods in all
+namespaces:
+
+kubectl get pods -A
+
+Now that we have validated that the cluster is ready, let's create a secret from the kubectl command
+line.
+
+To do this, you first create a file that stores the secret. You define a secret file holding an
+admin user account name and a second file holding the password string.
+
+echo admin > admin.txt
+
+echo Sup3rDup3rPa$$w.rd > pw.txt
+
+Please note that there are several ways to create the text files in Windows. We use the `echo`
+command to create the file and store the string. This is the most similar technique to that for a
+Linux or macOS machine.
+
+Opening the files in a Notepad document exposes the content of both files:
+
+Now, switch to kubectl to create a new Kubernetes secret from both files, using the following
+command syntax:
+
+kubectl create secret generic app-credentials \\ --from-file=admin.txt \\ --from-file=pw.txt
+
+Here, `app-credentials` is a name you can choose to identify the secret credentials.
+
+Notice the confirmation from kubectl, stating that the secret `app-credentials` was created
+successfully. You can also check which other secrets are available within your Kubernetes
+environment using this command:
+
+kubectl get secrets
+
+For more details on the different secret types within Kubernetes, view the
+[official documentation](https://kubernetes.io/docs/concepts/configuration/secret/#secret-types).
+`Opaque` is the most common type, while the `service-account-token` is for the Kubernetes services.
+This enables you to manage and administer the cluster from kubectl.
+
+Moving on, another way to validate your credentials is by using the `kubectl describe secrets`
+command:
+
+kubectl describe secrets app-credentials
+
+The next step is to create the Kubernetes secret using YAML, reusing the secret you created from
+within kubectl. This time, the secret credentials are mounted as a volume. Any application running
+inside your Pods can connect to the volume and use the credential information. This is similar to
+using the web.config or appsettings.json config files.
+
+From your favorite editor, create a Kubernetes YAML file containing the following information and
+settings:
+
+apiVersion: v1 kind: Pod metadata: name: appcredentials spec: containers:
+
+- name: appcredentials image: redis volumeMounts:
+  - name: app-credentials mountPath: “/etc/appcreds” readOnly: true volumes:
+- name: app-credentials secret: secretName: app-credentials
+
+Here, you define the creation of a new Pod using a Redis image — one of the smallest containers
+available. Next, you specify the `appcreds` volume and mount it as /etc/appcreds into the Ubuntu
+Pods.
+
+Note the `readOnly` parameter, which specifies that the volume is mounted in a read-only format.
+This prevents any changes to the volume — such as whether a user or process tries to overwrite the
+secret credentials.
+
+Also, ensure the `secretName` parameter refers to the secret's name as specified by kubectl. If this
+name doesn't match, you receive an error when starting the Pod.
+
+Now, use `kubectl apply` to create a new Pod from the above YAML file:
+
+kubectl apply -f appcreds.yaml
+
+Verify that your container/Pod is running as expected by executing `kubectl get` pods:
+
+From here, you can connect to the running Pod and its local file system, exposing the
+`secret-credentials VolumeMount`. To do this, run the following command:
+
+kubectl exec -it appcredentials -- /bin/bash
+
+This brings you to the Pod's file system.
+
+Now, browse to the /etc/appcreds folder and notice the two secret files:
+
+This confirms your Pod has access to the secret files. Now, any application running inside the Pod
+would only need a pointer to the etc/appcreds/admin or /pw file to access the contained secrets.
+
+## Create a secret using YAML
+
+You can also directly create a Kubernetes secret from a YAML file instead of using kubectl. This
+might better integrate with your DevOps CI/CD process and relies on source control practices to
+detect source code changes. However, while this process works well enough, it is crucial to note
+that you should try to integrate with a secret store scenario whenever possible — if your DevOps
+tool provides the option.
+
+For example declaring a secured password variable such as $SA_PASSWORD in GitLab, GitHub Actions and
+other DevOps solutions. The method mentioned here would be applicable if your DevOps tool doesn't
+allow for storing secrets, or if you run a Kubernetes deployment without CI/CD integration.
+
+To begin, create an appcreds.yaml file with the following sample contents.
+
+The secret YAML file has the following structure:
+
+apiVersion: v1 kind: Secret metadata: name: app-credsyaml type: Opaque data: password:
+Sup3rDup3rPa$$w.rd username: appadmin
+
+Now, try to integrate this secret file into your Kubernetes cluster by using the `kubectl apply`
+command:
+
+kubectl apply -f appcreds.yaml
+
+Note that this command fails. The error message explains that the secret strings must be encoded
+with Base64. Converting your cleartext strings looks slightly different on Windows than on Linux or
+macOS:
+
+On Linux, using `echo -n ‘Sup3rDup3rPa$$w.rd' | base64` returns the encrypted version of the string
+as `U3VwM3JEdXAzclBhJCR3LnJkIA0K`.
+
+On Windows, you can use the built-in `certutil -encode/decode` commands to reform the existing text
+strings in your admin.txt and pw.txt to Base64 encoding:
+
+\- certutil -encode admin.txt b64admin.txt
+
+- certutil -encode pw.txt b64pw.txt
+
+Checking the contents of both b64admin.txt and b64pw.txt exposes the encoded text string. Paste
+these strings into the YAML file, replacing the existing credentials:
+
+apiVersion: v1 kind: Secret metadata: name: app-credsyaml type: Opaque data: password:
+U3VwM3JEdXAzclBhJCR3LnJkIA0K username: YWRtaW4gDQo=
+
+Now, the `kubectl apply` command should succeed:
+
+kubectl apply -f appcredsyaml.yml
+
+From here, you could also apply the same secret using the `VolumeMount` option — like the process
+outlined in the kubectl example.
+
+## Edit a secret
+
+Sometimes, it might be necessary to update your application secrets — like when your credentials may
+be compromised. If you have a POD running for which later on you want to integrate secrets, in most
+cases, a POD restart is required.
+
+The easiest way to update your secrets is by using kubectl, including the edit `secrets` keywords
+and the name of your stored Kubernetes secret. Note, however, that just because you see the secret
+value here, it doesn't necessarily mean that the running POD is currently using this secret.
+Therefore, as mentioned earlier, restarting the POD will ensure that it always picks up the latest
+secret value:
+
+kubectl edit secrets appcreds-yaml
+
+This opens your default text editor and shows the secret YAML file's contents. On your Windows
+machine, using Visual Studio Code, it looks like this:
+
+## Use secrets from environment variables
+
+The previous scenarios both relied on using VolumeMount to present the secrets to a Pod. Another
+approach is to point to the secrets from environment variables in your Kubernetes YAML file.
+
+Most previous steps are the same for managing secrets from environment variables. This is because,
+in the environment variables, you refer to the secret name and the secret key names you used when
+defining them.
+
+Using the `apps-cred.yaml` secret file from earlier, the settings for this new Pod look as follows:
+
+apiVersion: v1 kind: Pod metadata: name: envvarsecret spec: containers:
+
+- name: envvarsecret image: redis env: - name: SECRET_USERNAME valueFrom: secretKeyRef: name:
+  app-credsyaml key: username - name: SECRET_PASSWORD valueFrom: secretKeyRef: name: app-credsyaml
+  key: password restartPolicy: Never
+
+The name parameter for `secretKeyRef` refers to the secret's name (`run kubectl get secrets` if you
+don't remember). The key refers to the settings for the secrets within the secret-config file.
+
+Now, run the `kubectl apply` process again for this Pod:
+
+kubectl apply -f appcredsenvvar.yml
+
+Finally, verify that the Pod is running successfully:
+
+kubectl get pods
+
+## Learn more about Kubernetes and secret management
+
+Applications continuously rely on secrets to interact with one another and establish connections to
+other applications' architecture. Moving any application to a Kubernetes environment does not change
+its reliance on secrets. It can therefore be extremely helpful to manage these secrets using the
+kubectl CLI or YAML configuration files. Fortunately, Kubernetes provides several mechanisms to
+store your secrets outside of your application source code.
+
+Managing secrets is just one of the many tasks you must undertake as a Kubernetes Operator or DevOps
+specialist. Solutions like [Architect](https://www.architect.io/) can help with your most pressing
+application platform delivery needs.
+
+Tightly integrating with your existing DevOps pipeline, Architect can provide blue/green deployments
+and secret integrations. Architect is also cloud-provider-independent, ensuring your DevOps teams
+can focus on application delivery from within Architect instead of worrying about how to manage it
+across different cloud environments.
+
+If you're interested in learning more about how Architect can help supplement your Kubernetes
+infrastructure [sign up](https://cloud.architect.io/signup) and get started for free.

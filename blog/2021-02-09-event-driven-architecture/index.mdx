@@ -1,0 +1,227 @@
+---
+title: What the heck is event-driven architecture?
+---
+
+Applications have quickly become complex webs of interconnected microservices. Failures in the API
+calls between microservices grow more common and far more dastardly - wreaking havoc throughout
+applications in unforeseen ways. Accidents and errors can happen even with the most brilliant
+engineers and most controlled environments in the world. Unfortunately, this means that outright
+elimination of API call failures is not an option. Instead, we have to prepare our applications for
+failure, and this is where event-driven architecture comes into play.
+
+{/* truncate */}
+
+If you've worked with or researched microservices in the last decade, chances are you've heard of
+and probably implemented event-driven architecture. The pattern has become extraordinarily popular
+amongst cloud-native and distributed teams in recent years as it solves some very real problems with
+fault tolerance, availability, and coupling of microservices. Instead of communicating directly with
+one another through API calls, services publish and subscribe to events. In doing so, both the
+publisher and subscriber can exist and perform their work regardless of the other's availability,
+thus achieving the fault tolerance needed for the application to support a growing number of users.
+
+This all sounds like a nice silver bullet on the surface, but what even is an event, and do you
+leverage event-driven design in an application? In this article, I'll discuss the different uses of
+events, the various technologies and practices that can broker events, and the risks involved with
+event-driven architecture. I'll even debunk a few myths about event-driven design to boot!
+
+## Types of events[](https://www.architect.io/blog/2021-02-09/event-driven-architecture#types-of-events)
+
+Events are used to communicate with other applications and services – it's that simple. There's a
+lot of thought that can go into which events you publish, who subscribes to them, and what contents
+go inside the event, but none of that matters when it comes to describing what an event is and what
+it can be used for. What matters is whether or not your event needs a response. Is your event just
+miscellaneous information that you're making available for other applications to do whatever they
+want with, or are you using your event to request additional information from a peer app or service?
+
+### Broadcast notifications[](https://www.architect.io/blog/2021-02-09/event-driven-architecture#broadcast-notifications)
+
+For those of you who still watch live TV, you're probably aware of the fact that others can tune
+into and out of the same channel as you at the same time, and they'll see the same content you do.
+In fact, the content doesn't change, no matter how many people tune in or out of the channel.
+Whether a hundred or a million people are watching, your favorite sportscaster is still going to be
+saying the same thing to everyone who tunes in.
+
+Broadcast application events work the same way as broadcast media – the event gets published by a
+single entity but can be received by unlimited subscribers. Since the publisher isn't expecting any
+kind of response from subscribers, they can continue their broadcast regardless of the number of
+viewers on the other end.
+
+![Broadcast event flow diagram](https://www.architect.io/wp-content/uploads/2021/02/broadcast-event.png 'broadcast notifications')
+
+Broadcast events play a critical role in distributed applications, especially for core services like
+identity management and payments services. These services use events to communicate with the rest of
+the application whenever actions are taken, or important state changes are made. A reporting service
+may want to forecast new financial projections whenever payments are processed, or a shipping
+service may wish to change delivery targets whenever a user updates their primary residence. The
+identity and payments services don't care what others do with the information, but they know that
+other services may want to tune in for updates to act on critical information for themselves.
+
+### Action/Response events[](https://www.architect.io/blog/2021-02-09/event-driven-architecture#actionresponse-events)
+
+Broadcast events are great when we don't care who the subscribers are or what they intend to do with
+the event information, but they don't help us make regular API calls more fault-tolerant, as
+described earlier. Many direct API calls not only know which service it is being made to, but the
+response from the service they are connecting to is of great importance. Maybe we need to check the
+identity service to make sure the user has 2FA enabled before they can wire money, or maybe we need
+to query the product catalog for the latest prices before adding an item to the shopping cart. These
+are pervasive and intuitive thoughts and workflows for developers and applications, but how would a
+developer go about instrumenting this flow using event-driven architecture?
+
+The answer lies
+with [Command Query Responsibility Segregation (CQRS)](https://martinfowler.com/bliki/CQRS.html) – a
+pattern involving the separation of workflows and data structures for reading and writing
+information respectively. Instead of relying on a single event, which is limited to sharing
+information from publisher to subscriber, developers would use two events to replicate their API
+calls using event-driven design: one for the upstream service to trigger an action and another for
+the downstream service to respond. As long as the downstream knows the name of the action event and
+the upstream knows the name of the response event, they can subscribe to each other to fulfill the
+bi-directional request.
+
+![Action response event illustration.](https://www.architect.io/wp-content/uploads/2021/02/action-response-event-1024x237.png 'action/response notifications')
+
+This action/response event style has become increasingly popular in recent years. It allows
+developers to replace API call flows with near-identical event-driven flows, but swapping to events
+outright comes with its own set of hurdles. With direct API calls, developers get to store
+application state in memory while they await a response from the downstream API. Events, on the
+other hand, require state to be stored and accessible in a more persistent manner. With events,
+there's no guarantee that the same instance that published the action event will receive the
+response event. As a result, event-driven architectures often demand more thought around session
+management and persistence to maintain state between action/response events.
+
+## Event-driven application brokers[](https://www.architect.io/blog/2021-02-09/event-driven-architecture#event-driven-application-brokers)
+
+We've talked a lot about how events make applications fault-tolerant since they don't have to wait
+for subscribers, but how does that functionally work? What magic is it that allows these events to
+“complete” even when the subscribers are down or otherwise unavailable? The answer is surprisingly
+simple – events get stored in a database.
+
+Yes, you really can store your events in just about anything that can persist the events. It's the
+fact that the events are persisted that enables fault-tolerance. If a subscriber isn't ready for the
+event just yet, either because it's busy handling another event or it crashed, the event remains in
+the database until the subscriber comes back up.
+
+This database could be something as raw as the filesystem, or you can dump them right into a MySQL
+or PostgreSQL database you already have available. That said, there is an abundance of database
+software explicitly designed to handle events. These database solutions are often referred to as
+brokers due to the way they mediate the relationship between event publishers and subscribers. There
+are several different brands and solutions you can select, but before you dive right into the brands
+themselves, you'll need to decide which brokering style is best for your application:
+
+### Queue-backed brokers[](https://www.architect.io/blog/2021-02-09/event-driven-architecture#queue-backed-brokers)
+
+If you've done any research into event-driven architecture, you've probably also heard of the word
+“message queue.” Message queues are one of the two ways that event brokers can store and enable
+subscription to published events. Publishers simply write their event to a queue, and a subscriber
+can pop the events off of said queue when it's ready to be processed. Action/response events are
+straightforward to operate and integrate with: events don't stay on the queue forever, which means
+that the database can remain generally small, and integration with it is relatively intuitive to
+developers who already understand the concept of a queue.
+
+The downside of queue-backed brokers, however, is that multiple subscribers can't consume messages.
+Once a subscriber claims a message from a queue, the message is gone and unable to be consumed by a
+different subscriber. This means that to distribute a notification to multiple subscribers, a
+publisher has to write the message to multiple queues – one for each subscriber.
+
+Fortunately, this isn't as difficult as it sounds with modern brokers. Some solutions,
+like [RabbitMQ](https://www.rabbitmq.com/), natively support the notion
+of [topics](https://www.rabbitmq.com/tutorials/tutorial-five-python.html) which allow you to publish
+once and have the broker handle the writing to multiple queues. Other solutions,
+like [AWS SQS](https://aws.amazon.com/sqs/), have sister services
+like [SNS](https://aws.amazon.com/sns/) that can connect to SQS to write to multiple queues as well.
+
+![Queue backed broker illustration.](https://www.architect.io/wp-content/uploads/2021/02/queue-backed-brokers-1024x331.png 'queue-backed brokers')
+
+### Event streams[](https://www.architect.io/blog/2021-02-09/event-driven-architecture#event-streams)
+
+The competitive methodology for storing and subscribing to events is through a persistent event
+stream, like that seen in [Apache Kafka](https://kafka.apache.org/). In this model, events are
+stored permanently in an ordered list and are never popped off like a queuing system. This means
+that multiple subscribers can read the same message. It also means that it's up to subscribers to
+keep track of which event was the last one they read in. Subscribers can join the stream at
+different times, reprocess historical events, and generally control their destiny. This can also
+place more responsibility on each subscriber, making it more difficult for developers to
+rationalize.
+
+![Event stream diagram.](https://www.architect.io/wp-content/uploads/2021/02/event-stream-1024x538.png 'event streams')
+
+## Myths about event-driven architecture[](https://www.architect.io/blog/2021-02-09/event-driven-architecture#myths-about-event-driven-architecture)
+
+Event-driven architecture is clearly a powerful way to protect distributed systems from inevitable
+failure. Still, there's a lot of misunderstanding about what an event is and what value it provides
+back to an application.
+
+### Event-driven architecture decouples microservices[](https://www.architect.io/blog/2021-02-09/event-driven-architecture#event-driven-architecture-decouples-microservices)
+
+Developers are readily taught that event-driven architecture “decouples” microservices from one
+another, allowing each service to run separately from each other without crashing. While it's true
+that these services can now run without crashing, is a subscriber of an event doing anything of
+substance if the publisher isn't running or isn't available?
+
+![Decoupling myth illustration.](https://www.architect.io/wp-content/uploads/2021/02/decoupling-myth-1024x230.png 'decoupling myth')
+
+Without the events being published, a subscribing service is generally left idling, burning compute
+power waiting for an event to come in. It may not crash, but it certainly isn't doing anything
+useful. Don't get me wrong, the fact that it's not crashing is enormously important for fault
+tolerance in production environments. However, the application architecture still has dependencies –
+subscribing services are still dependent on event publishers to do meaningful work and provide value
+back to end-users.
+
+It's essential to capture these events and relationships if teams are to better understand what
+their applications are doing. This understanding helps with tracing and debugging requests and
+allows for topology maps to be generated, analyzed, and used to educate developers on where and how
+to contribute new features effectively.
+
+### Events are asynchronous[](https://www.architect.io/blog/2021-02-09/event-driven-architecture#events-are-asynchronous)
+
+Another myth about events is that they are de facto asynchronous – publishers don't wait for
+subscribers and vice-versa and will begin processing if and when they eventually hear from each
+other. While this is true of the two types of *brokers* we outlined in this article, which are the
+two main types used in event-driven architectures, it is not the nature of an event that makes this
+true, but rather the fact that we are using databases to persist events and broker the
+relationships.
+
+The usage of a database to broker events is not a requirement. You've most certainly heard of an
+event type that does **not** use a database to broker
+events, [webhooks](https://sendgrid.com/blog/whats-webhook/). Webhooks involve subscribers
+registering themselves with event publishers directly, and events that the publisher ships out are
+done using direct, synchronous API calls. This is identical to a “broadcast” event like we described
+earlier but highlights that it's the database usage that provides fault tolerance rather than
+event-driven architecture itself.
+
+You could even intercept synchronous API calls and force the calls onto a message broker to get this
+same fault tolerance for direct API calls between microservices. Instrumentation of this
+is **wildly** impractical, which is why it's seldom done, but even its possibility further
+highlights that persistence is the secret sauce behind event-driven architecture.
+
+![Async myth illustration.](https://www.architect.io/wp-content/uploads/2021/02/async-myth-1024x181.png 'async myth')
+
+## Enabling event-driven architecture for your application[](https://www.architect.io/blog/2021-02-09/event-driven-architecture#enabling-event-driven-architecture-for-your-application)
+
+Event-driven architecture is powerful, but implementation leaves a lot to be desired – specifically
+when it comes to understanding the relationships between services whose communication is managed by
+a message broker or event stream. At Architect.io, we strive to make it as easy as possible for
+developers to incorporate best-in-breed architecture, like event streaming, into their everyday
+workflows. By automating service discovery and network security with each deployment, developers can
+more easily and more safely build event-driven design into their applications. Check out some of our
+other articles to learn more:
+
+- [A Developer's Guide to GitOps](https://www.architect.io/blog/gitops-developers-guide)
+- [Why distributed apps need dependency management](https://www.architect.io/blog/why-distributed-apps-need-dependency-management)
+- [Our product docs!](https://www.architect.io/docs/)
+
+Or [sign up](https://cloud.architect.io/signup) and try Architect yourself today!
+
+![](https://secure.gravatar.com/avatar/f4674b0abc8893e6538d9988a3f4be56?s=96&d=retro&r=g)
+
+[David Thor](https://www.architect.io/blog/author/david/)
+
+Architect.io Team
+
+- [Twitter](https://twitter.com/lindsay@architect.io)
+
+- [Open Container Initiative: A technical overview of its specifications and benefits](https://www.architect.io/blog/2023-03-14/open-container-initiative-guide/)
+- [The top 3 signs you need on-demand environments](https://www.architect.io/blog/2023-03-02/top-3-signs-on-demand-environments/)
+- [What is a staging environment?](https://www.architect.io/blog/2022-04-20/what-is-staging-environment/)
+- [What is a production environment?](https://www.architect.io/blog/2022-03-21/production-environment-at-different-sizes/)
+
+## Add your thoughts

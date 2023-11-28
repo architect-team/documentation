@@ -1,0 +1,199 @@
+---
+title: Five tips for successfully managing dependencies
+authors: tyler.aldrich
+---
+
+The era of the monolithic application is over, and it has been replaced by a distributed,
+microservice-oriented world. Modern applications and services are no longer independent; instead,
+they are highly _dependent_ on a host of external systems and code. Without these dependencies, the
+service or application will not run correctly, if it even runs at all.
+
+Unfortunately, managing these dependencies successfully is not as simple as just making sure that
+all your dependencies exist; it's a complex task that needs to consider not just what your system
+relies on but also what other systems rely on you. Additionally, it isn't isolated to just part of
+your team—successful management is critical for _all_ of your engineers. From developers to
+architects, the whole team needs to understand proper dependency management.
+
+In this blog post, we'll look at five tips for managing your dependencies so that your teams can
+implement changes safely and efficiently.
+
+{/* truncate */}
+
+Let's start with a look at the importance of dependency management.
+
+## Why is dependency management important?
+
+Let's consider for a moment what it takes to start up a typical authentication service. It likely
+depends on a database to store active and expired sessions, an API to create and read tokens, and a
+user service to verify user information. In a microservices architecture, services are kept small in
+order to manage individual service complexity; however, this separation of concerns increases the
+amount of integration necessary for a fully functional system.
+
+At a minimum, even so-called monolithic applications depend on a database for data persistence and
+perhaps other services for scheduling and running time-consuming jobs. Managing these dependencies
+involves time-consuming communication, which becomes difficult to scale as your organization grows.
+It may even be difficult to run this monolith locally without mocked or simulated dependencies, and
+this introduces the risk that you're not developing in an environment that sufficiently mirrors
+production.
+
+Lacking insight into these dependencies can slow down your organization. For example, your
+architecture team may not have the full picture of the dependencies of each service, making it hard
+for them to understand the ramifications of changes throughout the system. Alternatively, a
+development team may not fully understand how much other teams depend on their APIs.
+
+Additionally, organizations will find it challenging to quickly expand to new regions or cloud
+providers if they don't know what services need to be provisioned and in what order. Every service
+has relationships with others in your ecosystem, and a bird's-eye view of those relationships is
+often lacking.
+
+In an interconnected service architecture, dependency management is critical. Let's take a look at
+how this applies to different roles within your organization.
+
+## Which engineers need dependency management?
+
+The answer is that they all do. Every one of your engineers needs to take a proactive approach to
+managing dependencies; however, this approach will differ depending on the role.
+
+#### Software engineers
+
+New members of a software development team need to understand dependencies quickly so they can start
+contributing. Dependencies may be updated frequently, so documentation can quickly become outdated
+and is often only reviewed when new team members join. That said, new team members can often help
+the team become aware of documentation that needs updating.
+
+A developer should run the application locally with the same dependency versions that are running in
+production. Most applications won't run properly without their dependencies, and those that do are
+at risk for unexpected behavior. Developers need to know which version of a dependency their
+application depends on and how to access it.
+
+#### QA engineers
+
+Much of what was written above for software engineers applies also to QA engineers. QA engineers
+also need documentation to set up and run a service—either to test it manually or to perform
+automated testing. An additional consideration is that QA engineers need to know about dependencies
+so they can _mock_ them appropriately when writing tests.
+
+#### Site Reliability/DevOps engineers
+
+The SRE or DevOps engineer often wants to know if an application can gracefully restart or if it
+requires manual intervention to ensure services start-up in the proper order. While the individual
+services may be developed by different teams, SREs, and DevOps engineers need to know _how_ to start
+or restart these services in production environments with minimal downtime.
+
+#### Architects
+
+Architects need a way to discover dependencies in order to plan application restructuring for growth
+or stability. Knowledge of the coupling of services can help guide rebalancing and stability
+improvements.
+
+Now that we've gone through the importance of dependency management for your organization, let's
+look at five tips for successful dependency management.
+
+## Tip # 1: Implement semantic versioning
+
+Using [semantic versioning](https://semver.org/) to version your services communicates the impact of
+changes. The semantic versioning framework has three main version numbers:
+`<major>`.`<minor>`.`<patch>`. For APIs in particular, the minor and patch values may be less
+important because incrementing those fields does not indicate a breaking change. When the major
+version is incremented, a breaking change has been made to the API, and consumers of the API can use
+that information to more rigorously test their integration with the API before using the new
+version.
+
+If your service exposes REST APIs, then the root of the path could be where versions live, such as
+in /v2/api/users/. Signaling a breaking change by increasing the version allows your dependents to
+know a change has happened. Do not remove the lower version APIs at this time. Instead, let
+consumers know that the lower version is deprecated, and give them time to upgrade without outages.
+This is a low-cost solution that developers can implement and maintain. Many languages have
+libraries that provide easy management of the version number for a system or package.
+
+Maintaining a versioning schema is a simple, cost-effective way to communicate changes and can serve
+as a baseline for dependency management in your software project. Semantic versioning takes the
+guesswork out of “how and when should we version” and allows developers to solve problems.
+
+## Tip #2: Use contract testing
+
+Contract tests validate an API schema “handshake” between consumers and producers of an API.
+Contract tests are handy in that they can be run in CI pipelines and give fast feedback if API
+changes break the contract between consumers and producers of an API. An upside is the contracts can
+live in the respective code repositories and are visible to development teams. The downside is that
+these contracts must be kept updated and can drift from how the actual, existing API behaves.
+
+## Tip #3: Run synthetic tests
+
+Synthetic tests are API test frameworks typically run in the cloud to mimic critical user journeys
+throughout a microservice ecosystem. For example, let's say you want to ensure that a user can log
+in, browse a catalog, and purchase a product. You would write a synthetic test that would hit each
+service in this chain of events as if it was a real user in a browser, validating the responses
+after each request to ensure every service's API functions as expected. Synthetic tests often
+measure more than simple functionality; they can also yield important performance and correctness
+metrics.
+
+Synthetic tests can be written and maintained by Software and QA engineers, but there are a handful
+of platforms that offer low-code or code-free synthetic testing frameworks. Using a synthetic
+testing platform can save time, but does come with downsides. These tests require maintenance
+outside of the code base of each individual service, and that maintenance can be time-consuming if
+changes are not clearly communicated. It's not uncommon for synthetic test maintenance to be
+overlooked when making changes to service APIs. For synthetic tests to continue providing value,
+this maintenance must be ongoing.
+
+## Tip #4: Adopt compliance and standards management tools
+
+[OpsLevel](https://www.opslevel.com/) is a tool primarily concerned with ensuring a development
+organization is setting and following standards across the board. It can also build a service
+dependency map that can be used by developers, SREs, or architects, helping them to understand the
+interdependencies of services inside the company. The downside here is this map is curated manually,
+which can often leave it incomplete or drifting from reality.
+
+## Tip #5: Use Architect's dependency management platform
+
+[Architect](https://www.architect.io/) has a deployment management tool that makes dependency
+awareness a first-class citizen. Architect employs a declarative YAML syntax for setting up service
+deployments that have dependency checks and awareness built in.
+
+Here's an example of a service dependent on the authentication API:
+
+```yml
+dependencies:
+  authentication: 1.2.1
+
+services:
+  my-api:
+    interfaces:
+      http: 8080
+    environment:
+      AUTH_INTERNAL: ${{ dependencies.authentication.services.auth.interfaces.http.url }}
+      AUTH_EXTERNAL: ${{ dependencies.authentication.services.auth.interfaces.http.ingress.url }}
+```
+
+The name of the service is clearly defined along with the version of the API (in semantic version
+format, no less)! This is very similar to using a package manager for software libraries that
+developers, SREs, and architects will recognize.
+
+Architect provides additional functionality with respect to dependencies in their syntax,
+specifically allowing for different protocols, service-to-service authentication, and the usual
+host, port, and path values. All this adds up to make a system that is easy to configure, and one
+that injects a lot of smarts into your deployments organization-wide.
+
+With dependency management in Architect, all levels of your organization benefit. Your design
+architects can use this to plan and modify large sets of functionality composed of microservices.
+SREs and DevOps engineers gain insight into service dependencies. Developers know what services and
+versions their service depends on and importantly, what teams depend on _their_ APIs, along with
+what versions.
+
+A bonus for using Architect for service dependencies is that it facilitates the creation of a
+**service catalog** that can be used for service discovery. A service catalog allows developers to
+browse the set of services already developed in an organization, see their dependencies, and decide
+if they can use them for a project they are working on. This raises awareness of work throughout the
+organization, helping teams follow DRY principles by facilitating reuse instead of rebuilding.
+
+## Learn More
+
+There's a lot of good information here about managing dependencies, but if you'd like to learn more
+about microservices and the intricacies of dependency management, check out these other blog posts:
+
+- [5 Key benefits of a microservice architecture](/blog/2023/01/18/five-microservice-architecture-benefits/)
+- [The top 3 signs you need on-demand environments](/blog/2023/03/02/top-3-signs-on-demand-environments/)
+- [The CI/CD pipeline: A developer's guide](/blog/2022/10/24/cicd-pipeline-guide/)
+
+As always, please leave questions and comments below, and don't forget to follow us on
+[Twitter](https://twitter.com/architect_team)!

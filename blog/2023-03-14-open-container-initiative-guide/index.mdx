@@ -1,0 +1,106 @@
+---
+title: 'Open Container Initiative: A technical overview of its specifications and benefits'
+authors: david.thor
+---
+
+The [Open Container Initiative](https://opencontainers.org/) (OCI) is a project aimed at creating
+open standards for container technology. Containers, such as those provided by Docker, allow
+developers to package their applications into a single, portable unit, making it easy to deploy and
+run the application on any system that supports container technology.
+
+{/* truncate */}
+
+The OCI was formed in 2015 by a group of industry leaders, including Docker, Google, and Red Hat,
+with the goal of creating a set of standards for container technology that would be open and
+vendor-neutral. The initiative provides a framework for building and running portable containers,
+including specifications for container images, runtime, and configuration.
+
+The OCI has three main specifications: the Image Specification, the Distribution Specification, and
+the Runtime Specification. The Image spec defines the physical structure of a container, the
+Distribution spec defines the API protocol by which containers are sent and received, and the
+Runtime spec defines how a container can be run by a supported container platform. Together they
+provide a comprehensive framework for building, sharing, and running containers, and ensure the
+portability and interoperability of containerized applications across different platforms.
+
+## The Image Specification
+
+The OCI Image Specification is arguably the most important and definitely my favorite of the OCIs
+contributions. It defines the anatomy of an image itself and how the container's filesystem is to be
+constructed.
+
+It may seem like a mundane thing to spend time documenting so meticulously, but remember that
+containers have to encapsulate **everything** an application needs to run. If the application needs
+Node.js or Python, those have to be included in the image. If it has a dozen different libraries or
+packages it depends on, those have to be included as well. In order to ensure that containers don't
+take up enormous amounts of disk space, the Image spec includes a clever way of slicing filesystem
+snapshots into smaller, reusable portions called
+[layers](https://github.com/opencontainers/image-spec/blob/main/layer.md).
+
+The concept of a layer is pretty easy for developers to understand: it's a diff! A set of changes to
+the filesystem that need to be made when compared to the layer before it. By stacking these layers
+in a specific order, dictated by an
+[image manifest](https://github.com/opencontainers/image-spec/blob/main/manifest.md), the desired
+file system can be reconstructed from the smaller parts. For a single image the value may not be
+apparent, but this layering pays tons of dividends when dealing with multiple images that share
+common elements. Two images that both need Node.js for example would be able to share the layer(s)
+that install Node.js on the filesystem, thus saving a huge chunk of duplicate content from being
+stored. This is what makes it possible for developers to work with so many different images on a
+single machine at the same time.
+
+## The Distribution Specification
+
+The distribution spec is actually the most recent of the OCIs contributions to the container
+ecosystem and has been increasingly important as more and more businesses adopt containers for their
+cloud applications. This specification dictates the API protocol by which containers are sent and
+received, but where developers are most likely to be exposed to it is via container registries.
+
+Almost all public cloud providers, like AWS, GCP, Azure, and more, offer managed container
+registries in which developers can store their container artifacts and layers. All it takes from a
+developer's perspective is to run \`docker push\` or \`docker pull\` to store and retrieve images
+from each of these registries, but it's the OCIs distribution spec that ensures that these commands
+work across all the different vendors. Without it, developers would have to learn and adopt entirely
+new tools and commands to switch between vendors.
+
+## The Runtime Specification
+
+To round off the OCIs contributions, we have the Runtime spec. The Image spec helps developers store
+and reproduce a snapshot of their filesystem, the Distribution spec helps developers ship containers
+to registries and their favorite cloud platforms, but it's the Runtime spec that delivers the
+instructions to the platforms on what to do with the container and its filesystem once it's arrived.
+This includes details like what command to run on the image filesystem, how permissioning works
+between the container and the host OS, and even how the host platform should report back runtime
+status updates.
+
+By standardizing the way containers advertise runtime instructions, container images are able to run
+virtually anywhere without developers having to learn anything about the target platform. This
+standardization is what enables containers to run on Kubernetes, AWS ECS, Heroku, and even Docker
+Desktop, without changing anything about the image itself. This portability benefits both developers
+and the platform ecosystem by allowing cloud platforms to support more customers with a more stable
+experience.
+
+---
+
+In summary, the Open Container Initiative (OCI) is a project that aims to establish open standards
+for container technology. These standards ensure that containers built to the OCI specifications
+will run consistently across different environments and different vendors, thus ensuring the
+portability and interoperability of containerized applications across different platforms.
+Developers should be aware of the OCI specifications and their advantages, but the point of these
+standards is also to ensure that developers **don't** have to think or worry about the stability of
+their applications or VMs.
+
+That being said, the OCI is a community-driven initiative and the specifications require continuous
+investment and improvement to meet the latest technological advancements. Open standards that
+achieve such wide industry support are hard to come by, and developers should stay updated with the
+latest updates and consider participating in the OCI community if we hope to ensure that the
+container ecosystem remains open and prosperous.
+
+## Learn more about containers
+
+If you'd like to learn more about containers, check out these other posts from Architect!
+
+- [A developer's guide to containers](/blog/2022-10-27/containers-developers-guide/)
+- [Local development with PostgreSQL containers](/blog/2023-03-08/local-development-with-postgresql-containers/)
+- [Deploy a Django app with Kubernetes in 20 minutes](/blog/2022-08-04/deploy-python-django-kubernetes/)
+
+As always, feel free to leave your comments below, and don't forget to follow us on
+[Twitter](https://twitter.com/architect_team)!

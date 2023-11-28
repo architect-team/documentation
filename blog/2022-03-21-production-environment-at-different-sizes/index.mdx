@@ -1,0 +1,173 @@
+---
+title: What is a production environment?
+authors: david.thor
+---
+
+A lot of work goes into designing and developing cloud applications and services – from the
+applications or services themselves to the infrastructure that supports them. Despite the rigor
+involved in the software development lifecycle (SDLC), the final step is always the same:
+production.
+
+However, developers often conflate production-ready code with the production environment itself. **A
+production environment is traditionally seen as where new software, features, or other updates are
+made available to users. This is where the end-user experiences the application.**
+
+{/* truncate */}
+
+In reality, there's a lot that goes into the creation of production-ready code, and just as much
+goes into actually running it. In addition to the work crafting and testing the features, SREs,
+production engineers, and DevOps engineers are working tirelessly to build and rebuild the cloud
+infrastructure that will support the product and serve it to customers.
+
+It's the combination of the work of developers to write the application code and the work of SREs to
+serve it that creates the production environment - the true completion stage of the SDLC.
+
+Teams almost never have enough [SREs](https://www.enov8.com/blog/hiring-an-sre-team/) and DevOps
+engineers to go around, and this leaves them needing to take measures to balance the needs of the
+business with the resources they have available. They have to balance cloud spend and security risks
+while simultaneously enabling rapid feature deployment and satisfying the needs of customers, and at
+each stage of your business, the results of this trade-off are materially different.
+
+In this post, I want to walk you through those trade-offs, and how to make the right decisions for
+your production environment and organization.
+
+## Production environments at different stages
+
+Your production environment may be the main show, but not every show needs the same equipment or has
+the same audience size. Open mic night at the local pub only needs a microphone and happy hour
+pricing so that your friends will show up whereas a Broadway production needs a large auditorium,
+administrative staff to handle security and ticketing, costumes, choreography, and much more!
+
+Both are live, production-grade performances, but you wouldn't book a Broadway theater for your
+first show – not only would it be WAY too expensive, but it would be enormously time-consuming to
+plan and coordinate with all the different parties involved, you likely wouldn't get back value
+commensurate to the expenditure of resources.
+
+These trade-offs are identical to those made by startups when launching their product compared to
+enterprise companies. Enterprises have dozens of products and sometimes millions of customers, and
+startups are still looking for product-market-fit and their first few customers. With any luck, your
+startup will eventually be an enterprise business, but for now, it's not worth your time to book the
+Richard Rodgers Theatre.
+
+### Production environments for startups
+
+![Production environment for startups](https://www.architect.io/wp-content/uploads/2022/03/Production-environments-for-startups_v01-2-1024x656.jpg)
+
+To be clear, there's always the option to simply run your code on a single VM instance you get from
+your favorite cloud provider (e.g. an AWS EC2 instance or a DigitalOcean droplet). That will almost
+always be your easiest option as an indie dev. However, if you have ANY ambition of your project
+being used by an increasing number of users, there are a few things you should consider for even
+your earliest production environments to save you some pains you'll face almost immediately:
+
+- **Scaling**: At this stage you may not need to run more than one instance of your application, but
+  you should know how. You'd hate to get a burst of traffic and have no path to support it. All it
+  really takes is putting your application behind a load balancer and making sure that any in-memory
+  data, like session info, is stored in Redis instead. Then you can log in to your cloud provider at
+  any time and add a new instance to the load balancer.
+- **Ingress security**: Security is an area that will change at every stage of your company, but for
+  now it really just means enforcing SSL. You can easily configure your load balancer to handle SSL
+  for you, and most providers will even help you
+  [create your certificates](https://docs.digitalocean.com/products/networking/load-balancers/how-to/ssl-termination/).
+- **Static sites**: Had you asked me a few years ago, content delivery networks (CDNs) wouldn't be
+  on the radar at all for startup infrastructure. But there's been an explosion of tools for
+  building static websites, like Next.js, Nuxt, Gatsby, etc., that have made it easier and cheaper
+  than ever to build and run
+  [high-performance websites](https://requestmetrics.com/web-performance/measure-web-performance).
+  Pick your favorite and deploy to [Netlify](https://netlify.com/) or [Vercel](https://vercel.com/)
+  which both have very favorable free tiers.
+- **Managed database**: Last, but certainly not least, is your database. If there's one thing you
+  take away from this post, do not run your own database. Almost every cloud provider has a managed
+  database solution that is reasonably cost-effective even in the early days but WAY more flexible
+  when you inevitably need to scale it later. Databases are some of the hardest resources to change
+  as you grow, so don't take shortcuts.
+
+### Growth-stage production environments
+
+![Growth-stage production environments](https://www.architect.io/wp-content/uploads/2022/03/Growth-stage-production-environments_v01-1024x576.jpg)
+
+If your early efforts at building your product and acquiring customers were successful, you've
+likely found yourself with a much larger team and some new problems to solve!
+
+Now, you have too many developers to safely give out production environment credentials to everyone.
+You might also have burst usage of your product that demands more clever scaling. And if nothing
+else, your developers likely need to explore more complex architectural patterns. Here are a few
+things that are important to growth-stage companies for their production environments:
+
+- **Autoscaling**: Once you reach a modest amount of scale, chances are that you'll want to do some
+  basic cost management. To accomplish this, you'll need a stable way to package your application so
+  that new instances can spin up automatically. You'll also need a platform that can monitor compute
+  usage like CPU and memory and execute scaling rules. The best in class answer to all of this is
+  Docker and Kubernetes.
+- **Microservices**: As you scale up, your developers are likely to find reasons to separate the
+  product into multiple distinct applications. Perhaps because some features are being used
+  sparingly and separation can save costs, but more likely because the tech stack selected on day
+  zero isn't the best one for a new feature (e.g. your new data science team needs to use Python and
+  TensorFlow, but your original app is in Ruby on Rails). In any case, this influx of applications
+  means you'll need to consider how developers package and connect their applications together. Once
+  again, the best-in-class answer is Docker and Kubernetes!
+- **Pub/Sub**: If you've read anything about
+  [microservices](https://www.plutora.com/blog/microservices-architecture-an-engineers-complete-guide),
+  you've probably read that fault tolerance is a big problem. If your microservices are
+  communicating and one request fails does the caller need to retry? Do they need to bubble up the
+  error? What if too many requests crashed the service? This is where event sourcing or pub/sub gets
+  introduced. Instead of calling APIs directly, developers can publish messages to one another that
+  will get processed asynchronously. If one service is overloaded, it will simply respond more
+  slowly instead of throwing errors.
+- **Secret management**: When you and your buddy were the only ones building the product it was fine
+  for you both to have the production DB credentials. But now you have more than one database, a
+  handful of different applications, and dozens of developers. You'll need better practices in place
+  to protect application credentials while still ensuring that applications can use them to connect.
+  Go grab [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/) or
+  [Hashicorp Vault](https://www.vaultproject.io/), put the credentials in there, and configure the
+  applications to read from the secret manager instead of expecting them to be passed in directly.
+  _Note: If you're running on Kubernetes, I'd recommend using the
+  [External Secrets Operator](https://external-secrets.io/) to synchronize your secrets with your
+  cluster automatically._
+
+### Enterprise production environments
+
+![Enterprise production environments](https://www.architect.io/wp-content/uploads/2022/03/Enterprise-production-environments_v01-1024x678.jpg)
+
+Finally, you've hit the big time and have a thriving company with happy customers all over the
+world!
+
+Your business has never been bigger, but big business means big problems. Regulation demands you
+deploy to multiple vendors, maintain strict controls and logs, and your users all over the world
+have lofty expectations for application performance.
+
+- **Client-side load balancing**: As your application grows, load balancing needs scale linearly and
+  ultimately become a significant part of your cloud spend. To prevent this explosion of cost,
+  developers can use client-side load balancing and service discovery to enable each service to
+  access peer instances directly. Instead of a dedicated load balancer, each service knows how to do
+  load balancing without a proxy.
+- **Zero-trust security**: Enterprise companies have not one but many products hosted in the same
+  cloud environment. This means there are several points of entry into the cloud. A weakness in one
+  can expose the entire environment to problems. Strict network policies and credentialing between
+  services, even inside the cloud environment, is the next logical step of protection. Don't assume
+  you can trust any traffic without proper authentication.
+- **Multi-cloud**: Global businesses have to account for users and regulations all over the world.
+  Deploying your application to multiple regions or providers provides a better experience for users
+  and is legally required in many cases so that data is co-located with your users.
+
+## Build an environment that will scale
+
+Building and maintaining the infrastructure for a production-grade cloud environment isn't easy.
+Most companies constantly re-evaluate their choices of tools and providers to ensure they're
+balancing costs with security and ease of use.
+
+At the enterprise level, entire software teams are devoted to helping developers create, deploy, and
+manage new applications in the cloud – often referred to as “platform engineering”. These teams act
+as supportive engineers to enable product and engineering teams to rapidly create, deploy, and
+secure cloud applications.
+
+If you'd like to learn more about Architect.io, dependency management, and modern software
+deployment, please enjoy these resources from our blog:
+
+- [The importance of portability](https://www.architect.io/blog/2020-03-24/the-importance-of-portability/)
+- [How to create microservices with Nest.js](https://www.architect.io/blog/2020-09-08/creating-microservices-nestjs/)
+- [The basics of Kafka and Docker](https://www.architect.io/blog/2021-01-26/kafka-docker-tutorial/)
+- [A developer's guide to GitOps](https://www.architect.io/blog/2021-01-11/gitops-developers-guide/)
+- [Dependency management for distributed apps](https://www.architect.io/blog/2020-09-16/why-distributed-apps-need-dependency-management/)
+
+And as always, please follow us on [Twitter](https://twitter.com/architect_team) and
+[LinkedIn](https://www.linkedin.com/company/architect-io/) for the latest content and updates!

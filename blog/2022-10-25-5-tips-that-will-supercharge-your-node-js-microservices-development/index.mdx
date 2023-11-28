@@ -1,0 +1,86 @@
+---
+title: 5 tips that will supercharge your Node.js microservices development
+authors: lee.brandt
+---
+
+Many companies are moving from a single application code base to a microservices-based approach to
+software development. Getting started can be a daunting task and using some of the following tools
+can make that move a lot more manageable.
+
+{/* truncate */}
+
+## 1\. Manually test your Node.js APIs with Postman
+
+[Postman](https://www.postman.com/) has been around for quite a while and is an indispensable tool
+for manually testing APIs. You can create “collections” of API endpoints that make it easier to test
+APIs by saving and sharing) a collection, you don't have to remember what the endpoint is called or
+what parameters need to be passed to it. You can just pull up the endpoint, fill in the parameters,
+make the call, and inspect the results. This makes it an excellent tool for manually testing APIs
+
+## 2\. Build a Node.js API with NestJS
+
+[NestJS](https://nestjs.com/) is a server-side framework for building APIs with JavaScript or
+TypeScript. It's built on top of Express, which is arguably the most popular server-side framework
+for Node.js. But NestJS adds an ease of use that makes it ideal for creating complicated APIs
+without complicating the codebase. Even though NestJS is built with TypeScript, the team made sure
+to preserve the compatibility with pure JavaScript, so it works well with either.
+
+## 3\. Build Kubernetes clusters for your Node.js microservices
+
+[Kubernetes](https://kubernetes.io/) (often abbreviated as K8s) is a system for managing
+containerized applications. It manages the lifecycle, health, and load-balancing of those
+containers. This makes it perfect for deploying larger microservice-based applications. It arranges
+containers, called pods, and groups them into “clusters”. Being able to quickly add, remove, and
+replace containers in a cluster allows Kubernetes to easily scale up and scale down. Kubernetes is
+the most used container management tool and an essential tool for managing microservice
+applications.
+
+## 4\. Use Docker to containerize your Node.js microservices
+
+[Docker](https://www.docker.com/) is a container runtime that allows developers to create an entire
+portable application environment by packaging up the entire machine-like environment and making it
+easy to create, move, destroy, and duplicate that environment.
+
+Docker is one of the container runtimes that Kubernetes uses and is possibly the most popular.
+Docker has been in the container game since the beginning and allows developers to create images,
+that are blueprints for creating containers that they can then upload and share with their team, or
+even the world. There are also lots of premade images on Docker Hub, an image repository, or you can
+host your own image repository. In fact, on Docker Hub, there is an image that allows developers to
+containerize their image repository. That's some Inception-type stuff.
+
+## 5\. Always design automated tests
+
+Automated testing is one of the most useful tools in microservice development, really any kind of
+development. It allows developers to have a greater sense of confidence in the code they deploy,
+reducing the cost of fixing bugs by discovering them as early as possible. All this while having the
+added benefit of allowing developers to refactor with confidence, ensuring that code changes don't
+cause unforeseen bugs.
+
+While manually testing Node.js APIs is easy using Postman, automated testing in Node.js
+microservices is a bit murkier. There are unit tests, integration tests, E2E (end-to-end) testing,
+and the list goes on. For unit testing frameworks, I prefer something like
+[Mocha](https://mochajs.org/) and [Chai](https://www.chaijs.com/) for unit testing, and
+[Sinon](https://sinonjs.org/) or [Nock](https://github.com/nock/nock) for mocking functionality not
+being tested by the current unit test. E2E testing has its own set of tools, like
+[Cypress](https://www.cypress.io/) and [Jest](https://jestjs.io/).
+
+## Bonus: Try Architect to make deploying your Node.js microservices painless!
+
+Architect can make the deployment of microservice-based applications easier by using the Yet Another
+Markup Language (YAML) syntax to describe the entire microservices application. You can specify
+dependencies and packages needed for deployment and Architect can use that information to cleanly
+roll things back in case of deployment issues.
+
+Architect also allows developers to easily spin-up preview environments. In fact, if you attach your
+deployment to your Git code repository, Architect can create preview environments for every pull
+request, making it easier to check the changes before merging into the main branch.
+
+## Learn more about Node.js microservices and Architect!
+
+If you'd like to learn more about Microservices or Architect, check out these blog posts:
+
+- [How to manage secrets in Kubernetes](/blog/2022-08-18/how-to-manage-secrets-in-kubernetes/)
+- [Microservice orchestration or choreography: Which one do you need?](/blog/2022-06-30/microservices-orchestration-primer/)
+- [What is a staging environment?](/blog/2022-04-20/what-is-staging-environment/)
+
+As always, make sure to follow us on [Twitter](https://twitter.com/architect_team)!

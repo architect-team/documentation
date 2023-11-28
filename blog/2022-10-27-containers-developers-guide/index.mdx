@@ -1,0 +1,181 @@
+---
+title: "A developer's guide to containers"
+authors: lee.brandt
+---
+
+In recent years, containers have become an integral part of software development. A good grasp of
+containers and what they do is essential for most developers. If containers still make you feel
+like, “I _kinda_ know what containers are, but I'm still pretty fuzzy on what the big deal is,” this
+is the post for you.
+
+{/* truncate */}
+
+## What are containers?
+
+A container is a runtime environment for applications. Clear as mud? Cool.
+
+Seriously, a container is a virtual environment that carries with it an operating system, utilities
+(like Tomcat, Apache, Node.js, Ruby, etc), and even your application's code! It's packaged all up
+and runs in an environment specifically designed to run the container. Docker is possibly the most
+popular version of a container platform, but there are others (like Podman and Rkt).
+
+You create a container by telling the container runtime to build one based on an image. An image is
+just a container frozen in time. It is used to create new containers. For those coming from an
+object-oriented background, it might help to think of it like classes and objects: classes are
+blueprints for creating objects.
+
+## Aren't containers just lightweight virtual machines?
+
+The most common comment I hear from developers is: “Aren't containers just lightweight VMs?” It's
+easy to “visualize” containers this way, but there are some distinct differences that have led to
+the popularity of containers.
+
+**Containers are more portable.** Images (used to create containers) are meant to be moved around.
+They are meant to be uploaded to image registries and downloaded to create containers. While there
+are some really big container images (more than 10Gb!) most images tend to be around 300-600Mb. The
+size of your application is also a factor. Remember that your code is also part of the image.
+
+**Containers are less resource intensive.** I don't know about you, but I get decision anxiety when
+I create new VMs. I worry I won't give it enough RAM, disk space, or processors, and the application
+will crash. It also means that whatever RAM I give it, those resources are no longer usable by the
+host machine.  With containers, this isn't an issue. Containers run a bit like applications in that
+they use what resources they need. This means when nobody is using your application, your container
+releases almost all the resources it has been using back to the host machine. Just be aware this
+also means if there is a spike in traffic, the container will take as many resources as it needs. So
+you will need to put a cap on how much of the host machine's resources the container can use, to
+keep a big spike from crashing the host machine.
+
+## How do I run a container?
+
+Running a container will depend on which container runtime you choose. Docker is arguably the most
+used container runtime, so I'll use that as an example.
+
+When you first start up Docker, there will probably be no images on your host machine. You can check
+this by running:
+
+docker image list
+
+This will list the images you have downloaded onto your machine. If you have no images on your
+machine, you will only see the headers:
+
+REPOSITORY TAG IMAGE ID CREATED SIZE
+
+To get an image from Docker's image repository, Docker Hub, you run the following:
+
+```sh
+docker pull nginx:latest
+```
+
+This tells Docker to pull the `nginx` image tagged as `latest` from Docker Hub. You can omit the
+`:latest` if you want (Docker pulls the image tagged with `latest` by default). Running the
+`docker image list` command again will show:
+
+REPOSITORY TAG IMAGE ID CREATED SIZE nginx latest 0c404972e130 6 days ago 135MB
+
+The IMAGE ID, CREATED, and SIZE values may differ if the image has been updated on Docker Hub since
+the writing of this post, but you can see you have an image on your host machine, now.
+
+The IMAGE ID, CREATED, and SIZE values may differ if the image has been updated on Docker Hub since
+the writing of this post, but you can see you have an image on your host machine, now.
+
+To run a container from this image, run the command:
+
+```
+docker run -d nginx
+```
+
+This should spit out a nice long hash, like:
+
+```
+79536f1d25691ca679b3cafa9a38553610f4f804392a24747146cbb16473afa0
+```
+
+The container based on the Nginx image is now running. You can confirm by running:
+
+```
+docker container list
+```
+
+This will list only the running containers on your host machine, so your list should now look like
+this:
+
+```
+CONTAINER ID   IMAGE     COMMAND                    CREATED         STATUS         PORTS     NAMES
+79536f1d2569   nginx     "/docker-entrypoint.…"   4 minutes ago   Up 4 minutes   80/tcp   
+stupefied_shannon
+```
+
+The output will likely wrap, but you can see that the `CONTAINER ID` is the first part of that long
+hash, the `IMAGE` is `nginx`, and the `COMMAND` is a `/docker-entrypoint…` command. This is the main
+command the container runs. Usually, a container runs only one process, and that's the process that
+keeps the container running. If that command crashes, the container will stop. The rest is mainly
+ancillary information like when it was created, what its current status is, any ports the container
+may have open, and the name of the container. In this case, it's a made-up name (made from an
+adjective and a famous computer scientist's last name (these can get very funny).
+
+To stop the container, run:
+
+```
+docker stop stupefied_shannon
+```
+
+Here, I used the name of the container to stop it, but you could also use the container's ID. Not
+the whole big number, just enough of the digits to make it unique in the list of containers. So in
+this case, you could refer to the container as `7`, because no other containers in the list start
+with `7`. The first three or four digits are usually enough to make it unique.
+
+To ensure it's gone, run the container listing command with a `-a` switch; this lists all containers
+regardless of whether they are running.
+
+```
+docker container list -a
+```
+
+You can remove the image from your host with:
+
+```
+docker rmi nginx:latest
+```
+
+Running:
+
+```
+docker image list
+```
+
+Should now have you back to an empty list (assuming it was originally empty).
+
+## Why should I care about containers?
+
+This sounds interesting, huh? But what do you _do_ with it? Why would you want to use containers?
+
+**Lighter weight than VMs.** VMs are great for some things, but being easy to move is not one of
+them. The lighter weight of containers makes them easier to destroy and recreate.
+
+**Made for modern software architectures.** It also means that microservice applications can deliver
+each microservice in its own container, making it look and act more like it's on different machines.
+Using Docker Compose can even allow you to take action on the entire architecture with a single
+command!
+
+**No more, “It works on my machine.”** Every programmer has probably said this (I know I have). It
+happens when a bug shows up on staging or worse, production, that doesn't happen in the development
+environment. These can be tricky to debug and usually turn out to be some small utility that is
+installed on the dev machines, but not the staging or production machines. Since the container has
+all that it needs to run the application all bundled together, this isn't a common problem.
+
+**Easy scaling.** Spinning up new containers and load-balancing them is pretty easy. Using an
+orchestrator, like Kubernetes, can even make scaling (up and down) automatic.
+
+**Employability.** The tooling around containers gets better every day and more and more companies
+are taking advantage of containers in their tech stacks, so there's a good chance you will run into
+companies who need container expertise while job hunting.
+
+## Where can I learn more about containers?
+
+Check out the Architect.io blog for other great content about containers using Docker!
+
+- [Get started with Kafka and Docker in 20 minutes](/blog/2021/01/26/kafka-docker-tutorial/)
+- [Deploy your Django app with Docker](/blog/2021/01/14/deploy-your-django-app-with-docker/)
+- [The feature Docker forgot](/blog/2020/04/07/the-feature-docker-forgot/)
+
+As always, make sure to follow us on [Twitter](https://twitter.com/architect_team)!

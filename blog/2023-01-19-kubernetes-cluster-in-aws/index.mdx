@@ -1,0 +1,590 @@
+---
+title: 'How to create a Kubernetes cluster in AWS: A walkthrough'
+authors:
+  name: Eric Goebelbecker
+---
+
+A container orchestration platform makes it easier for developers to focus on their applications
+while the system manages scaling and redundancy. Since Kubernetes is the leading platform for
+deploying, scaling, and managing containerized applications, it's no surprise that all the major
+cloud infrastructure providers offer their own implementations.
+
+In this post, we'll look at deploying a Kubernetes cluster in AWS. We'll build an EKS cluster with a
+single node group, configure [kubectl](https://kubernetes.io/docs/reference/kubectl/kubectl/) to
+manage it, and deploy a simple application.
+
+{/* truncate */}
+
+## AWS and Kubernetes Prerequisites
+
+Before we start, let's make sure you have everything you'll need:
+
+1.  An AWS account: If you don't already have one,
+    [start here](https://portal.aws.amazon.com/billing/signup?nc2=h_ct&src=header_signup&redirect_url=https%3A%2F%2Faws.amazon.com%2Fregistration-confirmation#/start/email).
+2.  The AWS [CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html):
+    [Install](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) it and
+    [configure](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html) the
+    CLI with keys for your AWS account.
+3.  We'll be using [Terraform](https://developer.hashicorp.com/terraform) to build your cluster.
+    [Install](https://developer.hashicorp.com/terraform/downloads) it on the same system as the AWS
+    CLI.
+4.  Finally, we'll use [kubectl](https://kubernetes.io/docs/reference/kubectl/kubectl/) to test the
+    cluster after it's installed. AWS has
+    [installation procedures](https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html)
+    for all platforms.
+
+### **Why Terraform?**
+
+There are three different tools for building an EKS cluster:
+
+1.  AWS Management Console
+2.  [Eksctl](https://eksctl.io), in concert with the AWS CLI to create the rest of the required
+    cloud assets
+3.  Terraform
+
+Of the three, only Terraform is platform-independent. You can use it to build a Kubernetes cluster
+in any cloud provider.
+
+Terraform uses the AWS CLI to build the cluster, but it remains a platform-independent tool, so you
+can change your Kubernetes platform by changing Terraform configuration files instead of developing
+new scripts with platform-dependent hooks.
+
+You can also run it from scripts and via a CI/CD pipeline, making it an ideal choice for building
+test and staging systems. So while your configuration files will differ for each platform, your
+pipelines and processes look the same, regardless of where you deploy. Also, what Terraform creates,
+it can destroy.
+
+Even if you're not familiar with Terraform, this tutorial will be easy to follow.
+
+### **GitHub project**
+
+You can find the
+[configuration files and sample Kubernetes deployments](https://github.com/architect-community/aws_eks_terraform)
+for this tutorial in GitHub. Clone the project before proceeding.
+
+### **Terraform variables and versions**
+
+Best practice for a Terraform project is to use variables when possible. This project uses one for
+the AWS region, in the **variables.tf** file. Change the value to suit your situation.
+
+```hcl
+variable "region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-2"
+}
+```
+
+The project also uses Terraform's **main.tf** file to establish primary configuration values.
+
+Note that you may need to update this file before running Terraform. If your AWS permissions limit
+your availability zones to specific zones, you will need to update this line to include only the
+zones you can access.
+
+```hcl
+provider "kubernetes" {
+  host = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+}
+
+provider "aws" {
+  region = var.region
+}
+
+data "aws_availability_zones" "available" {}
+
+locals {
+  cluster_name = "architect-eks-${random_string.suffix.result}"
+}
+
+resource "random_string" "suffix" {
+  length = 8
+  special = false
+}
+```
+
+This file sets the cluster's host, certificate, and region. It also builds the name using a random
+string. This will be used in upcoming files as `$(local.cluster_name)`.
+
+Terraform relies on modules to interface with different infrastructure types. The **versions.tf**
+file declares the required versions. This deployment requires Terraform's AWS and random plugins.
+
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "~> 4.37.0"
+    }
+    random = {
+      source = "hashicorp/random"
+      version = "3.4.3"
+    }
+  }
+
+  required_version = "~> 1.3.0"
+}
+```
+
+### **Create a VPC**
+
+Rather than relying on an existing virtual private cloud (VPC), this project creates a new one for
+the cluster. It's described in the **vpc.tf** file.
+
+```hcl
+module "vpc" {
+  source = "terraform-aws-modules/vpc/aws"
+  version = "3.18.1"
+  name = "architect-vpc"
+  cidr = "10.0.0.0/16"
+  azs = slice(data.aws_availability_zones.available.names, 0, 3)
+
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  public_subnets = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
+
+  enable_nat_gateway = true
+  single_nat_gateway = true
+  enable_dns_hostnames = true
+
+  public_subnet_tags = {
+    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
+    "kubernetes.io/role/elb" = 1
+  }
+
+  private_subnet_tags = {
+    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
+    "kubernetes.io/role/internal-elb" = 1
+  }
+}
+```
+
+This file uses Terraform's VPC module to create the cloud, so the top of the file declares the
+module and version. Then it declares:
+
+- The VPC name is **architect-vpc**
+- A Classless Inter-Domain Routing (CIDR) block allocated with 10.0.0.0/16
+- All availability zones
+- Three private and public subnets
+- Network Address Translation (NAT) gateway
+- The VPC allows DNS hostnames
+- Two subnet tags for the Kubernetes cluster
+
+Most of these declarations are implementation details. What's important is that Terraform creates a
+new VPC for the cluster to reside in.
+
+### **Security groups**
+
+You need a security group for the node groups to allow secure shell (SSH) connections. The
+**security-groups.tf** file establishes the group.
+
+```hcl
+resource "aws_security_group" "node_group_one" {
+  name_prefix = "node_group_one"
+  vpc_id = module.vpc.vpc_id
+
+  ingress {
+    from_port = 22
+    to_port = 22 protocol = "tcp"
+
+    cidr_blocks = [
+      "10.0.0.0/8",
+    ]
+  }
+}
+```
+
+### **EKS cluster**
+
+Finally, there's the declaration for the EKS cluster in **eks-cluster.tf**.
+
+```hcl
+module "eks" {
+  source = "terraform-aws-modules/eks/aws"
+  version = "18.30.2"
+
+  cluster_name = local.cluster_name
+  cluster_version = "1.23"
+
+  vpc_id = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets
+
+  eks_managed_node_group_defaults = {
+    ami_type = "AL2_x86_64"
+
+    attach_cluster_primary_security_group = true
+
+    # Disabling and using externally provided security groups
+    create_security_group = false
+  }
+
+  eks_managed_node_groups = {
+    one = {
+      name = "node-group-1"
+
+      instance_types = ["t2.micro"]
+
+      min_size     = 1
+      max_size     = 2
+      desired_size = 2
+
+      pre_bootstrap_user_data = <<-EOT
+      echo 'forty-two'
+      EOT
+
+      vpc_security_group_ids = [
+        aws_security_group.node_group_one.id
+      ]
+    }
+  }
+}
+```
+
+This file:
+
+- Declares the EKS terraform module
+- Uses the cluster name from **main.tf**
+- Uses the VPC ID and subnet IDs generated by **vpc.tf**
+- Builds a single node group. It starts with two hosts, both using AWS **t2.micro** instances.
+
+That covers the cluster configuration. Let's build it!
+
+### **Initialize Terraform**
+
+Before we can use these configurations, we need to initialize the project. This tells terraform to
+scan the configuration and download the supporting modules. You initialize the project with
+**terraform init.**
+
+```sh
+eegoebelbecker@genosha aws_eks_terraform % terraform init Initializing modules... Downloading
+registry.terraform.io/terraform-aws-modules/eks/aws 18.30.2 for eks...
+
+- eks in .terraform/modules/eks
+- eks.eks_managed_node_group in .terraform/modules/eks/modules/eks-managed-node-group
+- eks.eks_managed_node_group.user_data in .terraform/modules/eks/modules/_user_data
+- eks.fargate_profile in .terraform/modules/eks/modules/fargate-profile Downloading
+  registry.terraform.io/terraform-aws-modules/kms/aws 1.0.2 for eks.kms...
+- eks.kms in .terraform/modules/eks.kms
+- eks.self_managed_node_group in .terraform/modules/eks/modules/self-managed-node-group
+- eks.self_managed_node_group.user_data in .terraform/modules/eks/modules/_user_data Downloading
+  registry.terraform.io/terraform-aws-modules/vpc/aws 3.18.1 for vpc...
+- vpc in .terraform/modules/vpc
+
+Initializing the backend...
+
+Initializing provider plugins...
+
+- Finding hashicorp/aws versions matching ">= 3.72.0, >= 3.73.0, ~> 4.37.0"...
+- Finding hashicorp/random versions matching "3.4.3"...
+- Finding hashicorp/kubernetes versions matching ">= 2.10.0"...
+- Finding hashicorp/tls versions matching ">= 3.0.0"...
+- Finding hashicorp/cloudinit versions matching ">= 2.0.0"...
+- Installing hashicorp/aws v4.37.0...
+- Installed hashicorp/aws v4.37.0 (signed by HashiCorp)
+- Installing hashicorp/random v3.4.3...
+- Installed hashicorp/random v3.4.3 (signed by HashiCorp)
+- Installing hashicorp/kubernetes v2.16.1...
+- Installed hashicorp/kubernetes v2.16.1 (signed by HashiCorp)
+- Installing hashicorp/tls v4.0.4...
+- Installed hashicorp/tls v4.0.4 (signed by HashiCorp)
+- Installing hashicorp/cloudinit v2.2.0...
+- Installed hashicorp/cloudinit v2.2.0 (signed by HashiCorp)
+
+Terraform has created a lock file .terraform.lock.hcl to record the provider selections it made
+above. Include this file in your version control repository so that Terraform can guarantee to make
+the same selections by default when you run "terraform init" in the future.
+
+Terraform has been successfully initialized!
+```
+
+You may now begin working with Terraform. Try running "terraform plan" to see any changes that are
+required for your infrastructure. All Terraform commands should now work.
+
+If you ever set or change modules or backend configuration for Terraform, rerun this command to
+reinitialize your working directory. If you forget, other commands will detect it and remind you to
+do so if necessary.
+
+### **Look before leaping**
+
+Terraform does more than simply build infrastructure. You can use it to build, update, verify, and
+destroy system assets. You can also use its results as variables in shell scripts, as we'll see
+below.
+
+Let's start by validating your configuration.
+
+Run **terraform validate** in your configuration directory.
+
+```sh
+egoebelbecker@genosha aws_eks_terraform % terraform validate Success! The configuration is valid.
+```
+
+If your change to the config files are valid, you'll see “Success!”
+
+Next, you can use **plan** to see the changes your configuration will make before committing
+them**.** This option generates a lot of output, so you'll want to either redirect it to a file, or
+pipe it through **less.** But Terraform defaults to outputting color formatting, so you'll want to
+switch it off with **-no-color.**
+
+```sh
+egoebelbecker@genosha aws_eks_terraform % terraform plan -no-color |less
+module.eks.module.kms.data.aws_caller_identity.current: Reading...
+module.eks.module.kms.data.aws_partition.current: Reading...
+module.eks.module.kms.data.aws_partition.current: Read complete after 0s [id=aws]
+module.eks.data.aws_default_tags.current: Reading... module.eks.data.aws_partition.current:
+Reading... data.aws_availability_zones.available: Reading...
+module.eks.data.aws_caller_identity.current: Reading... module.eks.data.aws_partition.current: Read
+complete after 0s [id=aws] module.eks.data.aws_default_tags.current: Read complete after 0s
+[id=aws] module.eks.data.aws_iam_policy_document.assume_role_policy[0]: Reading...
+module.eks.data.aws_iam_policy_document.assume_role_policy[0]: Read complete after 0s
+[id=2764486067] module.eks.module.eks_managed_node_group["one"].data.aws_partition.current:
+Reading... module.eks.module.eks_managed_node_group["one"].data.aws_caller_identity.current:
+Reading... module.eks.module.eks_managed_node_group["one"].data.aws_partition.current: Read
+complete after 0s [id=aws]
+module.eks.module.eks_managed_node_group["one"].module.user_data.data.cloudinit_config.linux_eks_managed_node_group[0]:
+Reading...
+module.eks.module.eks_managed_node_group["one"].module.user_data.data.cloudinit_config.linux_eks_managed_node_group[0]:
+Read complete after 0s [id=2748734616]
+module.eks.module.eks_managed_node_group["one"].data.aws_iam_policy_document.assume_role_policy[0]:
+Reading...
+module.eks.module.eks_managed_node_group["one"].data.aws_iam_policy_document.assume_role_policy[0]:
+Read complete after 0s [id=2560088296] data.aws_availability_zones.available: Read complete after
+0s [id=us-east-2] module.eks.data.aws_caller_identity.current: Read complete after 0s
+[id=304628117658] module.eks.module.kms.data.aws_caller_identity.current: Read complete after 0s
+[id=304628117658] :
+
+In between the messages about loading modules and reading configuration, Terraform tells you what it
+plans on doing.
+
+Terraform will perform the following actions:
+
+# aws_security_group.node_group_one will be created
+
+- resource "aws_security_group" "node_group_one" {
+  - arn = (known after apply)
+  - description = "Managed by Terraform"
+  - egress = (known after apply)
+  - id = (known after apply)
+  - ingress = [
+    - { + cidr_blocks = [ + "10.0.0.0/8", ] + description = "" + from_port = 22 + ipv6_cidr_blocks
+      = [] + prefix_list_ids = [] + protocol = "tcp" + security_groups = [] + self = false +
+      to_port = 22 }, ]
+  - name = (known after apply)
+  - name_prefix = "node_group_one"
+  - owner_id = (known after apply)
+  - revoke_rules_on_delete = false
+  - tags_all = (known after apply)
+  - vpc_id = (known after apply)
+}
+```
+
+These messages are useful in CI/CD pipelines that change configuration files on the fly.
+
+It will finish with this message:
+
+Note: You didn't use the -out option to save this plan, so Terraform can't guarantee to take exactly
+these actions if you run "terraform apply" now.
+
+You can ignore this. You can use “plan” to save deploys and rerun them. We're not using this
+feature.
+
+### **Build EKS cluster**
+
+Let's build the cluster with **terraform apply**.
+
+_After prompting you to confirm the changes with a_ **_yes,_** _the process takes at least ten
+minutes, often longer, as Terraform waits for AWS to respond to its requests to create cloud
+systems._
+
+```sh
+egoebelbecker@genosha-2 aws_eks_terraform % terraform apply
+module.eks.data.aws_caller_identity.current: Reading... module.eks.data.aws_partition.current:
+Reading... data.aws_availability_zones.available: Reading...
+module.eks.module.kms.data.aws_partition.current: Reading...
+module.eks.module.kms.data.aws_caller_identity.current: Reading...
+module.eks.data.aws_partition.current: Read complete after 0s [id=aws]
+module.eks.module.kms.data.aws_partition.current: Read complete after 0s [id=aws]
+
+(snip)
+
+Changes to Outputs:
+
+- cluster_endpoint = (known after apply)
+- cluster_id = (known after apply)
+- cluster_name = (known after apply)
+- cluster_security_group_id = (known after apply)
+- region = "us-east-2"
+
+Do you want to perform these actions? Terraform will perform the actions described above. Only 'yes'
+will be accepted to approve.
+
+Enter a value:
+```
+
+When the process completes, you'll see a message similar to this:
+
+```sh
+Apply complete! Resources: 49 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+cluster_endpoint = "https://3E799433F1A5521FF70C2A4B07E1CAC8.gr7.us-east-2.eks.amazonaws.com"
+cluster_id = "architect-eks-keG5s5SS" cluster_name = "architect-eks-keG5s5SS"
+cluster_security_group_id = "sg-0cb1489b115bebbbe" region = "us-east-2"
+```
+
+The outputs are defined in **outputs.tf**. Let's see how you can use them to configure kubectl.
+
+### **Configure kubectl**
+
+In order to configure kubectl for a Kubernetes cluster in AWS, you need the region and cluster name.
+Terraform's outputs provide these values. Use `**$(terraform output -raw {output name})`\*\* to
+elicit the value.
+
+```
+egoebelbecker@genosha aws_eks_terraform % aws eks --region $(terraform output -raw region) update-kubeconfig --name $(terraform output -raw cluster_name)
+Added new context arn:aws:eks:us-east-2:304628117658:cluster/architect-eks-keG5s5SS to /Users/egoebelbecker/.kube/config
+```
+
+Next, verify that kubectl can talk to your cluster with **cluster-info**.
+
+```
+egoebelbecker@genosha-2 aws_eks_terraform % kubectl cluster-info
+Kubernetes control plane is running at https://3E799433F1A5521FF70C2A4B07E1CAC8.gr7.us-east-2.eks.amazonaws.com
+CoreDNS is running at https://3E799433F1A5521FF70C2A4B07E1CAC8.gr7.us-east-2.eks.amazonaws.com/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+```
+
+You're up and running!
+
+## **Use your Kubernetes cluster in AWS**
+
+From here, using a Kubernetes cluster in AWS looks much like any other. You can start, stop, and
+monitor deployments using kubectl.
+
+The Git repository contains a sample NGINX deployment in the deployment directory.
+
+```yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-nginx-deployment
+  namespace: sample-app
+  labels:
+    app: sample-nginx
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sample-nginx
+  template:
+    metadata:
+      labels:
+        app: sample-nginx
+    spec:
+      containers:
+        - name: nginx
+          image: public.ecr.aws/nginx/nginx:latest
+          ports:
+            - name: http
+              containerPort: 80
+          imagePullPolicy: IfNotPresent
+```
+
+This will create a set of two NGINX pods, with a replica set.
+
+First, create a namespace for the sample application.
+
+```sh
+egoebelbecker@genosha aws_eks_terraform % kubectl create namespace sample-app namespace/sample-app
+created
+```
+
+Now apply the deployment.
+
+```sh
+egoebelbecker@genosha aws_eks_terraform % kubectl apply -f deployment/sample-app.yaml
+deployment.apps/sample-nginx-deployment created
+```
+
+Looks good so far. Let's see what's going on inside the cluster. Use **get all** with **-n
+sample-app** to tell kubectl that we're interested in the **sample-app** namespace.
+
+```
+egoebelbecker@genosha aws_eks_terraform % kubectl get all -n sample-app
+NAME                                          READY   STATUS    RESTARTS   AGE
+pod/sample-nginx-deployment-bbdc7bf95-2h7g6   1/1     Running   0          60s
+pod/sample-nginx-deployment-bbdc7bf95-4vwlw   1/1     Running   0          60s
+NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/sample-nginx-deployment   2/2     2            2           61s
+NAME                                                DESIRED   CURRENT   READY   AGE
+replicaset.apps/sample-nginx-deployment-bbdc7bf95   2         2         2       61s
+```
+
+There are the two pods and the replica!
+
+Now you can shell into a pod before you destroy the cluster.  
+Use one of the pod names from **get all**, omitting the **pod/** prefix.
+
+```
+egoebelbecker@genosha aws_eks_terraform % kubectl -n sample-app exec -it sample-nginx-deployment-bbdc7bf95-2h7g6 -- /bin/bash
+root@sample-nginx-deployment-bbdc7bf95-2h7g6:/# hostname
+sample-nginx-deployment-bbdc7bf95-2h7g6
+root@sample-nginx-deployment-bbdc7bf95-2h7g6:/#
+```
+
+Looks good. Let's clean up!
+
+### **Destroy your Kubernetes cluster in AWS**
+
+Terraform makes it easy to shut down and remove the cluster. Like **apply**, **destroy** will ask
+for confirmation and take at least a few minutes to execute.
+
+```sh
+egoebelbecker@genosha aws_eks_terraform % terraform destroy (snip) Changes to Outputs:
+
+- cluster_endpoint = "https://3E799433F1A5521FF70C2A4B07E1CAC8.gr7.us-east-2.eks.amazonaws.com" ->
+  null
+- cluster_id = "architect-eks-keG5s5SS" -> null
+- cluster_name = "architect-eks-keG5s5SS" -> null
+- cluster_security_group_id = "sg-0cb1489b115bebbbe" -> null
+- region = "us-east-2" -> null
+
+Do you really want to destroy all resources? Terraform will destroy all your managed infrastructure,
+as shown above. There is no undo. Only 'yes' will be accepted to confirm.
+
+Enter a value:
+```
+
+Confirm that you want to destroy the cluster, and Terraform will work for a while. Finally, you'll
+see your confirmation:
+
+```
+Destroy complete! Resources: 49 destroyed.
+```
+
+That's it! With this configuration, you can build and destroy a Kubernetes cluster in AWS in
+minutes.
+
+## **Build and use your Kubernetes cluster in AWS**
+
+We've used Terraform to build and destroy a Kubernetes cluster in AWS. Then, we used kubectl to
+inspect the cluster and deploy a simple application.
+
+Now that you're familiar with how to build a Kubernetes cluster and deploy applications to it, it's
+time to take the next step. See how [Architect](https://www.architect.io) makes managing Kubernetes
+applications even easier, with automated deployments and dependency management.
+
+## Learn More about Kubernetes
+
+If you'd like to learn more about Kubernetes, check out these other posts from Architect!
+
+- [How to manage secrets in Kubernetes](https://www.architect.io/blog/2022-08-18/how-to-manage-secrets-in-kubernetes/)
+- [Get started with the Terraform Kubernetes provider](https://www.architect.io/blog/2021-02-17/terraform-kubernetes-tutorial/)
+- [Deploy a Django app with Kubernetes in 20 minutes](https://www.architect.io/blog/2022-08-04/deploy-python-django-kubernetes/)
+
+As usual, if you have any comments or questions, feel free to leave a comment below or follow us on
+[Twitter](https://twitter.com/architect_team)!
+
+```
+
+```

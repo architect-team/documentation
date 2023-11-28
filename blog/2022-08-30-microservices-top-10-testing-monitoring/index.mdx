@@ -1,0 +1,281 @@
+---
+title: 'Microservice tools: The top 10 for monitoring and testing'
+---
+
+The demand for speed and agility in software production has driven most industries to transition
+from monolithic to microservice architecture. Developers now build applications into segments of
+smaller and more manageable pieces. Hence, adding new product lines, functionalities, and
+capabilities is easier, yielding accessible and scalable products. However, it's crucial to
+prioritize performance testing and monitoring for your microservice applications.
+
+{/* truncate */}
+
+In this blog post, we'll discuss how testing and monitoring work in a microservice architecture.
+Firstly, I'll show you what monitoring and testing is all about. Secondly, I'll lay out challenges
+for testing and monitoring your microservices. Finally, I'll highlight the top existing monitoring
+and testing tools, and how and why they're helpful for
+[microservices](/blog/2020/09/08/creating-microservices-nestjs/).
+
+![](https://lh5.googleusercontent.com/zpM02uekzEsppVwEOyVepH2CXNrop7gxd6Lw6a6ibbDkiBCSSZjLd5UJoXNcbF8NllR9kyRDdkMb8OWgDxAvhhfZRMPNf57ogGNocg7upkfDZ-5dVa26RKuyuHBuj4rTZPY83qxfUqCB_H_pgNglEw)
+
+## Introduction to monitoring in microservices
+
+Monitoring is simply a set of practices to understand your microservice environment's performance
+and allow you to troubleshoot problems. It helps to identify underlying errors and recognize the
+application's overall health. Because of the multiple independently divisible services within your
+microservice applications, it becomes tricky to pinpoint the exact cause of errors in the
+[production environment](https://www.architect.io/blog/2022-03-21/production-environment-at-different-sizes/)
+after an application has been launched.
+
+Monitoring your microservice architecture is critical to ensuring the health of your system. You can
+monitor and track the behavior of your microservices by using
+[defined metrics](https://www.enov8.com/blog/intelligence-top-5-container-metrics/) and logs to gain
+insight into a system's health. Therefore, you can obtain information on the performance of each
+service that makes up an application, understand whether API transactions are available and
+functioning correctly, identify and isolate transactions and endpoints that are problematic, and
+most importantly, enhance the end-user experience.
+
+Monitoring solutions give you the ability to collect logs and other data from your application,
+providing value in and of themselves. You may also add observability tools that perform algorithms
+on the data collected by these monitoring solutions and give you deeper insight into your system's
+performance. Observability provides information about the relationship between the various systems,
+whether they are cloud-based or on-premises, and between both internal systems and third-party
+applications by aggregating the logs collected from each independent system. Observability is only
+possible once monitoring is in place to collect the data on which the analysis is performed. This
+blog post focuses on the top monitoring tools available to collect this data.
+
+### Common challenges in monitoring microservices
+
+There are potentially numerous interdependent services that are developed using different
+programming languages in a microservice environment. This will eventually increase the number of
+individual components you must track. That is to say, runtime failures are likely to occur for
+countless reasons (container failures, microservices, etc.), across a broad set of disparate
+services, and recovery might be difficult.
+
+## Top five microservice monitoring tools
+
+Platforms and libraries are the two types of microservice monitoring solutions. Some systems may
+integrate the two, providing both a data collection platform and a library for instrumenting code.
+
+**Libraries:** In the process of developing an application, libraries are incorporated. Popular
+language frameworks, such as Java, .NET, Go, and others, possess libraries that handle logging and
+monitoring tasks.
+
+**Platforms:** Monitoring platforms focus on collecting and analyzing data retrieved from the
+applications, network platforms, and operating systems.
+
+Here are a few examples of microservice monitoring tools.
+
+![](https://lh4.googleusercontent.com/elmYIL9l4B0ZvmPjzOBGq_S6DkE4wjUFkkQoeDEkuakk2fKyVnobpfSJMKWZgchghDvaxrE9XsfvEtXItzN2ABDtbR5PmZC-mUAWWWWZgPaKhRLr6ggUJ_yszPo3Bemrw8P-OCCS_NLMh1bIS7b0Mw)
+
+### 1\. Jaeger
+
+[Jaeger](https://www.redhat.com/en/topics/microservices/what-is-jaeger) is an end-to-end distributed
+tracing tool designed to monitor and troubleshoot complex interactions in a microservice
+environment. You may use this monitoring tool to track the progress of a request or transaction as
+it moves across many services or through the monitored application.
+
+Instrumentation, data pipeline, back-end storage, and web UI/visualization are the four components
+that Jaeger uses to record and track transactions throughout a microservice architecture. Together,
+these components can capture transactions into spans and then correlate those
+[spans to form a trace](https://www.aspecto.io/blog/jaeger-tracing-the-ultimate-guide/). Jaeger is
+suitable for scaling as it supports the implementation of OpenTelemetry.
+
+### 2\. Graphite
+
+[Graphite](https://graphiteapp.org/) is an open-source, time-series data monitoring tool that tracks
+the performance of a system. It emphasizes collecting, storing, and displaying time-series data in
+real-time. Software professionals can use Graphite to display metrics and give deep insights into
+underlying system causes and how to troubleshoot them.
+
+Graphite has introduced a network-based strategy for how organizations can monitor time-series data
+by ingesting and handling metrics data coming from external systems. Therefore, it saves the need
+for protocols like SNMP.
+
+This tool offers a lot of integrations that are well supported, rendering many forms of graphical
+visualization. It also has a variety of useful utilities for working with time-series data. In
+addition, it possesses an integrated event tracker to monitor your system.
+
+Graphite consists of the following components:
+
+- Carbon: Listens to the time-series data
+- Whisper: A database library for storing time-series data
+- Graphite web app: A Django web app that uses the
+  [Cairo](<https://en.wikipedia.org/wiki/Cairo_(graphics)>) framework to render graphs on demand
+
+### 3\. Datadog
+
+[Datadog](https://www.datadoghq.com/product/log-management/) is a cloud monitoring, security, and
+analytics platform that provides a comprehensive solution for servers, databases, and cloud-based
+applications. It integrates and automates infrastructure monitoring by collecting and visualizing
+data and managing traces, logs, and metrics. By using Datadog to monitor microservices, you can
+study how the services interact and quickly identify potential issues and troubleshoot them. IT and
+DevOps teams can use this monitoring and analytics tool to gather real-time insight and track events
+in their infrastructure and cloud services.
+
+Datadog provides a whole lot of infrastructure monitoring and analysis capabilities. Some of these
+include the following features:
+
+- Provides real-time interactive dashboards to monitor traces, metrics, logs, and more automatically
+- Has support for over 450+ built-in
+  [integrations](https://www.datadoghq.com/product/platform/integrations/#all)
+- ​​Provides a unified view of your servers, apps, metrics, and other services
+- Uses security monitoring to highlight potential threats in your infrastructure
+- Serves as excellent APM (application performance monitoring), reduces wait times, and eliminates
+  errors
+
+### 4\. Prometheus (+ Grafana)
+
+[Prometheus](https://prometheus.io/) is an open-source tool created by SoundCloud to offer
+monitoring and alerting solutions. It stores and retrieves time-series data. Prometheus gathers
+metrics data from endpoints at predetermined intervals, analyzes rule expressions, and displays the
+results, and it can send alerts when particular conditions are fulfilled. It works effectively with
+multidimensional data using key-value labels in memory in cached files.
+
+[Grafana](https://grafana.com/) is an open-source observability tool used to build dashboards that
+visualize data provided by Prometheus (traces, metrics, and logs), InfluxDB, and other data sources.
+
+These tools are often paired together to offer a much more user-friendly view of your microservice
+metrics.
+
+### 5\. AWS CloudWatch
+
+[Amazon CloudWatch](https://aws.amazon.com/cloudwatch/) is both a monitoring and observability
+platform for Amazon Web Services that provides an overall understanding of your Amazon, hybrid, and
+on-premises applications. That is to say, it gives you access to all your performance and
+operational details. It helps cloud developers, DevOps engineers, IT managers, and site reliability
+engineers to use Amazon Web Services. Some features of AWS CloudWatch include the following:
+
+- It allows you to monitor your complete stack (i.e., applications, infrastructure, and services).
+- AWS CloudWatch collects and tracks the activities within your infrastructure.
+- It enables monitoring infrastructure resources like EC2 instances, RDS databases, VPCs, Lambda
+  functions, and other services.
+- CloudWatch gives you insight into your application performance and how to optimize it.
+- You can use it to generate automatic trigger alarms, logs, and event data and help reduce the mean
+  time to resolution.
+- It also analyzes trends and AWS resources as well as
+  [monitors application performance](https://requestmetrics.com/web-performance/measure-web-performance)
+  and operational health.
+
+## Introduction to microservice testing
+
+Multiple services are constantly in communication with each other in a robust microservice
+application. Because of the flexibility of these applications, team members can modify a service's
+features without altering the overall application performance. As the application grows more
+extensive, keeping track of each new feature becomes complex. For instance, say you have six team
+members working on different areas of your systems and subsystems, deploying new features daily.
+Since you're unaware of the changes implemented by other team members, tracking the combined
+functionality of numerous services can be tricky. Thus, testing individual microservices as well as
+the integration between microservices can help us eliminate these complexities by preventing a
+domino effect if an error is encountered in any particular system.
+
+### Common challenges in microservice testing
+
+It can be challenging to isolate the source of a problem because a single user's activity can set
+off a chain reaction within numerous microservices that communicate with one another. Some common
+errors that result from this include errors generated by a bug within the microservice source code,
+alteration in data distributed between microservices, and termination of an operation due to
+timeout. Furthermore, because automated testing is becoming more popular for microservices, test
+script and autotest authoring abilities are necessary.
+
+## Top five microservices testing tools
+
+![microservices tools testing strategy](https://lh6.googleusercontent.com/rmShjr_F5RODkn3lsS45LSNLdPKwZMb2eDAyJKO1dxHnEyMqL4dbv4gTKo0hdLTur7T4Ex0Uf_qDtDA272wZEMPswqLes6CJrgTB-FCQWtg5XXKRX-Uq40rYaLyDJ9uOFpxALYvfEZii96cGUrKXGA)
+
+### 1\. Postman
+
+[Postman](https://www.postman.com/) is a popular API testing tool for generating or using APIs. It
+uses a graphical user interface to test HTTP requests and get multiple responses, which are then
+verified. Postman eliminates the need to set up any frameworks with its user-friendly dashboard.
+This tool is commonly used among DevOps engineers and developers for application testing and to
+handle the continuous integration (CI) and continuous delivery or deployment (CD) pipeline.
+
+Postman is an excellent testing tool since it allows users to set up their required environment,
+write specs, automate processes, and monitor each step. This powerful testing tool can generate and
+validate several HTTP requests (POST, GET, PUT, PATCH). When integrated, it helps developers debug
+various tests and uncover bugs efficiently. In addition, Postman converts API to code in multiple
+languages like Python and JavaScript, making it easy to use.
+
+### 2\. Apache JMeter
+
+[Apache JMeter](https://jmeter.apache.org/) is a 100% Java application with a graphical interface
+that uses the Swing graphical API. That is to say, any environment that accepts a Java virtual
+machine can run this microservice testing tool (e.g., Windows, Linux, Mac, etc.). Performance,
+functional, and load testing are all done with this open-source tool.
+
+JMeter can analyze and measure application performance and strength under various load types. DevOps
+engineers, developers, and other testers can use JMeter for load, performance, spike, and unit
+testing. It supports multiple formats for text reporting (HTML, XML, and JSON). JMeter also supports
+different processes and protocols like FTP, JDBC, JMS, SOAP, HTTP, etc. It's popular among
+developers for its data analysis and visualization features. Similarly, JMeter takes care of web
+services, [functional testing](https://www.tricentis.com/learn/functional-testing), generic TCP
+connections, JDBC database connections, and OS-native processes.
+
+### 3\. Selenium
+
+[Selenium](https://www.perfecto.io/blog/selenium-latest-version-selenium-releases) is an open-source
+software that automates tests for web applications across different platforms and browsers. It
+enables you to create test scripts in various languages, including Java, Python, Ruby, and C#.
+DevOps engineers and testers use this tool to create high-performing web apps using simple test
+scripts to validate functionality.
+
+Selenium consists of different testing tools that individually cater to different needs. They
+include the following:
+
+- WebDriver
+- Grid
+- Selenium Integrated Development Environment (IDE)
+- Selenium Remote Control (RC)
+
+### 4\. K6
+
+[K6](https://k6.io/docs/) is an open-source framework designed to test the load and performance of
+cloud-native services. Its design allows engineering teams to carry out performance testing
+efficiently and productively. This tool tests and gives you real-time insight into your system
+performance. It identifies potential bugs or threats to the application's health. Using this tool,
+your team can create scalable applications that are durable and perform well.
+
+K6 can execute heavy load tests with low resource use. You can use K6 to regularly conduct tests
+with a small load to verify your production system's performance and availability. It possesses an
+extensible architecture and can be used to mimic traffic as part of your chaotic experiments, or you
+can use it to trigger traffic from your K6 tests.
+
+![](https://lh5.googleusercontent.com/IQ_XoVqnQwX7yf1buy2UA8pk-O_ioNT4cV9U5Zi4Ury3jweOv-oBQ11kGUfoXNrr9PdQjg06meBYjkw_4mrjRbIw25geZD0lX5CkAOkfkCdf7CWVtYNiBWVM2hFHJs9_zcl9krypkRgy3PqHRfipZQ)
+
+### 5\. Docker Compose
+
+[Docker Compose](https://docs.docker.com/compose/) is a tool responsible for running multiple
+containers as a single service. The containers within these services still interact, although the
+services run in isolation. Compose allows you to configure your application's services using a YAML
+file. With a single command, you can activate every service in your configuration. Compose operates
+in all contexts, including production, staging, development, testing, and continuous integration
+workflows.
+
+Compose simplifies the creation and deconstruction of isolated testing environments for your test
+suite in a test environment. However, you can create and destroy these environments with a singular
+command by specifying the entire environment in a Compose file.
+
+Here are some additional features of Docker Compose:
+
+- It helps with app security. Isolating containers from one another reduces the risk landscape.
+- It's a single host deployment, which entails running everything on a single piece of hardware.
+- Because it uses YAML scripts, the configuration is quick and straightforward.
+- Docker Compose enables high productivity because it shortens the time required to complete
+  activities.
+
+## Learn more about monitoring and testing
+
+This blog post introduced microservice monitoring and testing and explained why they're essential in
+achieving a robust system in a microservice environment. It highlights the top 10 microservices
+tools that handle monitoring and testing in a microservice approach.
+
+In conclusion, testing and monitoring are primary requirements for your microservice applications.
+Although several microservices tools today possess these capabilities, you can choose the one that
+meets the expectations for your architecture.
+
+_This post was written by Anita Ihuman._ [_Anita_](https://movi.hashnode.dev/) _is a software
+developer with experience working with React (Next.js, Gatsby) and in the web development industry.
+She has proficient skills in technical blogging and public speaking, and she enjoys exchanging
+information. She loves contributing to open-source projects. Anita is community manager at layer5
+and creates blog posts for the community blog and she's a content creator for the Gnome Africa
+Blog._

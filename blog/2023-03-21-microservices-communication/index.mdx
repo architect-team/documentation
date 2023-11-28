@@ -1,0 +1,169 @@
+---
+title: How does microservice communication work?
+---
+
+Microservices are an important architectural pattern that's gained widespread adoption because of
+their many benefits. By decoupling the different components of an application, they make it easy to
+scale up or down as needed, especially when combined with cloud architecture. Microservices are
+easier to upgrade and maintain since you can deploy each component independently. This makes
+microservices a design that helps companies save money while responding to customer requirements
+faster.
+
+Since microservices are a distributed architecture, they need to communicate with each other and
+with clients. The right protocols help you leverage the power behind this distributed architecture.
+The wrong ones will cause problems and negate their many benefits.
+
+{/* truncate */}
+
+Let's look at microservices communications and how to get it right.
+
+## **What are microservices?**
+
+Microservices have been around for a long time. They're often associated with the Agile software
+movement and with Continuous Integration/Continuous Delivery. This makes microservices both
+mainstream and difficult to define since they're wrapped into many different concepts.
+
+Let's look at a
+[definition from Martin Fowler](https://martinfowler.com/articles/microservices.html#footnote-etymology).
+
+_… the microservice architectural style is an approach to developing a single application as a suite
+of small services, each running in its own process and communicating with lightweight mechanisms,
+often an HTTP resource API. These services are built around business capabilities and are
+independently deployable by fully automated deployment machinery. There is a bare minimum of
+centralized management of these services, which may be written in different programming languages
+and use different data storage technologies._
+
+This paragraph packs in several important points about microservices:
+
+1.  They're organized around business capabilities.
+2.  Centralized management is diminished in favor of independent deployments and operations and even
+    independent programming languages.
+3.  They're usually associated with resource-oriented HTTP APIs. (Usually RESTful.)
+4.  But they're not tied to a specific technology.
+
+All these points have a direct impact on how microservices talk to each other. If they're organized
+by business units, that means different departments must be able to coordinate how the services
+communicate. If these groups are going to use different programming tools, they still need to stick
+to protocols that work with the tools that other groups are using.
+
+This is one of the reasons RESTful APIs are popular. You can find REST libraries for nearly any
+programming language.
+
+### **Who do microservices communicate with?**
+
+Depending on their individual purpose, microservices need to communicate with clients, each other,
+and infrastructure such as data stores.
+
+Many microservices are client-facing. This often means they use RESTful APIs to respond to client
+requests, but that's not a requirement. Microservices don't have to use REST, and using REST doesn't
+make your application a microservice.
+
+Microservices may need to speak to each other, too. Sometimes they use internal services to enrich
+responses before sending them to clients. In others, they publish the results of client transactions
+to a centralized messaging system for consumption by other services.
+
+Many microservices act as brokers or gateways to data stores, such as relational databases, document
+stores, file storage, or legacy services.
+
+## **Microservices communication**
+
+Synchronous and asynchronous are communication patterns used between two or more applications.
+
+### **Synchronous microservices communication**
+
+In microservices and network messaging, synchronous communication uses **blocking** and solicited
+semantics: one party makes a request and waits for the other to respond. These request/response
+message flows take place over a single connection.
+
+![Drawing 2023-02-13 00.19.35.excalidraw.png](https://lh3.googleusercontent.com/5GfEIa_l8U_0cQ58ARcrS2wtYbIBZ6rmRWxVTMUNlIGZ-Y_eUjyvP8Ry9mrIg_Pv8f4B4BNgpjqCA2m0uAf0xME4JMbPLv7ov49jcvmiUQYR4LPAy14DSt5MT7jk8sdWfQZM-5I-mPTQmwyriBUljQc)
+
+This pattern is common for web applications, where the browser connects to a server, requests a web
+page, and then makes new connections and issues new requests based on the contents of the page, like
+images, style sheets, and scripts linked in the page. Each resource is a new synchronous request.
+
+The synchronous pattern is common with RESTful APIs, which usually uses synchronous HTTP
+communications to GET, PUT, DELETE, and POST requests.
+
+### **Asynchronous microservices communication**
+
+Asynchronous communication uses **non-blocking** and unsolicited semantics. Clients and servers send
+messages and don't wait for responses. A single request can elicit multiple responses, and requests
+and responses are sent in any order.
+
+![Drawing 2023-02-13 00.46.58.excalidraw.png](https://lh6.googleusercontent.com/oQ2XsOTroBJXPv8cDOMfM9ocneEgH2garHMH6pahMp7YpNcJhzMF1M007HVPZjyAAIFTvZ8USNJP9klDJ04IsPQvniBWg9lshuEzIMJ9VcG6QkQbK7il_Ew4XMO9YpEiu6sgclaac4M38lDn9Fad1do)
+
+This pattern is common over messaging systems like AMQP, MQSeries, and JMS. Web browsers and other
+web apps may also implement asynchronous messaging over WebSockets.
+
+### **Communication with clients**
+
+While RESTful communications, or Representational State Transfer (REST), is used colloquially to
+describe a protocol for messages between clients and servers, it's actually an architecture for
+designing how applications communicate.
+
+REST is designed to be lightweight, synchronous, and stateless. When a client requests an object,
+they receive the current state. If they want updates, they make an additional request. If they want
+to update or alter the object, they send a new synchronous request. When applications use REST
+communications, they're constrained to messages and message contents that are designed in advance.
+
+REST is used widely across many web applications and has libraries and tooling for most popular
+programming languages.
+
+GraphQL is a query language that's designed to be more efficient and flexible than REST. It allows
+applications to create requests at runtime that filter for the entities and fields they need.
+
+GraphQL can also collapse requests for more than one service into a single namespace or graph. This
+allows clients to talk to a single endpoint and issue a single query for data that spans more than
+one service. It also differs from REST because it is a strongly typed query language.
+
+gRPC is a remote procedure call (RPC) framework developed by Google. It's based on the HTTP/2
+protocol and uses Protocol Buffers (`protobufs`) for its underlying data serialization format. So,
+clients and servers send and receive binary messages that deserialize into primitive types.
+
+The protocol facilitates high performance, low latency, and low network overhead communication
+between web and mobile clients and back-end services. You can use it for bidirectional data streams.
+gRPC supports many languages and works with both synchronous and asynchronous programming models.
+
+### **Communication with other services**
+
+Publish-Subscribe (pub/sub) messaging is a peer-to-peer messaging paradigm where applications
+connect to message brokers. Subscribers request messages based on topics or expressions that
+describe the messages they wish to receive. Publishers send messages to the broker, which delivers
+them to the appropriate subscribers.
+
+Engineers commonly use this type of messaging for communications between microservices and the
+services they need to perform their jobs. It's very effective for event-driven applications where
+one service needs to share something with several counterparts. The message payloads can use
+proprietary formats, JSON/YAML, or binary encoding like the `protobuf` format used by gRPC.
+
+gRPC is also useful for communication between server processes. This implementation differs from the
+one used between browsers and microservices, as it doesn't use HTTP and supports several programming
+languages.
+
+## **Learn more about microservices**
+
+We've looked at how microservices communicate. We discussed synchronous and asynchronous messaging,
+the two dominant messaging semantics, and then looked at the most common messaging protocols for
+exchanging messages between microservices and their clients. Then we saw how microservices commonly
+communicate with each other.
+
+Now that you've learned about how microservices communicate, see how you can build and test them:
+
+- [Microservice tools: The top 10 for monitoring and testing](https://www.architect.io/blog/2022-08-30/microservices-top-10-testing-monitoring/)
+- [5 key benefits of a microservice architecture](https://www.architect.io/blog/2023-01-18/five-microservice-architecture-benefits/)
+- [Microservice orchestration or choreography?](https://www.architect.io/blog/2022-06-30/microservices-orchestration-primer/)
+- [5 tips that will supercharge your Node.js microservices development](https://www.architect.io/blog/2022-10-25/5-tips-that-will-supercharge-your-node-js-microservices-development/)
+- [Deploying microservices with ease](https://www.architect.io/)
+
+As usual, feel free to leave a comment below or
+[follow us on Twitter](https://twitter.com/architect_team) for more awesome content!
+
+![](https://secure.gravatar.com/avatar/?s=96&d=retro&r=g)
+
+[Eric Goebelbecker](https://www.architect.io/blog/author/eric-goebelbecker)
+
+- [Manage networking with Docker Compose](https://www.architect.io/blog/2023-03-23/manage-networking-with-docker-compose/)
+- [How does microservice communication work?](https://www.architect.io/blog/2023-03-21/microservices-communication/)
+- [How to create a Kubernetes cluster in AWS: A walkthrough](https://www.architect.io/blog/2023-01-19/kubernetes-cluster-in-aws/)
+
+## Add your thoughts

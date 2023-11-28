@@ -1,0 +1,164 @@
+---
+title: 6 CI/CD best practices you need to know
+---
+
+Continuous Integration and Continuous Delivery/Continuous Deployment (CI/CD) pipelines are a must
+for any modern software development. _Continuous integration_ refers to having developers
+continuously merge changes to a shared main branch so that each
+[pull request](https://linearb.io/blog/what-is-a-pull-request/) contains a small, isolated change,
+making it easier to diagnose problems and allowing you to find problems faster rather than waiting
+and merging several disparate changes all at once.
+
+{/* truncate */}
+
+_Continuous delivery_ allows you to automatically merge successful pull requests into that shared
+main branch so that you are ready to deliver it to production at any time, but only after your
+configured quality checks are successful.
+
+These two steps alone add tremendous value to your development team, but CI/CD pipelines also allow
+you to perform _continuous deployment_ by pushing each pull request directly to production once
+these checks have successfully completed rather than batching your code changes and pushing to
+production on a release schedule. Without CI/CD, you'll quickly fall behind your competition. CI/CD
+not only helps deliver code faster but, when done well, also helps improve the overall quality and
+security of the software. But just like with anything, there are some do's and don'ts. A badly
+designed CI/CD pipeline can actually bring more harm than good. In this post, you'll learn about six
+CI/CD best practices.
+
+Before we dive into best practices, it's good to have a few things clarified. First of all, you'll
+need to have a good understanding of the actual point of
+[CI/CD](https://www.split.io/blog/continuous-integration-delivery-deployment/) . Sure, automation of
+the software delivery process and therefore faster time to market are the selling points of CI/CD,
+but at its core, CI/CD is helping to shape the DevOps culture in your company. This is crucial
+because having a good CI/CD pipeline means more than just speedy deployments. The most important
+features are collaboration and developer experience. With that in mind, let's talk about the best
+practices you should follow.
+
+## 1. Automated testing
+
+First—and arguably one of the most important—is automated testing. Many companies tried CI/CD and
+got bad impressions that, while CI/CD gives them speed, it also brings uncertainty and lots of buggy
+deployments. And they are not wrong. If you just try to automate the deployment, you'll have more
+bugs; it's as simple as that. In order to get the most out of CI/CD, you should include automated
+testing in your pipeline and only deploy changes to production once those automated tests pass.
+Don't treat your CI/CD as only deployment automation. CI/CD should be about your whole software
+development lifecycle, which means testing the code and preventing the deployment of buggy software.
+
+![](https://lh5.googleusercontent.com/HD-LcBmpXpKcDrUCZ_H9vFe_FpR86m9XlvLTyD5FUFTS6JfnB0gGqN6U7ew6pjayhqMPp5y2cBpHmLw1PX0dmRoFBLoDaMfXNjjqxUt1AflJv4fU54ZD5wrG4xfzf_UXT7B7jHdz4PJxu3GGUw)
+
+Moreover, testing shouldn't be just one checkbox to tick in the pipeline. In fact, you should test
+your deployment on a few stages during the CI/CD pipeline. Think of static code validation and
+security testing even before building the artifact, integration and smoke tests after building the
+artifact, and any additional testing that may be available for your specific needs. Ideally, your
+testing shouldn't stop after the deployment. That's where you should test again that everything
+works fine, with real traffic. And if not—let your CI/CD pipeline revert the deployment
+automatically.
+
+## 2. Rollback
+
+Speaking of reverting the deployment, that's something that's also often omitted when building CI/CD
+pipelines. Let me say that again—your CI/CD shouldn't mark the deployment as “finished” as soon as
+it's been deployed to production. If you can automate the deployment, why don't you automate the
+safety mechanisms that will revert the deployment in case something goes wrong?
+
+Let your CI/CD monitor your newly deployed application for a few minutes after the deployment and
+look for errors. If it spots any, just redeploy the previously-running version of the application.
+If you implement our first best practice and include many tests in your pipelines, then you
+shouldn't see many of these situations, but no tests are perfect, and there is always a chance that
+something won't work as expected. Without a revert mechanism in your CI/CD pipeline, your recovery
+time will take much longer because you'll probably have to manually trigger the pipeline again. And
+in some cases, you'll have to wait for all the stages to complete. You can avoid those unnecessary
+steps if you implement the ability to revert a deployment.
+
+## 3. Don't underestimate CI/CD security
+
+You may be surprised to hear it, but nowadays hackers are rarely trying to hack your actual
+application. They more often try to find misconfigured cloud resources or improperly secured CI/CD
+pipelines. This is because CI/CD pipelines are usually configured in such a way that they assume
+that whatever is deployed is secure. But there are two key things to keep in mind here.
+
+Firstly, it may be easier for an attacker to somehow force your CI/CD to deploy their malicious code
+than to hack into a live system. This can happen, for example, if you don't do any validation on
+your source repository because you assume it is secure by default, as in the case of private
+repositories.
+
+Secondly, sometimes the access to a CI/CD pipeline itself is poorly secured. This can happen if you
+focus so much on securing your actual application code that double-checking the security settings of
+your CI/CD is overlooked. You need to remember that your CI/CD holds the keys to your kingdom. It
+usually has very high permissions in order to manage infrastructure and applications. Therefore, if
+an attacker gets access to your CI/CD, they basically get unlimited possibilities.
+
+## 4. Don't build for each step
+
+A common mistake that seems logical at first is to build your software for every step of your CI/CD
+pipelines. In a typical pipeline, you'll have many different steps. A newbie's approach is to build
+a software artifact at the beginning of each step. In theory, it makes sense—you want to have a
+clean, fresh software package in each step. In practice, this often leads to weird behaviors and
+issues that are hard to understand. This is because there is always a possibility that artifacts
+built on one stage will be slightly different than on another stage.
+
+How is that possible? Imagine you are building a docker image in each step. Your docker image will
+be based on some base image. If you don't lock the version of that image (which is a bad practice
+too), then there is always a possibility that the base image gets updated in the meantime. The same
+applies to any software that you install in the container. Therefore, always build once and reuse
+the same artifact for the whole pipeline run. In fact, you should reuse the same artifact for all
+environments. So, don't build separately for
+[staging](/blog/2022/04/20/what-is-staging-environment/) and production.
+
+## 5. Make your CI/CD fast and easy
+
+The performance and ease of use of your CI/CD pipeline are really important. If your pipeline is
+slow or difficult to use, your developers will try to cut corners and bypass the pipeline whenever
+possible. Nothing is so frustrating as waiting 30+ minutes for your CI/CD pipeline to even start the
+build if you only want to test a small change. And the more developers try to bypass the pipeline,
+the more it's possible for errors and bugs will slip through. This will lead to less trust in the
+whole process and simply not gaining the benefits that you should. Therefore, make sure that your
+CI/CD server or service is as responsive and simple as possible.
+
+![](https://lh4.googleusercontent.com/2ISiRTnIeLeV3cneUq1vGsqeTwSgJ9vytDNpQgCjxLvDAmkvE2Ac5LQD4V4M0qKYsZDYTn0C5V84hNobLDPuM8_fwkvlQtobaWYgFkF6o97gWvs0tevYYcDjdzVJPHLx-rUbn91p8Ae4baW4YA)
+
+## 6. Provide the context
+
+Last but not least, remember that your CI/CD pipeline should be easy to read. Ideally, it should be
+easy to understand who triggered each build and why. Every build should be easily mapped to a
+specific feature or bug that is being worked on. Without any context, tags, or labels, your CI/CD
+pipeline will be just a bunch of software processes with little value for your manager/team lead. On
+the other hand, if your pipeline includes at least basic information about the builds, such as who
+triggered the pipeline (or whose code commit triggered the pipeline), the pipeline will serve as a
+“high-level overview” of the software delivery process.
+
+## TL;DR: CI/CD is more than just software delivery automation
+
+How you build a good CI/CD pipeline will depend on the software you want to build and your company
+specifics. In this post, however, we gave you a few general best practices that you can apply to any
+pipeline. Two main takeaways are that CI/CD is not only about software delivery automation—it should
+have a broader scope—and it shouldn't be accessible only to developers. Speaking of developers,
+don't forget that they are primary users of your pipelines, so you need to make sure that they like
+and want to use your CI/CD pipeline.
+
+If you are looking for a tool that will help you build good deployment pipelines, take a look at
+[Architect.io.](https://www.architect.io/product/application-delivery/) With features like
+intelligent pipelines, built-in dependency management, and push-button rollbacks, you'll have a
+pipeline with all good practices embedded.
+
+Want to learn more development best practices? Check out these other blog posts from
+[Architect](/blog/):
+
+- [What is GitOps?](/blog/2021/01/11/gitops-developers-guide/)
+- [What is a Staging Environment?](/blog/2022/04/20/what-is-staging-environment/)
+- [What is a Production Environment?](/blog/2022/03/21/production-environment-at-different-sizes/)
+
+_This post was written by Dawid Ziolkowski._ [_Dawid_](https://medium.com/@dawid.ziolkowski) _has 10
+years of experience as a Network/System Engineer at the beginning, DevOps in between, Cloud Native
+Engineer recently. He's worked for an IT outsourcing company, a research institute, telco, a hosting
+company, and a consultancy company, so he's gathered a lot of knowledge from different perspectives.
+Nowadays he's helping companies move to cloud and/or redesign their infrastructure for a more Cloud
+Native approach._
+
+![](https://secure.gravatar.com/avatar/?s=96&d=retro&r=g)
+
+[Dawid Ziolkowski](https://www.architect.io/blog/author/dawid-ziolkowski)
+
+- [Advantages of microservices: Why you should drop your monolith (or not!)](https://www.architect.io/blog/2023-03-16/microservices-advantages-and-disadvantages/)
+- [6 CI/CD best practices you need to know](https://www.architect.io/blog/2022-07-13/six-cicd-best-practices/)
+
+## Add your thoughts

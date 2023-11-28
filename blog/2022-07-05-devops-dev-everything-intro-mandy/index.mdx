@@ -1,0 +1,125 @@
+---
+title: DevOps? DevEverything! (Or why I joined Architect)
+authors: mandy.hubbard
+---
+
+There was a time when developers wrote code, QA engineers tested the code, Ops handled deployment
+and monitoring, and the concept of observability did not even exist. The DevOps movement intended to
+break down the silos between development and operations, but for many software companies, this was
+merely a rename of the Ops team to the DevOps team. Today, things are finally changing for real.
+
+{/* truncate */}
+
+## The challenges of evolution
+
+Moving from traditional software development to a modern engineering team can be shocking for a
+developer. In the code repositories of today's teams, you'll find not only code but tests in many
+flavors, Terraform scripts, Dockerfiles, cdk8s declarations, Helm charts, and more.
+
+The team's Kanban board includes tickets for writing the code to implement new features and tickets
+for creating unit tests, integration tests, and system-level tests for those new features. You'll
+find tickets for adding instrumentation for monitoring and observability tools to support the
+features, and tickets for creating or modifying infrastructure.
+
+Additionally, in many organizations, developers are on call to support these applications in
+production under the guise that they will produce better code with better monitoring if they are on
+the hook to support it. Developers are responsible for so much more than writing code these days.
+
+Not only are the responsibilities of the developer expanding, but the applications are becoming more
+complex and distributed as well. It is becoming more and more difficult for a developer to spin up
+an isolated piece of the application stack on their local machine and have it work in a meaningful
+way. While the move to microservices provides benefits to the application, especially in scalability
+and reliability, it adds even more friction to the developer's day-to-day life.
+
+I empathize with the developer who just wants to write the code.
+
+## Enter Architect
+
+I am looking for some help on
+[NestJS microservices](/blog/2020/09/08/creating-microservices-nestjs/) one day when I stumbled upon
+a blog post on the Architect website. The post is extremely helpful in answering my NestJS
+questions, and I naturally become intrigued by the company that published it.
+
+_They're a dependency-aware continuous delivery platform._
+
+This seems too good to be true. As a CI/CD aficionado and long-time QA engineer, I am skeptical. I
+decide to run through a sample application just for fun. Within minutes, I have a full-blown
+application with a React frontend, a Node.js REST API, and a Postgres database running in containers
+on my laptop! I'm sold.
+
+I am accustomed to configuring my local environment to use dependencies running in staging just to
+get the piece of the application I am developing to run. When I encounter a problem, I don't
+immediately know if there is a bug in my code or if I am working with an unstable version of one of
+the dependencies. With the Architect CLI, I can spin up these services locally, using tagged
+versions and a local database.
+
+You can do this, too! All you have to do is install the Architect CLI and run one of the
+[starter projects](https://github.com/architect-templates). The CLI has commands that make the steps
+easy, and [the documentation](https://docs.architect.io/) walks you through them. You do need Docker
+installed to run these steps, but what developer doesn't have Docker installed already?
+
+## Behind the curtain
+
+As much as I love automagical processes, I always want to see what levers are being pulled behind
+the curtain.
+
+It turns out that the levers are being pulled by an `architect.yml` file that looks very much like a
+Docker Compose file because it is a Docker Compose file and so much more.
+
+In the
+[React sample application](https://docs.architect.io/getting-started/introduction/#run-a-sample-component),
+the `architect.yml` file defines each discrete portion of the application stack as a service, and
+the entire stack is deployed as a single Architect Component.
+
+Each service in an Architect Component runs in a separate Docker container, and the database
+persists to a local volume so that you can seed it with meaningful test data and reuse it throughout
+the development process.
+
+The sample application demonstrates how to configure hot reloading of the components so that the
+running containers immediately reflect changes made in the local development environment. Most
+languages and frameworks have this capability, and the example app shows how to use a separate
+Dockerfile for development so that no unnecessary packages are included in the production version of
+your Docker image.
+
+## Beyond the local environment
+
+The sample application impresses me with the ease with which I am able to run it locally, but since
+the website advertises _A dependency-aware continuous delivery platform_, I eagerly press forward to
+see the continuous delivery in action.
+
+I create an
+[Architect account](https://auth.architect.io/u/signup?state=hKFo2SBqa2M0N21wTndJbTRVRGMxUGZoMl9lb2Q1cFlYc1NXb6Fur3VuaXZlcnNhbC1sb2dpbqN0aWTZIEFaeVhaV0psSHJwRFZNQ1M2bUlCMlZHRlBHcVBGU2hfo2NpZNkgbElwVzlmcTlJRlFCQmpUZ2xsaE42RUkwMVRYTWhSVm0)
+for free! After logging in through the CLI and registering the components of the example application
+in the Architect registry, I deploy the entire application stack with a single CLI command.
+
+I then log into Architect and watch the deployment status of each service until Architect deploys
+the entire application.
+
+## The preview environment
+
+Not only am I able to run the example application locally with little effort, but it is just as easy
+to provision a new preview environment on the Architect platform with a single CLI command. My QA
+brain nearly explodes with excitement! Oh the possibilities!
+
+![](https://media.giphy.com/media/msriR5ybSpQgo/giphy.gif)
+
+Mind blown!
+
+I envision integrating this functionality into CI/CD so that system and integration tests can be run
+against an Architect preview environment with every pull request. I can even share this environment
+with product managers and other stakeholders before my changes are even deployed to the
+[staging environment](/blog/2022/04/20/what-is-staging-environment/).
+
+It's no surprise to find information in the docs on how to
+[plug into Github Actions](https://docs.architect.io/deployments/gitops-releases/), and the
+instructions are clear enough that you can configure any CI/CD platform to work with Architect.
+
+## Architect is endgame
+
+After spending some time with the product, I am certain that Architect has created something special
+and wish I'd had these tools available on every development team I've ever been a part of.
+
+I believe in the platform so much that I joined Architect.io as a Senior Developer Advocate in April
+so that I can share this magic with the development community and ensure that the new features we
+are building help solve the most pressing problems faced by developers in today's complicated and
+ever-changing world of software development.

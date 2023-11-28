@@ -1,0 +1,148 @@
+---
+title: 'Advantages of microservices: Why you should drop your monolith (or not!)'
+---
+
+When it comes to modern software development and infrastructure, it seems like everyone is talking
+about microservices and Kubernetes. Does that mean microservices are the best? What are they anyway?
+And should you consider moving to a microservices architecture yourself?
+
+In this post, we will answer these questions by looking at the advantages of microservices.
+
+{/* truncate */}
+
+## Microservices architecture 101
+
+Let's start with what microservices are. Traditionally an application was built as one big piece.
+There was a single binary that you could start, restart, or stop. Sure, your application required
+other components to actually work, such as a database or maybe a caching tool, but these were
+external dependencies. The application itself was one piece.
+
+Microservices are the opposite, as suggested by the name. Instead of having your application exist
+as a single entity, you slice it into many smaller (micro) services. It's important to understand,
+however, that the slicing shouldn't be random. You'll want to extract logically coherent pieces of
+your application into their own “microservices.”
+
+Imagine, for example, that you're running a social media platform. Any social media platform
+application does a lot of different things. It handles user registrations and logins and publishing,
+editing, and removal of posts. It will probably need a recommendation engine, it likely handles
+private messages between users, and so on. With a traditional architecture, what we now call a
+“monolith,” you'd have all these different things packaged into one. With a microservices
+architecture, it's different. All these separate responsibilities can be grouped into logical pieces
+and packaged separately as microservices.
+
+What do we mean by “grouped into logical pieces”? Think about organizing features into “domains”. As
+we said before, the slicing shouldn't be random. You wouldn't make one microservice responsible for
+registering users and removing posts and another that's responsible for logging users and adding
+posts. That wouldn't be logical as those features don't belong to the same domain. Domain
+organization would mean that you should group anything related to managing users (registering,
+logging in, etc.) into one microservice and anything related to managing posts (publishing, editing,
+removing, etc.) into another microservice, and so on.
+
+OK, so you slice an application into microservices. Then what?
+
+First of all, it's not that simple to create a microservice. You can't just slice your application
+into pieces and call it a microservices architecture. Instead of just copying a piece of code from
+your monolith application, you first need to create a foundation for your microservice so it can
+behave like its own small application. Then you need to add some form of communication so it can
+exchange data with other microservices. Only then can you start porting pieces of your actual
+application code. In most cases, however, this porting will also require some redesign of the code
+so it can work as a microservice. You'll know when you've built an actual microservices architecture
+when you have to start each microservice separately in order to launch your application.
+
+Another way to validate if you succeeded is by looking at your tech stack. By now, you've probably
+heard about [Docker](https://www.docker.com/). It's a tool used for creating containers. So, one
+would think that if they have a docker container, they have microservices. But that's not really the
+case. Nothing is stopping you from putting your whole monolith application into a single Docker
+container. But that would have nothing to do with microservices. However, if you also use tools to
+orchestrate or group containers together–such as [Docker Compose](https://docs.docker.com/compose/)
+or [Kubernetes](https://kubernetes.io/)–then it probably means you can start talking about
+microservices.
+
+## Advantages of microservices
+
+Now you know what microservices are. Splitting your application into smaller pieces isn't difficult
+to understand. But now the question is, why would you want to? What's the point?
+
+There are a number of advantages of a microservices architecture. It didn't randomly become popular
+for no reason.
+
+### Smaller pieces = Easier to manage
+
+If your application is split into multiple small pieces, making changes is a lot easier. To add a
+new feature or fix a bug, you no longer need to rebuild and redeploy the whole thing. You only need
+to rebuild and redeploy one microservice, which, of course, will be only a fraction of the size of
+the whole application. Therefore, it's much easier and quicker, and it's less risky.
+
+Imagine that you only need to change the position of one button on your website. With a monolith
+application, you'd need to rebuild, retest, and redeploy a whole application. Depending on its size,
+the complexity of your tests, and the efficiency of your CI/CD processes, this process could take a
+few hours. A few hours for a simple button position change. Now imagine the same for an application
+built with microservices architecture. Yes, you still need to rebuild, retest, and redeploy, but you
+only need to do it for one small microservice.
+
+### Easier onboarding
+
+That's not all. Imagine that you onboard a new engineer. Before they can start bringing value,
+they'll first need to spend some time learning how your application works. Depending on its
+complexity, this can take anywhere from a few days in a very optimistic scenario to a few weeks if
+not months. If your application has millions of lines of code, even after a few months, your new
+engineer may be relatively comfortable with making small changes or fixing simple bugs, but they'll
+probably need much more time before they can tackle bigger changes or improvements without the help
+of those who have already been with your company for many years.
+
+Now imagine that instead of needing to be familiar with millions of lines of code, your new engineer
+can start with one microservice. Everything becomes so much easier. It will take much less time to
+have a solid understanding of how that specific microservice works. And once an engineer has a good
+understanding of something, they'll start seeing ways to improve it.
+
+### Flexibility
+
+Another advantage of microservices is that you aren't forced to use the same programming language
+and framework for the entire application. Each microservice is a small de facto application of its
+own. Therefore, nothing will stop you from writing each microservice in a different programming
+language.
+
+You probably wouldn't actually do that, but that flexibility comes with two big advantages. First,
+you can use different programming languages for different purposes. For example, if your application
+is written in Java but you want to add some machine-learning capabilities, it's best to use Python.
+With microservices, that's no problem at all. Second, hiring engineers becomes much easier. If
+you're struggling to hire people who know your application's language, you can simply hire engineers
+who know a more common language and create new microservices in that language.
+
+## Disadvantages of microservices
+
+While all this sounds great, there are a few disadvantages. Not many, but some. The main
+disadvantage is network complexity. Since microservices are small applications in their own right,
+they need to communicate with other microservices so they can behave together like one application.
+Therefore, every microservice needs to have an API or another communication mechanism built in.
+
+Another disadvantage is the fact that you'll need an orchestration tool to manage all the various
+microservices. This isn't necessarily a disadvantage per se. But you will need more engineers (or
+money if you opt for a managed solution) to implement and maintain a container orchestration tool
+plus some infrastructure automation around it that you'll need to maintain periodically.
+
+Finally, while microservices make it easier for engineers to understand and focus on specific parts
+of the application, they make it harder to manage the whole – especially when it comes to project
+management. And the bigger the application, the more microservices it will contain. Having a good
+high-level overview of an application that consists of dozens of microservices can be challenging.
+
+## So, are microservices perfect?
+
+No. There are no perfect solutions. There are some disadvantages, and there will likely never be a
+“one-size-fits-all” architecture. For some applications, microservices may be almost perfect, but
+there are some for which microservices may make less sense than a traditional monolith architecture.
+We can safely say, however, that in most cases, microservices bring many more advantages than
+disadvantages. With microservices, your time-to-market decreases, and the overall quality of your
+code increases. Basically, your development efficiency improves.
+
+## Learn more about microservices
+
+If you want to learn more about microservices or other aspects of modern software development
+solutions, check out these relevant posts:
+
+- [A developer's guide to containers](/blog/2022/10/27/containers-developers-guide/)
+- [How to create a Kubernetes cluster in AWS: A walkthrough](/blog/2023/01/19/kubernetes-cluster-in-aws/)
+- [Microservice tools: The top 10 for monitoring and testing](/blog/2022/08/30/microservices-top-10-testing-monitoring/)
+
+As always feel free to leave comments and questions below, and don't forget to
+[follow us on Twitter](https://twitter.com/architect_team)!

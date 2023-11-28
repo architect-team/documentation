@@ -1,0 +1,589 @@
+---
+title: Create and manage an AWS ECS cluster with Terraform
+authors: ryan.cahill
+---
+
+AWS ECS with Fargate is a serverless computing platform that makes running containerized services on
+AWS easier than ever before. Before Fargate, users who would like to deploy services to an AWS ECS
+cluster would need to manage one or many EC2 instances of similar or varying sizes and figure out
+how to scale them as necessary. With Fargate, a user simply defines the compute resources such as
+CPU and memory that a service will need to run, and Fargate will manage where to run the container
+behind the scenes. There is no point where setting up an EC2 instance is required.
+
+{/* truncate */}
+
+Terraform is an infrastructure-as-code tool created by Hashicorp to make handling infrastructure
+more straightforward and manageable. Terraform files use a declarative syntax where the user
+specifies resources and their properties such as pods, deployments, services, and ingresses. Users
+then leverage the Terraform CLI to preview and apply expected infrastructure. When changes are
+desired, a user simply updates and reapplies the same file or set of files; then, Terraform handles
+resource creation, updates, and deletion as required.
+
+By following this tutorial, you'll learn how to define AWS resources using Terraform and how
+resource definitions translate to actual resources created on AWS. When everything is up and
+running, you'll have your own scalable “Hello World” service running on the cloud!
+
+## Project dependencies for Terraform and AWS Fargate[](https://www.architect.io/blog/2021-03-30/terraform-aws-ecs#project-dependencies-for-terraform-and-aws-fargate)
+
+You'll be using [Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli) to deploy
+all of the required resources to the ECS cluster. Be sure to have signed up for an AWS account. The
+AWS Terraform provider will require credentials to access your account programmatically, so generate
+them according to
+[these docs](https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html#access-keys-and-secret-access-keys)
+if you haven't already. If your user doesn't have any policies attached yet, feel free to add the
+policy below. This policy should allow access to all AWS resources so that you don't need to worry
+about those for this tutorial.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["*"],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+You can optionally install the
+[AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) if you'd like to gain
+more insight into the Terraform deployment without heading to the AWS Dashboard.
+
+## Define AWS ECS resources with Terraform[](https://www.architect.io/blog/2021-03-30/terraform-aws-ecs#define-aws-ecs-resources-with-terraform)
+
+Terraform requires that the user uses its special language called HCL, which stands for Hashicorp
+Configuration Language. Create a folder called terraform-example where the HCL files will live, then
+change directories to that folder. Terraform providers will need to be defined and installed to use
+certain types of resources. This tutorial will use only the
+[AWS provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs). Providers are
+easily downloaded and installed with a few lines of HCL and a single command. Create a file called
+`versions.tf` where providers will be defined and add the following code:
+
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.0"
+    }
+  }
+}
+provider "aws" {
+  region = "us-east-2"
+  access_key = "<your_aws_access_key>"
+  secret_key = "<your_aws_secret_key>"
+
+  default_tags {
+    tags = {
+      Name = "architect-demo"
+    }
+  }
+}
+```
+
+Be sure to replace `<your_aws_access_key>` and `<your_aws_secret_key>` with the keys for your
+account. Now that the required provider is defined, it can be installed by running the command
+`terraform init`. Ensure that the command is run in the same folder that `versions.tf` is in. The
+command should print something like what's below, which lets you know that Terraform is ready to
+begin creating AWS resources:
+
+```sh
+Initializing the backend...
+
+Initializing provider plugins...
+- Finding hashicorp/aws versions matching "~> 4.0"...
+- Installing hashicorp/aws v4.37.0...
+- Installed hashicorp/aws v4.37.0 (signed by HashiCorp)
+
+Terraform has made some changes to the provider dependency selections recorded
+in the .terraform.lock.hcl file. Review those changes and commit them to your
+version control system if they represent changes you intended to make.
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+```
+
+Note that a folder has been created alongside `versions.tf` called .terraform. This folder is where
+the installed providers are stored to be used for later Terraform processes. Now that the
+prerequisites to run Terraform are out of the way, the AWS resource definitions can be created. Add
+a file alongside `versions.tf` called `variables.tf`. This file will contain the definition for a
+single variable that will be passed in on the command line later when resources will be scaled. Add
+the following to `variables.tf`:
+
+```hcl
+variable "app_count" {
+  type = number
+  default = 1
+}
+```
+
+Save and close the file. Create another file called `main.tf` in the same directory as
+`variables.tf` where the resource definitions for the AWS resources will live. Start by adding a
+data block for AWS availability zones like so:
+
+```hcl
+data "aws_availability_zones" "available_zones" {
+  state = "available"
+}
+```
+
+This block will grab availability zones that are available to your account. These will be used for
+other resource definitions, and to keep a small footprint for this tutorial, only two availability
+zones will be used. It's best practice to use multiple availability zones when deploying tasks to an
+AWS ECS [Fargate](https://www.cloudthread.io/blog/aws-fargate-pricing-a-primer) cluster because
+Fargate will ensure high availability by spreading tasks of the same type as evenly as possible
+between availability zones. Next, add the resource definition to `main.tf` with this code:
+
+```hcl
+resource "aws_vpc" "default" {
+  cidr_block = "10.32.0.0/16"
+}
+```
+
+Resources that will be created will be defined inside of the VPC. An AWS VPC provides logical
+isolation of resources from one another. All of the resources that will be defined will live within
+the same VPC. Four subnets will be created next. Two will be public and the other two will be
+private, where each availability zone will have one of each. Add the subnet resource definitions to
+`main.tf`:
+
+```hcl
+resource "aws_subnet" "public" {
+  count                   = 2
+  cidr_block              = cidrsubnet(aws_vpc.default.cidr_block, 8, 2 + count.index)
+  availability_zone       = data.aws_availability_zones.available_zones.names[count.index]
+  vpc_id                  = aws_vpc.default.id
+  map_public_ip_on_launch = true
+}
+
+resource "aws_subnet" "private" {
+  count             = 2
+  cidr_block        = cidrsubnet(aws_vpc.default.cidr_block, 8, count.index)
+  availability_zone = data.aws_availability_zones.available_zones.names[count.index]
+  vpc_id            = aws_vpc.default.id
+}
+```
+
+Things that should be public-facing, such as a load balancer, will be added to the public subnet.
+Other things that don't need to communicate with the internet directly, such as a Hello World
+service defined inside an ECS cluster, will be added to the private subnet. Define six networking
+resources with the following blocks of HCL:
+
+```hcl
+resource "aws_internet_gateway" "gateway" {
+  vpc_id = aws_vpc.default.id
+}
+
+resource "aws_route" "internet_access" {
+  route_table_id         = aws_vpc.default.main_route_table_id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.gateway.id
+}
+
+resource "aws_eip" "gateway" {
+  count      = 2
+  vpc        = true
+  depends_on = [aws_internet_gateway.gateway]
+}
+
+resource "aws_nat_gateway" "gateway" {
+  count         = 2
+  subnet_id     = element(aws_subnet.public.*.id, count.index)
+  allocation_id = element(aws_eip.gateway.*.id, count.index)
+}
+
+resource "aws_route_table" "private" {
+  count  = 2
+  vpc_id = aws_vpc.default.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    nat_gateway_id = element(aws_nat_gateway.gateway.*.id, count.index)
+  }
+}
+
+resource "aws_route_table_association" "private" {
+  count          = 2
+  subnet_id      = element(aws_subnet.private.*.id, count.index)
+  route_table_id = element(aws_route_table.private.*.id, count.index)
+}
+```
+
+These six resources handle networking and communication to and from the internet outside of the VPC.
+The internet gateway, for example, is what allows communication between the VPC and the internet at
+all. The NAT gateway allows resources within the VPC to communicate with the internet but will
+prevent communication to the VPC from outside sources. That is all tied together with the route
+table association, where the private route table that includes the NAT gateway is added to the
+private subnets defined earlier. Security groups will need to be added next to allow or reject
+traffic in a more fine-grained way both from the load balancer and the application service. Add the
+load balancer security group resource to `main.tf` like so:
+
+```hcl
+resource "aws_security_group" "lb" {
+  name        = "example-alb-security-group"
+  vpc_id      = aws_vpc.default.id
+
+  ingress {
+    protocol    = "tcp"
+    from_port   = 80
+    to_port     = 80
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+```
+
+The load balancer's security group will only allow traffic to the load balancer on port 80, as
+defined by the `ingress` block within the resource block. Traffic from the load balancer will be
+allowed to anywhere on any port with any protocol with the settings in the `egress` block. Add the
+three resources for the load balancer next with the following code:
+
+```hcl
+resource "aws_lb" "default" {
+  name            = "example-lb"
+  subnets         = aws_subnet.public.*.id
+  security_groups = [aws_security_group.lb.id]
+}
+
+resource "aws_lb_target_group" "hello_world" {
+  name        = "example-target-group"
+  port        = 80
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.default.id
+  target_type = "ip"
+}
+
+resource "aws_lb_listener" "hello_world" {
+  load_balancer_arn = aws_lb.default.id
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    target_group_arn = aws_lb_target_group.hello_world.id
+    type             = "forward"
+  }
+}
+```
+
+The first block defines the load balancer itself and attaches it to the public subnet in each
+availability zone with the load balancer security group. The target group, when added to the load
+balancer listener tells the load balancer to forward incoming traffic on port 80 to wherever the
+load balancer is attached. In this case, it will be the ECS service defined later. Define the ECS
+cluster with the block below:
+
+```hcl
+resource "aws_ecs_task_definition" "hello_world" {
+  family                   = "hello-world-app"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 1024
+  memory                   = 2048
+
+  container_definitions = <<DEFINITION
+[
+  {
+    "image": "registry.gitlab.com/architect-io/artifacts/nodejs-hello-world:latest",
+    "cpu": 1024,
+    "memory": 2048,
+    "name": "hello-world-app",
+    "networkMode": "awsvpc",
+    "portMappings": [
+      {
+        "containerPort": 3000,
+        "hostPort": 3000
+      }
+    ]
+  }
+]
+DEFINITION
+}
+```
+
+The task definition defines how the hello world application should be run. This is where it's
+specified that the platform will be Fargate rather than EC2, so that managing EC2 instances isn't
+required. This means that CPU and memory for the running task should be specified. The image used is
+a simple API that returns “Hello World!” and is available as a public Docker image. The Docker
+container exposes the API on port 3000, so that's specified as the host and container ports. The
+network mode is set to “awsvpc”, which tells AWS that an elastic network interface and a private IP
+address should be assigned to the task when it runs. Create the security group for the ECS service
+next with the following HCL:
+
+```hcl
+resource "aws_security_group" "hello_world_task" {
+  name        = "example-task-security-group"
+  vpc_id      = aws_vpc.default.id
+
+  ingress {
+    protocol        = "tcp"
+    from_port       = 3000
+    to_port         = 3000
+    security_groups = [aws_security_group.lb.id]
+  }
+
+  egress {
+    protocol    = "-1"
+    from_port   = 0
+    to_port     = 0
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+```
+
+The security group for the application task specifies that it should be added to the default VPC and
+only allow traffic over TCP to port 3000 of the application. The ingress settings also include the
+security group of the load balancer as that will allow traffic from the network interfaces that are
+used with that security group. It allows all outbound traffic of any protocol as seen in the egress
+settings. Finally, add the ECS service and cluster blocks as shown below:
+
+```hcl
+resource "aws_ecs_cluster" "main" {
+  name = "example-cluster"
+}
+
+resource "aws_ecs_service" "hello_world" {
+  name            = "hello-world-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.hello_world.arn
+  desired_count   = var.app_count
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    security_groups = [aws_security_group.hello_world_task.id]
+    subnets         = aws_subnet.private.*.id
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.hello_world.id
+    container_name   = "hello-world-app"
+    container_port   = 3000
+  }
+
+  depends_on = [aws_lb_listener.hello_world]
+}
+```
+
+The ECS service specifies how many tasks of the application should be run with the `task_definition`
+and `desired_count` properties within the cluster. The launch type is Fargate so that no EC2
+instance management is required. The tasks will run in the private subnet as specified in the
+`network_configuration` block and will be reachable from the outside world through the load balancer
+as defined in the `load_balancer` block. Finally, the service shouldn't be created until the load
+balancer has been, so the load balancer listener is included in the `depends_on` array.
+
+One final step remains in the Terraform configuration to make the deployed resources easier to test.
+You'll know that everything is running properly if the application running on ECS returns a blank
+page with the text “Hello World!”. To reach the service, the URL of the load balancer is required.
+You could find it on the AWS dashboard, but Terraform can make it easier. Add a file called
+`outputs.tf` in the same directory as `main.tf`, then add the following code:
+
+```hcl
+output "load_balancer_ip" {
+  value = aws_lb.default.dns_name
+}
+```
+
+This file will be included in the Terraform configuration when commands are run, and the output will
+instruct Terraform to print the URL of the load balancer when the plan has been applied. With the
+entire Terraform configuration complete, run the command `terraform plan -out="tfplan"` to see what
+will be created when the configuration is applied. It should look something like this:
+
+```sh
+data.aws_availability_zones.available_zones: Reading...
+data.aws_availability_zones.available_zones: Read complete after 0s [id=us-east-2]
+
+Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_ecs_cluster.main will be created
+  + resource "aws_ecs_cluster" "main" {
+      + arn                = (known after apply)
+      + capacity_providers = (known after apply)
+      + id                 = (known after apply)
+
+...
+
+      + main_route_table_id                  = (known after apply)
+      + owner_id                             = (known after apply)
+      + tags_all                             = (known after apply)
+    }
+
+Plan: 23 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + load_balancer_ip = (known after apply)
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: tfplan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "tfplan"
+```
+
+If you're satisfied with the plan, apply the configuration to AWS by running
+`terraform apply "tfplan"`. This step will likely take a few minutes. Once Terraform is done
+applying the plan, the bottom of the output should look like the text below:
+
+```sh
+Apply complete! Resources: 23 added, 0 changed, 0 destroyed.
+
+The state of your infrastructure has been saved to the path
+below. This state is required to modify and destroy your
+infrastructure, so keep it safe. To inspect the complete state
+use the `terraform show` command.
+
+State path: terraform.tfstate
+
+Outputs:
+
+load_balancer_ip = "example-lb-1284172108.us-east-2.elb.amazonaws.com"
+```
+
+Notice that the load balancer IP has been printed last because the output was defined as part of the
+configuration. Copy the URL and paste it into a browser. You should see the text “Hello World!”
+printed at the top left of the page. Well done! You now have a public-facing application created by
+Terraform running on AWS ECS.
+
+## Use Terraform to modify existing AWS resources
+
+Now, what happens when more traffic to the application is expected? It might be useful to be able to
+scale the application horizontally without downtime. The variable `app_count` is included in the
+`variables.tf` file of the configuration for that reason. The ECS service resource sets the
+`desired_count` property to the value of the `app_count` variable, so all that you need to do is set
+that to a higher number and reapply the configuration to scale the application horizontally. Try
+planning the change first with the command below:
+
+```sh
+terraform plan -var app_count=3 -out=tfplan
+```
+
+The most important part of the output is towards the bottom and should look like this:
+
+```sh
+Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+Terraform will perform the following actions:
+
+  # aws_ecs_service.hello_world will be updated in-place
+  ~ resource "aws_ecs_service" "hello_world" {
+      ~ desired_count                      = 1 -> 3
+        id                                 = "arn:aws:ecs:us-east-2:914808004132:service/example-cluster/hello-world-service"
+        name                               = "hello-world-service"
+        tags                               = {}
+        # (14 unchanged attributes hidden)
+
+        # (4 unchanged blocks hidden)
+    }
+
+Plan: 0 to add, 1 to change, 0 to destroy.
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: tfplan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "tfplan"
+```
+
+Applying this plan will increase the number of application containers to three, therefore increasing
+capacity. Apply the plan with the command `terraform apply "tfplan"`. The output of the plan should
+show that only the ECS service resource was modified, and look similar to the output below:
+
+```sh
+aws_ecs_service.hello_world: Modifying... [id=arn:aws:ecs:us-east-2:914808004132:service/example-cluster/hello-world-service]
+aws_ecs_service.hello_world: Modifications complete after 0s [id=arn:aws:ecs:us-east-2:914808004132:service/example-cluster/hello-world-service]
+
+Apply complete! Resources: 0 added, 1 changed, 0 destroyed.
+
+Outputs:
+
+load_balancer_ip = "example-lb-2125999167.us-east-2.elb.amazonaws.com"
+```
+
+If you'd like to confirm that the scaling has been completed, feel free to head over to the AWS ECS
+dashboard, then select the cluster named “example-cluster”. Note that “Running tasks count” should
+be set to “3 Fargate, 0 EC2, 0 External”. Your application has now been scaled horizontally to
+handle more traffic!
+
+When you're ready, you should clean up the resources used in this tutorial. To see what will be
+destroyed without actually taking any action yet, run the command
+`terraform plan -destroy -out=tfplan`. The output should look something like this:
+
+```sh
+Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+  - destroy
+
+Terraform will perform the following actions:
+
+  # aws_ecs_cluster.main will be destroyed
+  - resource "aws_ecs_cluster" "main" {
+      - arn                = "arn:aws:ecs:us-east-2:914808004132:cluster/example-cluster" -> null
+      - capacity_providers = [] -> null
+
+...
+
+      - owner_id                             = "914808004132" -> null
+      - tags                                 = {} -> null
+      - tags_all                             = {
+          - "Name" = "architect-demo"
+        } -> null
+    }
+
+Plan: 0 to add, 0 to change, 23 to destroy.
+
+Changes to Outputs:
+  - load_balancer_ip = "example-lb-2125999167.us-east-2.elb.amazonaws.com" -> null
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: tfplan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "tfplan"
+```
+
+Run the command `terraform apply "tfplan"` when you're ready to tear everything down. This step will
+likely take a few minutes, but when complete, the last line of the output should signal that
+everything has been destroyed as expected, and look like so:
+
+```sh
+Apply complete! Resources: 0 added, 0 changed, 23 destroyed.
+```
+
+## Learn more about how Architect can deploy your application to AWS and elsewhere
+
+Terraform can deploy your application to AWS ECS easily once templates are written, and all of the
+resources are defined. This approach could require significant maintenance though as Terraform
+providers get updated. It's also important to keep in mind that targeting AWS ECS as a deployment
+platform will end in vendor lock-in to AWS. Kubernetes on the other hand is available as a
+deployment target on all major cloud providers. Architect keeps up with all of the latest best
+practices for deploying to Kubernetes on all major cloud providers to make the deployment experience
+seamless and secure. Find out more about deploying Architect components in our
+[docs](https://www.architect.io/docs/) and [try it out](https://cloud.architect.io/signup)!
+
+For more reading, have a look at some of our other tutorials!
+
+[Get Started with the Terraform Kubernetes provider](https://www.architect.io/blog/terraform-kubernetes-tutorial)
+
+[Get Started with Kafka and Docker in 20 Minutes](https://www.architect.io/blog/kafka-docker-tutorial)
+
+[A Developer's Guide to GitOps](https://www.architect.io/blog/gitops-developers-guide)
+
+If you have any questions or comments, don't hesitate to reach out to the team on Twitter
+[@architect_team](https://twitter.com/architect_team)!

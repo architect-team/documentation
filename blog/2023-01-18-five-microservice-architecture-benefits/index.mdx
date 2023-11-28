@@ -1,0 +1,92 @@
+---
+title: 5 key benefits of a microservice architecture
+authors: lee.brandt
+---
+
+In recent years, microservices have become a central topic in blog posts, conference talks, and
+video tutorials. It seems like the whole world is abandoning the monolith and embracing
+microservices with open arms. If you haven't been involved with developing a microservice-based
+application, you might think, “What's the big deal? What does building software this way get me?”
+Here are five of the benefits of a microservice-based software architecture.
+
+{/* truncate */}
+
+## 1. Microservices are more scalable
+
+The microservice architecture itself is a form of software scaling called functional decomposition.
+You are scaling your application by deconstructing a monolith into smaller pieces. The real
+advantage here is that you can add resources specifically to a resource-intensive task. No longer
+will a resource-intensive process in a large application hog the resources from the rest of the
+application. If the shipping calculator service begins to take more memory or processing power, you
+can increase the memory or processing power of the shipping calculator, no need to increase the
+memory or CPU for the entire application, just those processes that need it.
+
+## 2. Microservices are resilient
+
+Any developer who has been around for a while has seen an entire application fail because of a small
+error in a small process. In a monolith, the entire application lives or dies together. Developers
+can mitigate this by writing properly decoupled applications, but there is a much higher probability
+of tiger coupling when all of the code is together in one code base.
+
+Because each microservice is a stand-alone “application”, a fault in the tax calculator service
+doesn't have to cause the entire application to fail. Developers can build more fault tolerance into
+their applications by seeing and preparing for scenarios where a particular microservice might be
+slow or faulty.
+
+## 3. Microservices make software easy-to-understand
+
+Because each microservice is its own “application”, it makes it easier for a new developer to get
+their head around the things they'll be working on every day. Understanding those boundaries is very
+clear-cut when each boundary is an ACTUAL application boundary and not just a theoretical boundary
+between sections of a more extensive application.
+
+A microservice approach may also be easier to organize development teams around. A small group of
+developers tasked with developing and maintaining a small microservice can help with lowering
+production bugs and speeding up the delivery of new features.
+
+## 4. Microservices make change easier
+
+Since each microservice is completely independent and decoupled from the other services, changing a
+service is much less likely to have widespread effects. This means if you find a better way to do
+something or a better tool to use for a particular service, you can make those changes without
+worrying about whether that code is used by something else in the overall system.
+
+This also means that you are not locked into a particular vendor. If the team writing the shipping
+service finds a better provider of shipping rates, they can just rework the service to use the new
+provider without worrying whether something else in the system might break. The team could even
+decide that a completely different programming language will perform better for the shipping
+service!
+
+## 5. Microservices can be deployed individually
+
+Another benefit of a microservice architecture is the ability to deploy each microservice
+separately. Deploying an entire monolith can be scary, particularly in older code bases. We've all
+been in those all-day meetings on deployment day. Everyone with their laptops ready to fix bugs on
+the fly. It's especially painful if there are no changes to the section of the application that your
+team is working on. You'd almost wish you could just deploy _part_ of the application. With a
+microservice-based architecture, that's exactly what you can do. Since each service is a stand-alone
+application, you only need to deploy those services with changes. Making it less likely to have
+deployment problems at the service level.
+
+This has one drawback: if you need to deploy the entire application, managing the dependencies
+between services can be a challenge, but [Architect](https://architect.io) can handle all those
+dependencies for you. When you use Architect to deploy microservice applications, Architect handles
+all the dependencies and makes sure that dependent services are deployed before the services that
+depend on them. So you can deploy all of the services of an application without worrying about
+whether the database service is up and responsive before deploying the inventory service that will
+be querying that database. Not to mention handling rollbacks, easy setup of development and testing
+environments, and security for secrets and service communication.
+[Sign up](https://cloud.architect.io/signup) for a free developer account and try it for yourself!
+
+## Learn more microservices benefits and best practices
+
+Now that you know some of the benefits of a microservice architecture, learn more about implementing
+and testing them!
+
+- [Microservice tools: The top 10 for monitoring and testing](/blog/2022-08-30/microservices-top-10-testing-monitoring/)
+- [Microservice orchestration or choreography?](/blog/2022-06-30/microservices-orchestration-primer/)
+- [5 tips that will supercharge your Node.js microservices development](/blog/2022-10-25/5-tips-that-will-supercharge-your-node-js-microservices-development/)
+- [Deploying microservices with ease](https://www.architect.io/)
+
+Also, don't forget to follow us on [Twitter](https://twitter.com/architect_team) to be in the know
+about new content from Architect!

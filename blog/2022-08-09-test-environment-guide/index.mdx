@@ -1,0 +1,200 @@
+---
+title: 'Test environments: Everything you need to know'
+---
+
+The quest for access to stable test environments was once a universal struggle for development
+teams. Imagine you complete a new feature, and it works perfectly. However, you are eager to see if
+it works in the real world, where it will be integrated with other code changes. Until then, you are
+stuck in the land of “it works on my machine,” a place no developer wants to be. Before you can push
+the new feature to production, you must thoroughly test your code, and to do that, you need access
+to the right environments.
+
+{/* truncate */}
+
+The concept of test environments has changed drastically over the past decade. Software has moved
+from running on-prem and in data centers to running in the cloud. The software development life
+cycle has changed from waterfall to more agile approaches. Testing has moved from manual to
+automation, and we've shifted from dev and ops operating independently to implementing DevOps best
+practices. We haven't changed everything, but we're really close!
+
+This post redefines test environments for today's modern development organization. Not every team
+has or even needs every environment, but it's important to understand the differences so that you
+can pick what's best for your team.
+
+To be clear - the test environments are only the first step. You'll also need to run the appropriate
+tests at each stage, but ensuring that you have access to suitable test environments is your
+starting point.
+
+## What is a test environment?
+
+A test environment is simply a place to test code before pushing it through to the next stage in the
+pipeline, and reliable test environments are critical for rapidly delivering stable code. A test
+environment can be a long-standing environment that is always available, or it can be ephemeral,
+spun up just for your code branch. Ephemeral environments give you more flexibility and can reduce
+costs, but even static environments can be scheduled to shut down during off hours to reduce
+spending. Each type of test environment has its own disparate database, some with data more closely
+mirroring production data than others. Let's take a closer look!
+
+## Local environment/development environment
+
+The local environment where code is first written and debugged is essentially the first test
+environment in the deployment pipeline. Development occurs within an IDE (Integrated Development
+Environment) on your computer. Here you can make code changes and see the effects immediately,
+creating a tight feedback loop for efficient development.
+
+The term ‘development environment' can mean different things for different teams. At one time, it
+referred to a separate environment where code changes were merged with the main branch for the first
+time. With containerization, the developer's own machine, the local environment, can now easily
+serve as the development environment in that regard. Your source code management system (i.e.,
+Github) can also be viewed as part of your development environment since it merges your code with
+the main branch, runs tests, and provides feedback. Therefore, the responsibility of the development
+environment has been distributed, but some things remain the same.
+
+There is no expectation of stability in the local/development environment, and it is a safe place to
+make changes without fear of affecting live customers or destabilizing long-running tests. In your
+local environment, you should update your codebase regularly with the main branch to ensure that
+your branch doesn't get too far out of sync. This will make it easier to merge your code into the
+main branch when the time comes.
+
+Writing new unit tests and automated functional tests for your code changes is a good practice. You
+should also run all existing automated tests before submitting your code changes for review. Once
+you open a pull request, your source control management system will test for mergeability with the
+main branch, and you should configure it to run all your automated tests again and to block the pull
+request from being merged unless all the tests pass. This way, the development environment's
+benefits are achieved on your local machine before your pull request is even opened and again by
+your source control management system as part of your quality checks.
+
+As valuable as unit tests are, you'll also want to test your code in a more real-world scenario. In
+this case, you will likely need to mock or integrate with other systems required to run the entire
+application. Luckily, Architect can run your full application stack directly on your laptop using
+the [Architect CLI](https://github.com/architect-team/architect-cli). The configuration for the part
+of the application you are developing indicates which versions of other components it needs. Getting
+the entire application suite up and running gives you an additional level of confidence that your
+code will play well with the rest of the code in production.
+
+Whatever system serves as your development environment, this is the place where the first level of
+testing happens.
+
+## Test environment
+
+Traditionally, QA engineers have run manual and automated tests in the test environment. By the time
+your code changes reach this environment, they should be more stable since they have already passed
+automated tests. This environment gives QA engineers the reliability they need to run their tests
+and more control over when new code changes are introduced. If your development process includes
+manual verification, the test environment is typically where those tests are run.
+
+While your unit tests have confirmed the inputs and outputs of small chunks of logic in your code,
+the tests run in this environment may include end-to-end tests that verify how your code integrates
+with other systems. Test data may be seeded before the tests run and destroyed once the tests are
+complete, or tests may reuse a database that contains the expected data.
+
+The test environment requires less processing power than your production environment since it will
+never host live traffic. For physical or virtual servers, this means less CPU and memory. For
+containerized applications, this means fewer replicas, especially for tangential services. However,
+any test that evaluates performance should be run in an environment with enough power to handle the
+load for the results to be valid.
+
+While this environment may not be necessary for modern applications with fully automated tests, it
+is still reassuring for developers to see their code running somewhere other than their own machines
+before opening a pull request. However, maintaining test environments can be a tedious task for
+DevOps engineers.
+
+Architect allows you to deploy code changes to a
+[free preview environment](https://docs.architect.io/deployments/automated-previews/) that is
+self-contained, spun up for testing, and then destroyed, and no one has to maintain your test
+environment.
+
+You'll have access to your application and all its dependencies, and you can share the URL with
+stakeholders for early feedback. This means you can quickly iterate on a feature before ever
+submitting a pull request.
+
+## Staging environment
+
+The [staging environment](https://www.architect.io/blog/2022-04-20/what-is-staging-environment/)
+mimics the production environment as closely as possible. It is the final dress rehearsal before
+putting the code in front of live customers. This environment contains similar data, perhaps even
+the same data, that lives in production, but it uses a separate database from the production
+environment.
+
+The infrastructure and scaling policies should be as close to the production environment as
+possible. To save costs, you may configure additional replicas to spin up only once the demand
+reaches a certain threshold and shut down all instances during off hours, but your testing in this
+environment is only as valid as the environment itself. If it varies too greatly from production,
+the test results may not be reliable. Think of your staging environment as a mirror for production,
+minus the customer traffic. You'll also want to use the same security policies and secret management
+processes as you use in production. Architect helps you promote ingress policies and secrets from
+the local environment to staging to production with the declarative nature of the
+[`architect.yml`](https://docs.architect.io/reference/architect-yml/) configuration file.
+
+Though this environment is not exposed to end users, it should be treated as though it is. It is
+essential to monitor this environment closely, both to detect bugs and to ensure that the monitoring
+that is in place is adequate for troubleshooting problems, since once code is pushed to production,
+your monitoring tools are all you have to work with to find the root cause of issues.
+
+The staging environment is also where you test your processes for spinning up replicas and deploying
+code. You should use the same processes here that you use in production. The code is not the only
+thing under test in the staging environment.
+
+## On to production!
+
+Once you have developed and debugged your code changes locally, allowed your source control
+management system to merge and run automated tests, pushed your code to a test environment for more
+thorough testing, and released your changes all the way to staging, you are only one push away from
+moving your code changes to production. The production environment is the real deal. This is where
+customers access your application and where real business takes place.
+
+Don't forget that your production environment is also a test environment! You can utilize feature
+flags to perform
+[canary testing](https://launchdarkly.com/blog/what-is-canary-testing-a-detailed-explanation/) so
+that new functionality can be exposed to a limited set of users, or even just to internal users,
+giving you the ability to learn from their behavior and make any necessary adjustments before
+releasing the feature to your entire user-base.
+
+This moves the testing needle from “does this even work” to “does this work well”, raising your
+quality bar. Feature flags also allow you to deploy code even if the feature is not yet complete.
+Testing with feature flags means more frequent deployments, but this means smaller deployments, and
+smaller deployments make it easier to recover from problems.
+
+Another way you can test in production is with
+[blue-green deployments](https://launchdarkly.com/blog/blue-green-deployments-a-definition-and-introductory/).
+In this case, you run two identical instances of your application where one instance receives
+traffic and the other does not. The instance not receiving traffic gets continuous updates from your
+CI/CD system, and automated and manual tests run here. At any time, the inactive instance can become
+the live instance, and the live instance becomes the passive instance where continuous delivery
+occurs. It's like flipping a switch from one instance to the other, but _they are both production_.
+
+## Learn more about staging, production, and modern continuous delivery
+
+Development teams want to deploy code with higher velocity and higher quality without making
+tradeoffs. Having the right environment through each stage of the development life cycle is
+critical, and using the right tools and strategies in each environment can make a big impact on
+meeting these goals.
+
+If you'd like to learn more about any of these topics, or how to get started with Architect.io, hit
+up our blog:
+
+- [What is a production environment?](https://www.architect.io/blog/2022-03-21/production-environment-at-different-sizes/)
+- [Why distributed apps need dependency management](https://www.architect.io/blog/2020-09-16/why-distributed-apps-need-dependency-management/)
+- [What you need to know about CI/CD](https://www.architect.io/blog/2022-07-13/six-cicd-best-practices/)
+- [What is a production environment?](https://www.architect.io/blog/2022-03-21/production-environment-at-different-sizes/)
+- [The basics of secret management](https://www.architect.io/blog/2022-04-14/the-basics-of-secret-management/)
+
+If doing rather than reading is your thing, why don't you
+[sign up](https://cloud.architect.io/signup) and check out Architect for yourself? We promise you
+won't regret it. Don't be afraid to reach out to the team with any questions or comments! You can
+find us on Twitter [@architect_team](https://twitter.com/architect_team).
+
+![](https://secure.gravatar.com/avatar/0b521c7aaf1d141585217f71f7a18e29?s=96&d=retro&r=g)
+
+[Mandy Hubbard](https://www.architect.io/blog/author/mandy/)
+
+Architect.io Team
+
+- [Twitter](https://twitter.com/DevMandy)
+
+- [Developer tutorial: Set up your test environment](https://www.architect.io/blog/2023-01-26/developer-test-environment-tutorial/)
+- [Get started with GitHub Actions](https://www.architect.io/blog/2023-01-12/github-actions-tutorial/)
+- [A developer's guide to Zero Trust Networking](https://www.architect.io/blog/2023-01-05/zero-trust-networking/)
+- [The CI/CD pipeline: A developer's guide](https://www.architect.io/blog/2022-10-24/cicd-pipeline-guide/)
+
+## Add your thoughts

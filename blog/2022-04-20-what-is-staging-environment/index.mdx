@@ -1,0 +1,164 @@
+---
+title: What is a staging environment?
+authors: david.thor
+---
+
+Within any software development process, “production” is essentially the final environment in a
+sequence of places any code will be deployed. Before code is pushed to production, it must be
+extensively tested, and therefore be ready for public availability.
+
+This extensive testing is easier said than done. Developers write tests to ensure their features can
+handle unexpected user behavior, but what about odd infrastructure behavior? Running a production
+environment is an exhaustive and expensive effort. As developers, we don't want to wait for code to
+land in production only to find out that it doesn't behave as intended. This is where the staging
+environment comes in.
+
+{/* truncate */}
+
+## Staging environment == Dress rehearsal
+
+Think about Hamilton as an analogy for the different software development environments. To prepare
+for the show's debut on Broadway, the actors needed to practice individually to learn their lines,
+rehearse, and then ultimately perform before an audience.
+
+Early on in the prep for the show, after each actor is cast, they begin to develop their individual
+performance. They learn their lines, the beats of the music, and the staging they can expect. This
+is where they define what they personally bring to the role. Each performer will refine and
+problem-solve their entire performance before it moves on to the next phase of development.
+
+Similarly, developers begin work on their code in a development environment, usually a local
+environment on their personal computer. This is where all of their initial branching and commits
+take place. They'll also do preliminary testing before moving on to the next stage, staging.
+
+Before Daveed Diggs rapped a single line on Broadway, he worked out the bugs of his performance in
+rehearsal. In development, cast rehearsals are analogous to the second pre-production environment,
+staging. To the greatest extent possible (and we'll talk more about what's possible later in this
+post), the staging environment should reflect what end-users will see in the production setting.
+
+So, once our full Hamilton cast has had a chance to develop their performances solo (development)
+and rehearse timing, choreography, and interpretation all together (staging) it's time for their
+Broadway debut. In this analogy, that's our stand-in for pushing code live to a production
+environment and exposing it to end-users.
+
+In order for a feature to be ready for use in a production environment, all problems must have been
+addressed. New products and features are deployed in the production environment. All testing is done
+in the development and staging environments. If there are any bugs in the production environment,
+the user will be able to notice them immediately. And no one wants a disgruntled or unhappy
+customer.
+
+## After all those stages, how do problems persist into the production environment?
+
+Even if you have an absolutely perfect staging environment that is an identical copy of production
+in every way, chances are high that you'll still experience issues in production once in a while.
+Despite your rigorous testing, the introduction of your audience is the chaos factor you can never
+predict. One day there will be a heckler in the audience, during another show someone might get sick
+mid-show, or maybe someone had internet issues exposing race conditions.
+
+Your users will always be the wildcard you can't fully predict. You can still make sure that your
+infrastructure and operations are top-notch with a polished staging environment.
+
+## Best practices for staging environments
+
+A strong development process includes well-organized environments for pre-production, both staging
+AND development. Both developers and operators need the right tools and to follow some simple best
+practices to deliver good code fast. Let's walk through some important considerations:
+
+### CI/CD
+
+Engineering teams can quickly and reliably push code with continuous integration and continuous
+delivery. CI/CD is a collection of techniques and operational methodologies.
+
+Consistent and automated application development and testing is the technical goal of continuous
+integration. Consistently is the operative word here. Consistent integration guarantees that the
+code being tested and packaged is of the highest quality possible. It's easier for teams to push
+more commits when they don't have to wait for manual processes to complete.
+
+As continuous integration ends, continuous delivery begins.
+
+CI/CD is a complete pipeline for integrating and delivering new code to a target system. The CI
+component aids in the automation of integration. The CD component completes the process by
+distributing the applications to the desired locations. Automated testing, for example, occurs when
+code is submitted via a testing environment. This is more convenient than having an engineer test
+changes by hand and enter the results in a spreadsheet.
+
+### Monitoring
+
+Monitoring isn't just a concern for operators managing production environments. In pre-production
+environment, monitoring has many advantages including ensuring that code modifications haven't
+harmed production environment monitoring!
+
+Monitoring your testing environments, test cases, and alternative user pathways can reveal a lot
+about what might go wrong when your code is deployed. Modern software makes it hard to follow every
+user path and bug, so monitoring helps you track future errors, even if tests pass.
+
+Conditional monitoring for all your dev environments is essential for agile development teams and it
+actually speeds up code modifications.
+
+### Debugging and testing
+
+Effective testing and debugging procedures ensure that your team is always producing high-quality
+code. Automated testing, deliberate logging, and bug tracking are all part of this.
+
+Many of these systems were previously on-site and/or manually managed. Now, many of these systems
+can be accessed remotely. Cloud-based development environments and the desire for automated testing
+have spawned new tools.
+
+### Infrastructure parity
+
+Tests and monitoring are crucial, but their value is limited if the infrastructure hosting the
+application is different in your staging environment than it is in production. The whole point of
+this dress rehearsal is to make sure that every application performs the same way when it's
+show-ready.
+
+When creating your staging environment, make sure you're using all the same providers and tools: the
+same cloud provider, virtualization tools, API gateways, DNS providers, and more. Even something as
+simple as the latency differences between CDN providers can make a difference in how your
+application performs.
+
+Running an exact clone of production that isn't used to serve users can be expensive. You'll have to
+decide for yourself if you're willing to eat those costs, or if there are shortcuts. If you're
+looking for cost-saving opportunities in staging, you can start by changing your autoscaling
+policies so that you're not running as many replicas by default. So long as you're running more than
+one replica and you've instrumented pre-release load testing, you'll likely get a lot of coverage
+with a much smaller bill.
+
+## Building sustainable staging environment processes
+
+Building and maintaining the infrastructure for one production-grade environment is hard. Having to
+do it a second time for staging only compounds the effort required. You might be tempted to think
+that your team would want to minimize their investment in staging to preserve resources. But
+honestly, the testing phase is simply too important to ignore.
+
+But what if we stopped thinking about the staging environment as a second production environment,
+with duplicative costs and responsibilities. Instead, what if we thought about environment
+production as a singular objective? We're software engineers after all - our jobs are the pursuit of
+repeatable processes. And fortunately for us, this is NOT a Broadway play. Our work is virtual and
+the resources we need are available on demand. If we can generate and maintain a single
+production-grade environment, why can't we use the same processes to generate and maintain many?
+
+We built Architect for exactly this reason - to streamline not just the ability to deploy to
+existing environments but to simplify and democratize the ability to create and manage new
+environments. With our platform, every developer can create staging environments (aka previews)
+entirely on their own. Whether it be for everyday development or to share a preview of your changes
+for your product manager, Architect makes it easy for everyone to build their own staging
+environments.
+
+## Learn more about staging, production, and modern continuous delivery
+
+We're passionate about helping teams achieve greater development velocity. We also care that every
+line of code you write is supported by a secure, stable environment that always has exactly what you
+need (and isn't slowed down by what you don't!).
+
+If you'd like to learn more about any of these topics, or how to get started with Architect, hit up
+our blog:
+
+- [What is a production environment?](/blog/2022/03/21/production-environment-at-different-sizes/)
+- [Why distributed apps need dependency management](/blog/2020/09/16/why-distributed-apps-need-dependency-management/)
+- [Creating microservices in Nest.js](/blog/2020/09/08/creating-microservices-nestjs/)
+- [Use Hashicorp Vault and Node.js to enable credential cycling](/blog/2020/05/28/using-hashicorp-vault-to-enable-credential-cycling/)
+- [The basics of secret management](/blog/2022/04/14/the-basics-of-secret-management/)
+
+If you're with us this far, why don't you go ahead and
+[sign up to give Architect a whirl](https://cloud.architect.io/signup). We promise you won't regret
+it. Don't be afraid to reach out to the team with any questions or comments! You can find us on
+Twitter [@architect_team](https://twitter.com/architect_team).
