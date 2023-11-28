@@ -1,0 +1,1023 @@
+---
+title: Get started with Kafka and Docker in 20 minutes
+authors: ryan.cahill
+---
+
+Apache Kafka is a high-throughput, high-availability, and scalable solution chosen by the world's
+top companies for uses such as event streaming, stream processing, log aggregation, and more. Kafka
+runs on the platform of your choice, such as Kubernetes or ECS, as a cluster of one or more Kafka
+nodes. A Kafka cluster will be initialized with zero or more topics, which you can think of as
+message channels or queues. Clients can connect to Kafka to publish messages to topics or to consume
+messages from topics the client is subscribed to.
+
+Docker is an application that uses virtualization to run containerized applications on a host
+machine. Containerization enables users to build, run, and test applications completely separately
+while still allowing them to communicate across a network. Importantly, containerization enables
+application portability so that the same application can be run on your local machine, a Kubernetes
+cluster, AWS, and more.
+
+Both Kafka and Docker are pretty complex technologies, and it can be difficult to determine where to
+get started once you're sure that they're the right fit for the problem you're solving. To keep
+things simple, we'll create one producer, one consumer, and one Kafka instance.
+
+## Project dependencies for Kafka and Docker
+
+In this tutorial, we'll start by
+using [Docker Compose](https://docs.docker.com/compose/){target="\_blank" rel="noreferrer
+noopener"} to build, run, and test locally. We'll also walk through how to
+use [`kubectl`](https://kubernetes.io/docs/reference/kubectl/overview/){target="\_blank"
+rel="noreferrer noopener"} to deploy our application to the cloud. Last, we'll walk through how we
+can use [Architect](https://www.architect.io/) to seamlessly deploy our application locally and to
+the cloud using the same configuration. Before getting started, be sure to have the following
+dependencies installed locally:
+
+- [Docker](https://docs.docker.com/get-docker/){target="\_blank" rel="noreferrer noopener"}
+- [Docker-compose](https://docs.docker.com/compose/install/){target="\_blank" rel="noreferrer
+  noopener"}
+- [A Docker Hub account](https://hub.docker.com/signup){target="\_blank" rel="noreferrer noopener"}
+- [npm](https://www.npmjs.com/get-npm){target="\_blank" rel="noreferrer noopener"}
+- [Architect CLI](https://www.npmjs.com/package/@architect-io/cli){target="\_blank" rel="noreferrer
+  noopener"}
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/){target="\_blank"
+  rel="noreferrer noopener"}
+- [A Kubernetes cluster on DigitalOcean or elsewhere](https://cloud.digitalocean.com/registrations/new){target="\_blank"
+  rel="noreferrer noopener"}
+- [A free Architect account](https://auth.architect.io/u/signup?state=hKFo2SBVa2lpM3VweDFFQTl2N0pCdXhPQ19EeFE5MHp3VGlUbKFur3VuaXZlcnNhbC1sb2dpbqN0aWTZIFp1ek51dWNNNUVESGlFN3dtNkFwSzYtbFpyZmlTYkJro2NpZNkgbElwVzlmcTlJRlFCQmpUZ2xsaE42RUkwMVRYTWhSVm0)
+
+As mentioned previously, this part of the tutorial will contain multiple services running on your
+local machine. You can use `docker-compose` to run them all at once and stop them all when you're
+ready. Let's get going!
+
+## Build the publisher service in Node for Kafka with Docker[](https://www.architect.io/blog/2021-01-26/kafka-docker-tutorial#build-the-publisher-service-in-node-for-kafka-with-docker) {#build-the-publisher-service-in-node-for-kafka-with-docker .sidebar-anchor .wp-block-heading}
+
+You can [clone this repo](https://github.com/architect-community/node-kafka) to access the code used
+in this blog post, or you can follow along with the following steps. Start by creating a project
+directory with two folders inside it named "subscriber" and "publisher." These folders will contain
+the application code, supporting Node files, and Dockerfiles that will be needed to build the apps
+that will communicate with Kafka.
+
+The publisher service will be the one that generates messages that will be published to a Kafka
+topic. For simplicity, the service will generate a simple message at an interval of five seconds.
+Inside of the "publisher" folder, add a new file called index.js with the following contents:
+
+```wp-block-code
+const kafka = require('kafka-node');
+const client = new kafka.KafkaClient({
+  kafkaHost:
+    process.env.ENVIRONMENT === 'local'
+      ? process.env.INTERNAL_KAFKA_ADDR
+      : process.env.EXTERNAL_KAFKA_ADDR,
+});
+const Producer = kafka.Producer;
+const producer = new Producer(client);
+
+producer.on('ready', () => {
+  setInterval(() => {
+    const payloads = [
+      {
+        topic: process.env.TOPIC,
+        messages: [`${process.env.TOPIC}_message_${Date.now()}`],
+      },
+    ];
+
+    producer.send(payloads, (err, data) => {
+      if (err) {
+        console.log(err);
+      }
+      console.log(data);
+    });
+  }, 5000);
+});
+
+producer.on('error', err => {
+  console.log(err);
+});
+```
+
+Save and close the index. We'll also need some supporting modules installed to our Docker container
+when it's built. Also, in the "publisher" folder, create a `package.json` with the JSON here:
+
+```wp-block-code
+{
+  "name": "publisher",
+  "version": "0.1.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "body-parser":"^1.20.1",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "kafka-node": "^5.0.0",
+    "winston": "^3.8.2"
+  }
+}
+```
+
+Save and close the package.json. Alongside the last two files, we'll need a `package-lock.json`,
+which can be created with the following command:
+
+```wp-block-code
+npm i --package-lock-only
+```
+
+The last file to create for the publisher will pull everything together, and that's the Dockerfile.
+Create the Dockerfile alongside the other three files that were just created and add the following:
+
+```wp-block-code
+FROM node:18-alpine
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+RUN npm install
+COPY . .
+
+CMD [ "npm", "start" ]
+```
+
+Save and close the file. Line by line, the Dockerfile that was just added to the folder will
+instruct the Docker daemon to build the publisher image like so:
+
+- Pull the Docker image `node:12-alpine` as the base container image
+- Set the working directory to `/usr/src/app`. Subsequent commands will be run in this folder
+- Copy the `package.json` and `package-lock.json` that were just created into
+  the `/usr/src/app` directory
+- Run `npm install` to install node modules
+- Copy the rest of the files from the directory on the home machine to `/usr/src/app`. Importantly,
+  this includes the `index.js`
+- Run the command `npm start` in the container. `npm` is already installed on
+  the `node:12-alpine` image, and the `start` script is defined in the `package.json`
+
+## Build the subscriber service for Kafka with Docker[](https://www.architect.io/blog/2021-01-26/kafka-docker-tutorial#build-the-subscriber-service-for-kafka-with-docker) {#build-the-subscriber-service-for-kafka-with-docker .sidebar-anchor .wp-block-heading}
+
+The subscriber service will be built very similarly to the publisher service and will consume
+messages from the Kafka topic. Messages will be consumed as frequently as they're published, again,
+every five seconds in this case. To start, add a file titled `index.js` to the "subscriber" folder
+and add the following code:
+
+```wp-block-code
+const kafka = require('kafka-node');
+const client = new kafka.KafkaClient({
+  kafkaHost:
+    process.env.ENVIRONMENT === 'local'
+      ? process.env.INTERNAL_KAFKA_ADDR
+      : process.env.EXTERNAL_KAFKA_ADDR,
+});
+const Consumer = kafka.Consumer;
+
+const consumer = new Consumer(
+  client,
+  [
+    {
+      topic: process.env.TOPIC,
+      partition: 0,
+    },
+  ],
+  {
+    autoCommit: false,
+  },
+);
+
+consumer.on('message', message => {
+  console.log(message);
+});
+
+consumer.on('error', err => {
+  console.log(err);
+});
+```
+
+Save and close the index. Also, similar to the publisher, we'll need a package.json file like this:
+
+```wp-block-code
+{
+  "name": "subscriber",
+  "version": "0.1.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Architect.io",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.1",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "kafka-node": "^5.0.0",
+    "winston": "^3.8.2"
+  }
+}
+```
+
+Save and close the package.json, then create a package-lock.json using the same command as before:
+
+```wp-block-code
+npm i --package-lock-only
+```
+
+The subscriber needs one extra file that the publisher doesn't, and that's a file we'll
+call `wait-for-it.js`. Create the file and add the following:
+
+```wp-block-code
+const kafka = require('kafka-node');
+const client = new kafka.KafkaClient({
+  kafkaHost:
+    process.env.ENVIRONMENT === 'local'
+      ? process.env.INTERNAL_KAFKA_ADDR
+      : process.env.EXTERNAL_KAFKA_ADDR,
+});
+const Admin = kafka.Admin;
+const child_process = require('child_process');
+
+const admin = new Admin(client);
+const interval_id = setInterval(() => {
+  admin.listTopics((err, res) => {
+    if (res[1].metadata[process.env.TOPIC]) {
+      console.log('Kafka topic created');
+      clearInterval(interval_id);
+      child_process.execSync('npm start', { stdio: 'inherit' });
+    } else {
+      console.log('Waiting for Kafka topic to be created');
+    }
+  });
+}, 1000);
+```
+
+This file will be used in the Docker container to ensure that the consumer doesn't attempt to
+consume messages from the topic before the topic has been created. Each second, it will check
+whether the topic exists, and when Kafka has started, and the topic is finally created, the
+subscriber will start. Last, create the Dockerfile in the "subscriber" folder with the following
+snippet:
+
+```wp-block-code
+FROM node:18-alpine
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+RUN npm install
+COPY . .
+
+CMD [ "node", "wait-for-it.js" ]
+```
+
+The subscriber's Dockerfile is the same as the publisher's, with the one difference noted above. The
+command that starts the container uses the `wait-for-it.js` file rather than the index. Save and
+close the Dockerfile.
+
+## The docker-compose file for the Kafka stack[](https://www.architect.io/blog/2021-01-26/kafka-docker-tutorial#the-docker-compose-file-for-the-kafka-stack) {#the-docker-compose-file-for-the-kafka-stack .sidebar-anchor .wp-block-heading}
+
+The `docker-compose` file is where the publisher, subscriber, Kafka,
+and [Zookeeper](https://zookeeper.apache.org/){target="\_blank" rel="noreferrer noopener"} services
+will be tied together. Zookeeper is a service that is used to synchronize Kafka nodes within a
+cluster. Zookeeper deserves a post all of its own, and because we only need one node in this
+tutorial I won't be going in-depth on it here. In the root of the project alongside the "subscriber"
+and "publisher" folders, create a file called `docker-compose.yml` and add this configuration:
+
+```wp-block-code
+version: '3'
+services:
+  zookeeper:
+    ports:
+      - '50000:2181'
+    image: zookeeper:3.5.9
+  kafka:
+    ports:
+      - '50001:9092'
+      - '50002:9093'
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENERS: 'INTERNAL://:9092'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://:9092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'INTERNAL:PLAINTEXT'
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
+      KAFKA_CREATE_TOPICS: 'example-topic:1:1'
+      KAFKA_ADVERTISED_HOST_NAME: host.docker.internal # change to 172.17.0.1 if running on Ubuntu
+    image: 'wurstmeister/kafka:2.13-2.8.1'
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+  publisher:
+    depends_on:
+      - kafka
+    environment:
+      TOPIC: example-topic
+      ENVIRONMENT: local
+      INTERNAL_KAFKA_ADDR: 'kafka:9092'
+    build:
+      context: ./publisher
+  subscriber:
+    depends_on:
+      - kafka
+    environment:
+      TOPIC: example-topic
+      ENVIRONMENT: local
+      INTERNAL_KAFKA_ADDR: 'kafka:9092'
+    build:
+      context: ./subscriber
+volumes: {}
+```
+
+Note that the `services` block of the `docker-compose` contains four keys under which we define
+specific properties for each service. Below is a service-by-service walkthrough of what each
+property and its sub-properties are used for.
+
+### Zookeeper[](https://www.architect.io/blog/2021-01-26/kafka-docker-tutorial#zookeeper) {#zookeeper .wp-block-heading}
+
+The `ports` property instructs Zookeeper to expose itself to Kafka on port 2181 inside of the Docker
+network. Zookeeper is also available to the host machine on port 50000. The `image` property
+instructs the Docker daemon to pull the latest version of the image
+[zookeeper](https://hub.docker.com/_/zookeeper).
+
+### Kafka[](https://www.architect.io/blog/2021-01-26/kafka-docker-tutorial#kafka) {#kafka .wp-block-heading}
+
+The `kafka` service block includes configuration that will be passed to Kafka running inside of the
+container, among other properties that will enable communication between the Kafka service and other
+containers.
+
+- `ports` -- Kafka exposes itself on two ports internal to the Docker network, 9092 and 9093. It is
+  also exposed to the host machine on ports 50001 and 50002.
+- `depends_on` -- Kafka depends on Zookeeper to run, so its key is included in
+  the `depends_on` block to ensure that Docker will start Zookeeper before Kafka.
+- `environment` -- Kafka will pick up the environment variables in this block once the container
+  starts. All configuration options except for `KAFKA_CREATE_TOPICS` will be added to a Kafka broker
+  config and applied on startup. The variable `KAFKA_CREATE_TOPICS` is used by the Docker image
+  itself, not Kafka, to make working with Kafka easier. Topics defined by this variable will be
+  created when Kafka starts without any external instructions.
+- `image` -- This field instructs the Docker daemon to pull version 2.13-2.8.1 of the
+  image [wurstmeister/kafka ](https://hub.docker.com/r/wurstmeister/kafka/){target="\_blank"
+  rel="noreferrer noopener"}.
+- `volumes` -- This is a requirement by the Docker image to use the Docker CLI when starting Kafka
+  locally.
+
+### Publisher[](https://www.architect.io/blog/2021-01-26/kafka-docker-tutorial#publisher) {#publisher .wp-block-heading}
+
+Most configuration in the `publisher` block specifies how the publisher should communicate with
+Kafka. Note that the `depends_on` property ensures that the publisher will start after Kafka.
+
+- `depends_on` -- The publisher service naturally depends on Kafka, so it's included in the
+  dependency array.
+- `environment` -- These variables are used by the code in the `index.js` of the publisher.
+- `TOPIC` -- This is the topic that messages will be published to. Note that it matches the topic
+  that will be created by the Kafka container.
+- `ENVIRONMENT` -- This environment variable determines inside the index file on what port the
+  service will communicate with Kafka. The ternary statement that it is used in exists to use the
+  same code for both local and remote deployments.
+- `INTERNAL_KAFKA_ADDR` -- The publisher will connect to Kafka on this host and port.
+- `build` -- The context inside tells the Docker daemon where to locate the Dockerfile that
+  describes how the service will be built and run, along with supporting code and other files that
+  will be used inside of the container.
+
+### Subscriber[](https://www.architect.io/blog/2021-01-26/kafka-docker-tutorial#subscriber) {#subscriber .wp-block-heading}
+
+Most of the `docker-compose` configuration for the subscriber service is identical to that of the
+publisher service. The one difference is that the context tells the Docker daemon to build from the
+"subscriber" directory, where its Dockerfile and supporting files were created.
+
+### Run the example stack[](https://www.architect.io/blog/2021-01-26/kafka-docker-tutorial#run-the-example-stack) {#run-the-example-stack .wp-block-heading}
+
+Finally, the moment we've all been waiting for, running the services! All that's needed now is to
+run the command below from the root directory of the project:
+
+```wp-block-code
+docker-compose up
+```
+
+That's it! Once all of the services start up and the Kafka topic is created, the output from the
+publisher and subscriber services will look like this:
+
+```wp-block-code
+publisher_1   | { 'example-topic': { '0': 0 } }
+subscriber_1  | Kafka topic created
+subscriber_1  |
+subscriber_1  | > @architect-examples/event-subscriber@0.1.0 start /usr/src/app
+subscriber_1  | > node index.js
+subscriber_1  |
+subscriber_1  | {
+subscriber_1  |   topic: 'example-topic',
+subscriber_1  |   value: 'example-topic_message_1610477237480',
+subscriber_1  |   offset: 0,
+subscriber_1  |   partition: 0,
+subscriber_1  |   highWaterOffset: 1,
+subscriber_1  |   key: null
+subscriber_1  | }
+subscriber_1  | {
+subscriber_1  |   topic: 'example-topic',
+subscriber_1  |   value: 'example-topic_message_1610477242483',
+subscriber_1  |   offset: 1,
+subscriber_1  |   partition: 0,
+subscriber_1  |   highWaterOffset: 2,
+subscriber_1  |   key: null
+subscriber_1  | }
+publisher_1   | { 'example-topic': { '0': 1 } }
+```
+
+New messages will continue to be published and consumed until the `docker-compose` process is
+stopped by pressing `ctrl/cmd+C` in the same terminal that it was started in.
+
+## Run Kafka in the cloud on Kubernetes[](https://www.architect.io/blog/2021-01-26/kafka-docker-tutorial#run-kafka-in-the-cloud-on-kubernetes) {#run-kafka-in-the-cloud-on-kubernetes .sidebar-anchor .wp-block-heading}
+
+Running Kafka locally can be useful for
+[testing and iterating](https://www.waldo.com/mobile-testing/types/automated-unit-testing), but
+where it's most useful is, of course, the cloud. This section of the tutorial will guide you through
+deploying the same application that was just deployed locally to your Kubernetes cluster. Note that
+most services charge some amount of money by default for running a Kubernetes cluster, though
+occasionally you can get free credits when you sign up. For the most straightforward setup of a
+cluster, you can run your Kubernetes cluster
+with [Digital Ocean](https://www.digitalocean.com/){target="\_blank" rel="noreferrer noopener"}. For
+the cluster to pull the Docker images that you will be building,
+a [Docker Hub](https://hub.docker.com/){target="\_blank" rel="noreferrer noopener"} account will be
+useful, where you can host multiple free repositories. The same code and Docker images will be used
+from the previous part of the tutorial.
+
+### Build and push the images to Docker Hub[](https://www.architect.io/blog/2021-01-26/kafka-docker-tutorial#build-and-push-the-images-to-docker-hub) {#build-and-push-the-images-to-docker-hub .wp-block-heading}
+
+For the Kubernetes cluster to pull the Docker images, they'll need to be pushed to a repository in
+the cloud where they can be accessed. Docker Hub is the most frequently used cloud-hosted
+repository, and the images here will be made public for ease of use in this tutorial. To start, be
+sure that you have a Docker Hub account, then enter the following in a terminal:
+
+```wp-block-code
+docker login
+```
+
+Enter your Docker Hub username (not email) and password when prompted. You should see the message
+-- `Login Succeeded` -- which indicates that you've successfully logged in to Docker Hub in the
+terminal. The next step is to push the images that will need to be used in the Kubernetes cluster.
+From the root of the project, navigate to the `publisher` directory and build and tag the publisher
+service with the following command:
+
+```wp-block-code
+docker build . -t <your_docker_hub_username>/publisher:latest
+```
+
+Your local machine now has a Docker image tagged as `<your_docker_hub_username>/publisher:latest`,
+which can be pushed to the cloud. You might have also noticed that the build was faster than the
+first time the publisher was built. This is because Docker caches image layers locally, and if you
+didn't change anything in the publisher service, it doesn't need to be rebuilt completely. Now, push
+the tagged image with the command:
+
+```wp-block-code
+docker push <your_docker_hub_username>/publisher:latest
+```
+
+Your custom image is now hosted publicly on the internet! Navigate
+to https://hub.docker.com/repository/docker/\<your_docker_hub_username\>/publisher and login if
+you'd like to view it. Now, navigate to the `subscriber` folder and do the same for the subscriber
+service with two similar commands:
+
+```wp-block-code
+docker build . -t <your_docker_hub_username>/subscriber:latest
+docker push <your_docker_hub_username>/subscriber:latest
+```
+
+All of the images needed to run the stack on a Kubernetes cluster should now be available publicly.
+Fortunately, Kafka and Zookeeper didn't need to be pushed anywhere, as the images are already
+public.
+
+### Deploy your stack to Kubernetes[](https://www.architect.io/blog/2021-01-26/kafka-docker-tutorial#deploy-the-stack-to-kubernetes) {#deploy-the-stack-to-kubernetes .wp-block-heading}
+
+Once you have a Kubernetes cluster created on Digital Ocean or wherever you prefer, and you've
+downloaded the cluster's `kubeconfig` or set your Kubernetes context, you're ready to deploy the
+publisher, consumer, Kafka, and Zookeeper. Be sure that the cluster also has the Kubernetes
+dashboard installed. On Digital Ocean, the dashboard will be preinstalled.
+
+Deploying to Kubernetes in the next steps will also require the Kubernetes CLI, `kubectl` to be
+installed to your local machine. Once the prerequisites are complete, the next steps will be
+creating and deploying Kubernetes manifests. These manifests will be for
+a [namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/){target="\_blank"
+rel="noreferrer
+noopener"}, [deployments](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/){target="\_blank"
+rel="noreferrer noopener"},
+and [services](https://kubernetes.io/docs/concepts/services-networking/service/){target="\_blank"
+rel="noreferrer noopener"}. In the root of the project, create a directory called "kubernetes" and
+navigate to that directory. For organization, all manifests will be created here. Start by creating
+a file called namespace.yml. Within Kubernetes, the namespace will group all of the resources
+created in this tutorial.
+
+```wp-block-code
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kafka-example
+  labels:
+    name: kafka-example
+```
+
+Save and close the file. To create the namespace within the Kubernetes cluster, kubectl will be
+used. Run the command below:
+
+```wp-block-code
+kubectl create -f namespace.yml --kubeconfig=<kubeconfig_file_for_your_cluster>
+```
+
+If the namespace was created successfully, the message `namespace/kafka-example created` will be
+printed to the console.
+
+Before deployments are created, Kubernetes services are required to allow traffic to the pods that
+others depend on. To do this, two services will be created. One will allow traffic to the Kafka pod
+on its exposed ports, 9092 and 9093, and the other will allow traffic to the Zookeeper pod on its
+exposed port, 2181. These will allow the publisher and subscriber to send traffic to Kafka and Kafka
+to send traffic to Zookeeper, respectively. Still in the `k8s` directory, start by creating a file
+called `kafka-service.yml` with the following `yml`:
+
+```wp-block-code
+kind: Service
+apiVersion: v1
+metadata:
+  name: example-kafka
+  namespace: kafka-example
+  labels:
+    app: example-kafka
+spec:
+  ports:
+    - name: external
+      protocol: TCP
+      port: 9093
+      targetPort: 9093
+    - name: internal
+      protocol: TCP
+      port: 9092
+      targetPort: 9092
+  selector:
+    app: example-kafka
+  type: ClusterIP
+  sessionAffinity: None
+```
+
+Create the service in the cluster by running the command below:
+
+```wp-block-code
+kubectl create -f kafka-service.yml --kubeconfig=<kubeconfig_file_for_your_cluster>
+```
+
+kubectl should confirm that the service has been created. Now, create the other service by first
+creating a file called `zookeeper-service.yml`. Add the following contents to that file:
+
+```wp-block-code
+kind: Service
+apiVersion: v1
+metadata:
+  name: example-zookeeper
+  namespace: kafka-example
+  labels:
+    app: example-zookeeper
+spec:
+  ports:
+    - name: main
+      protocol: TCP
+      port: 2181
+      targetPort: 2181
+  selector:
+    app: example-zookeeper
+  type: ClusterIP
+  sessionAffinity: None
+```
+
+Create the service within the cluster with the command:
+
+```wp-block-code
+kubectl create -f zookeeper-service.yml --kubeconfig=<kubeconfig_file_for_your_cluster>
+```
+
+Next, four deployments will need to be created inside the new namespace, one for each service. Start
+by creating a file called `zookeeper-deployment.yml` and add the following `yml`:
+
+```wp-block-code
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: example-zookeeper
+  namespace: kafka-example
+  labels:
+    app: example-zookeeper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: example-zookeeper
+  template:
+    metadata:
+      labels:
+        app: example-zookeeper
+    spec:
+      containers:
+        - name: example-zookeeper
+          image: jplock/zookeeper
+          ports:
+            - containerPort: 2181
+              protocol: TCP
+          imagePullPolicy: IfNotPresent
+      restartPolicy: Always
+      dnsPolicy: ClusterFirst
+      schedulerName: default-scheduler
+      enableServiceLinks: true
+  strategy:
+    type: RollingUpdate
+```
+
+Save the contents and run the command below to create the deployment in the kafka-example namespace:
+
+```wp-block-code
+kubectl create -f zookeeper-deployment.yml --kubeconfig=<kubeconfig_file_for_your_cluster>
+```
+
+When the deployment has been created successfully, `deployment.apps/example-zookeeper created` will
+be printed. The next step will be creating and deploying the manifest for Kafka. Create the
+file `kafka-deployment.yml` and add:
+
+```wp-block-code
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: example-kafka
+  namespace: kafka-example
+  labels:
+    app: example-kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: example-kafka
+  template:
+    metadata:
+      labels:
+        app: example-kafka
+    spec:
+      containers:
+        - name: example-kafka
+          image: 'wurstmeister/kafka:2.13-2.8.1'
+          ports:
+            - containerPort: 9093
+              protocol: TCP
+            - containerPort: 9092
+              protocol: TCP
+          env:
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: INTERNAL://:9092,EXTERNAL://example-kafka.kafka-example.svc.cluster.local:9093
+            - name: KAFKA_CREATE_TOPICS
+              value: example-topic:1:1
+            - name: KAFKA_INTER_BROKER_LISTENER_NAME
+              value: INTERNAL
+            - name: KAFKA_LISTENERS
+              value: INTERNAL://:9092,EXTERNAL://:9093
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: '1'
+            - name: KAFKA_ZOOKEEPER_CONNECT
+              value: example-zookeeper.kafka-example.svc.cluster.local:2181
+          imagePullPolicy: IfNotPresent
+      restartPolicy: Always
+      dnsPolicy: ClusterFirst
+      schedulerName: default-scheduler
+      enableServiceLinks: true
+  strategy:
+    type: RollingUpdate
+```
+
+Save and close the file. Similar to the Zookeeper deployment, run the command below in a terminal:
+
+```wp-block-code
+kubectl create -f kafka-deployment.yml --kubeconfig=<kubeconfig_file_for_your_cluster>
+```
+
+`deployment.apps/example-kafka created` should have been printed to the console. The last two
+deployments to be created will be the subscriber and publisher services.
+Create `publisher-deployment.yml` with the contents and be sure to
+replace `<your_docker_hub_username>` with your own username:
+
+```wp-block-code
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: example-publisher
+  namespace: kafka-example
+  labels:
+    app: example-publisher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: example-publisher
+  template:
+    metadata:
+      labels:
+        app: example-publisher
+    spec:
+      containers:
+        - name: example-publisher
+          image: '<your_docker_hub_username>/publisher:latest'
+          imagePullPolicy: Always
+          env:
+            - name: ENVIRONMENT
+              value: prod
+            - name: EXTERNAL_KAFKA_ADDR
+              value: example-kafka.kafka-example.svc.cluster.local:9093
+            - name: TOPIC
+              value: example-topic
+      restartPolicy: Always
+      dnsPolicy: ClusterFirst
+      schedulerName: default-scheduler
+      enableServiceLinks: true
+  strategy:
+    type: RollingUpdate
+```
+
+Run `kubectl create -f publisher-deployment.yml --kubeconfig=<kubeconfig_file_for_your_cluster>` to
+create the deployment for the publisher and make sure that kubectl prints a message letting you know
+that it's been created. The last deployment to create is the subscriber, which will be created in
+the same way as the other services. Create the file `subscriber-deployment.yml` and add the
+following configuration, being sure to replace `<your_docker_hub_username>`:
+
+```wp-block-code
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: example-subscriber
+  namespace: kafka-example
+  labels:
+    app: example-subscriber
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: example-subscriber
+  template:
+    metadata:
+      labels:
+        app: example-subscriber
+    spec:
+      containers:
+        - name: example-subscriber
+          image: '<your_docker_hub_username>/subscriber:latest'
+          imagePullPolicy: Always
+          env:
+            - name: ENVIRONMENT
+              value: prod
+            - name: EXTERNAL_KAFKA_ADDR
+              value: example-kafka.kafka-example.svc.cluster.local:9093
+            - name: TOPIC
+              value: example-topic
+      restartPolicy: Always
+      dnsPolicy: ClusterFirst
+      schedulerName: default-scheduler
+      enableServiceLinks: true
+  strategy:
+    type: RollingUpdate
+```
+
+For the last of the deployments, create the subscriber by
+running `kubectl create -f subscriber-deployment.yml --kubeconfig=<kubeconfig_file_for_your_cluster>`.
+If you now navigate to the Kubernetes dashboard for your cluster, you should see that all four
+deployments have been created, which have in turn created four pods. Each pod runs the container
+referred to by the `image` field in its respective deployment.
+
+Wait for a success message to print to the console. Now that all required services and deployments
+are created feel free to navigate to the Kubernetes dashboard to view the running pods. Navigate to
+the running example-subscriber pod and view the logs to see that it's consuming messages from the
+topic.
+
+If you're satisfied with your work and want to destroy all of the Kubernetes resources that you just
+created, use the following command to clean up:
+
+```wp-block-code
+kubectl delete namespace kafka-example --kubeconfig=<kubeconfig_file_for_your_cluster>
+```
+
+Whew! That was a little complicated and took quite a few commands and files to run. What if
+everything that was done could be compressed into a single, short file? What if the entire stack
+could be created in Kubernetes with a single command? Continue to find out how easy deploying a
+Kafka-centric stack both locally and on Kubernetes can be.
+
+## Run Kafka locally with Architect[](https://www.architect.io/blog/2021-01-26/kafka-docker-tutorial#run-kafka-locally-with-architect) {#run-kafka-locally-with-architect .sidebar-anchor .wp-block-heading}
+
+The Architect platform can dramatically simplify deployments of any architecture to both local and
+cloud environments. Just define a component in a single file representing the services that should
+be deployed, and that component can be deployed anywhere. The Kafka example which you just ran
+locally can be defined in the following manner as an Architect component:
+
+```wp-block-code
+name: kafka
+homepage: https://github.com/architect-community/node-kafka
+
+services:
+  zookeeper:
+    image: zookeeper:3.5.9
+    interfaces:
+      main: 2181
+  kafka:
+    image: wurstmeister/kafka:2.13-2.8.1
+    interfaces:
+      internal: 9092
+      external: 9093
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT:
+        ${{ services.zookeeper.interfaces.main.host }}:${{ services.zookeeper.interfaces.main.port
+        }}
+      KAFKA_LISTENERS:
+        INTERNAL://:${{ services.kafka.interfaces.internal.port }},EXTERNAL://:${{
+        services.kafka.interfaces.external.port }}
+      KAFKA_ADVERTISED_LISTENERS:
+        INTERNAL://:9092,EXTERNAL://${{ services.kafka.interfaces.external.host }}:${{
+        services.kafka.interfaces.external.port }}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CREATE_TOPICS: architect:1:1
+    debug:
+      volumes:
+        docker:
+          mount_path: /var/run/docker.sock
+          host_path: /var/run/docker.sock
+      environment:
+        KAFKA_ADVERTISED_HOST_NAME: host.docker.internal # change to 172.17.0.1 if running on Ubuntu
+        KAFKA_LISTENERS: INTERNAL://:9092
+        KAFKA_ADVERTISED_LISTENERS: INTERNAL://:9092
+        KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT
+  publisher:
+    build:
+      context: ./publisher/
+    interfaces:
+    environment:
+      EXTERNAL_KAFKA_ADDR:
+        ${{ services.kafka.interfaces.external.host }}:${{ services.kafka.interfaces.external.port
+        }}
+      TOPIC: architect
+      ENVIRONMENT: prod
+    debug:
+      environment:
+        INTERNAL_KAFKA_ADDR:
+          ${{ services.kafka.interfaces.internal.host }}:${{ services.kafka.interfaces.internal.port
+          }}
+        ENVIRONMENT: local
+  subscriber:
+    build:
+      context: ./subscriber/
+    interfaces:
+    environment:
+      EXTERNAL_KAFKA_ADDR:
+        ${{ services.kafka.interfaces.external.host }}:${{ services.kafka.interfaces.external.port
+        }}
+      TOPIC: architect
+      ENVIRONMENT: prod
+    debug:
+      environment:
+        INTERNAL_KAFKA_ADDR:
+          ${{ services.kafka.interfaces.internal.host }}:${{ services.kafka.interfaces.internal.port
+          }}
+        ENVIRONMENT: local
+```
+
+Copy and paste the `yml` above into a file called "architect.yml" in the project's root directory.
+To run the Kafka component locally, run the command below in the project's root directory:
+
+```wp-block-code
+architect dev architect.yml
+```
+
+The same information should be printed to the console as when the stack was run directly with
+docker-compose. When you're ready, press Ctrl/Cmd+C to stop the running application. As mentioned
+before, an Architect component can be deployed both locally and to any cloud environment. You can
+run this stack on Architect's free community cloud by running a few commands from the project's
+top-level directory.
+
+First, run the command below to login to your free Architect account from the Architect CLI. A web
+browser window will be displayed asking for your credentials.
+
+```wp-block-code
+architect login
+```
+
+Next let's create an environment to run our application in.
+
+```wp-block-code
+architect environment:create --account=<your_free_architect_account_name> kafka-demo
+```
+
+Then run the command below to deploy the stack to the Kubernetes environment that comes with your
+free Architect account. Don't forget to replace `<your_free_architect_account_name>`{.EnlighterJSRAW
+enlighter-language="generic"} with the name you used when you created your Architect account.
+
+```wp-block-code
+architect deploy architect.yml --account <your_free_architect_account_name> --environment kafka-demo
+```
+
+Enter "'Y" at the next prompt to kick off the deployment. When it completes, you'll see
+"Deploying... done" in your terminal. You can login to Architect, select "environments" and then
+"kafka-demo" to see the containers you just deployed to Architect's community cloud.
+
+<figure class="wp-block-image size-full">
+  <img
+    src="https://www.architect.io/wp-content/uploads/2022/10/deploy-1.png"
+    class="wp-image-1452"
+    decoding="async"
+    loading="lazy"
+    srcset="https://www.architect.io/wp-content/uploads/2022/10/deploy-1.png 3024w, https://www.architect.io/wp-content/uploads/2022/10/deploy-1-300x165.png 300w, https://www.architect.io/wp-content/uploads/2022/10/deploy-1-1024x565.png 1024w, https://www.architect.io/wp-content/uploads/2022/10/deploy-1-768x424.png 768w, https://www.architect.io/wp-content/uploads/2022/10/deploy-1-1536x847.png 1536w, https://www.architect.io/wp-content/uploads/2022/10/deploy-1-2048x1130.png 2048w, https://www.architect.io/wp-content/uploads/2022/10/deploy-1-150x83.png 150w"
+    sizes="(max-width: 3024px) 100vw, 3024px"
+    width="3024"
+    height="1668"
+  />
+</figure>
+
+A few clicks, and that's it! The same stack that could be run locally is running in a Kubernetes
+cluster in the cloud. If you would like to explore more, feel free to register your own cluster as a
+platform with the Architect Cloud!
+
+Finally, to clean up this environment and break down your deployed services, use:
+
+```wp-block-code
+architect destroy -a <your-account-name> -e kafka-demo
+```
+
+## Learn more about safe, fast deployments with Docker and Architect[](https://www.architect.io/blog/2021-01-26/kafka-docker-tutorial#learn-more-about-safe-fast-deployments-with-docker-and-architect) {#learn-more-about-safe-fast-deployments-with-docker-and-architect .sidebar-anchor .wp-block-heading}
+
+Kafka is a powerful yet complicated application that takes careful configuration to get running
+properly. Fortunately, there are a few robust tools like docker-compose and Architect to enable
+smooth deployments locally and in the cloud. If you'd like to understand more about how Architect
+can help you expedite both local and remote deployments, check out
+the [docs](https://www.architect.io/docs/) and [sign up](https://cloud.architect.io/signup){target="\_blank"
+rel="noreferrer noopener"}!
+
+For more reading, check out some of our other tutorials!
+
+- [Implement RabbitMQ on Docker in 20 Minutes](https://www.architect.io/blog/rabbitmq-docker-tutorial)
+- [Deploy your Django app with Docker](https://www.architect.io/blog/django-docker-tutorial)
+- [A Developer's Guide to GitOps](https://www.architect.io/blog/gitops-developers-guide)
+
+If you have any questions or comments, don't hesitate to reach out to the team on
+Twitter [\@architect_team](https://twitter.com/architect_team){target="\_blank" rel="noreferrer
+noopener"}!
+
+::: o-post-footer ::: {.section .o-post-author} ::: o-post-author\_\_info
+![](https://secure.gravatar.com/avatar/?s=96&d=retro&r=g){.avatar .avatar-96 .photo .avatar-default
+srcset="https://secure.gravatar.com/avatar/?s=96&d=retro&r=g 2x" height="96" width="96"
+loading="lazy" decoding="async"}
+
+::: o-post-author**copy
+[Ryan Cahill](https://www.architect.io/blog/author/ryan-cahill){.o-post-author**link} ::: :::
+
+- [Create and manage an AWS ECS cluster with Terraform](https://www.architect.io/blog/2021-03-30/create-and-manage-an-aws-ecs-cluster-with-terraform/){.post-item\_\_a}
+- [Get started with the Terraform Kubernetes provider](https://www.architect.io/blog/2021-02-17/terraform-kubernetes-tutorial/){.post-item\_\_a}
+- [Get started with Kafka and Docker in 20 minutes](https://www.architect.io/blog/2021-01-26/kafka-docker-tutorial/){.post-item\_\_a}
+  :::
+
+::: {.section .o-comments-embed}
+
+## Add your thoughts {#add-your-thoughts .o-comments-embed\_\_heading}
+
+::: {#disqus_thread} ::: ::: ::: :::
+
+::: m-post-navigation**inner [Table of Contents:]{.m-post-navigation**title} ::: :::
+
+::: {.o-footer**inner .alignfull} ::: o-footer**nav ::: {.o-footer**nav--col .o-footer**nav--col--1
+.o-footer\_\_nav--tablet-hidden}
+![Architect
+logo](/wp-content/themes/architect-lj-block-editor/dist/images/logo-updated-white.svg){width="162"
+height="24"}
+
+::: o-footer\_\_blurb ::: :::
+
+::: {.o-footer**nav--col .o-footer**nav--col--2} ::: o-footer**menu-wrapper
+[Platform]{.o-footer**menu--heading}
+
+- [Dependency Awareness](https://www.architect.io/dependency-awareness/)
+- [On-Demand Environments](https://www.architect.io/on-demand-environments/)
+- [Sample Projects](https://github.com/architect-team/architect-cli/tree/rc/examples)
+- [Product Documentation](https://docs.architect.io/) :::
+
+::: o-footer**menu-wrapper [Company]{.o-footer**menu--heading}
+
+- [Contact Us](https://www.architect.io/contact-us/)
+- [Pricing](https://www.architect.io/pricing/)
+- [Status](https://architectio.statuspage.io/)
+- [Blog](https://www.architect.io/blog/)
+- [Support](https://support.architect.io/support/home)
+- [User Agreement](https://www.architect.io/user-agreement/)
+- [Privacy Policy](https://www.architect.io/privacy-policy/)
+- [Write for Us](https://www.architect.io/write-for-us/) :::
+
+::: {.o-footer**menu-wrapper .o-footer**nav--mobile-hidden} ::: o-recent-posts [From the
+blog]{.o-footer**menu--heading .o-recent-posts**heading}
+
+- [Streamline your Spring Boot microservice deployment](https://www.architect.io/blog/2023-05-09/spring-boot-microservice-deployment/){.menu-item\_\_a}
+- [Build and deploy a service with Go](https://www.architect.io/blog/2023-04-05/go-build-and-deploy-tutorial/){.menu-item\_\_a}
+- [YAML Ain\'t Markup Language: A guide to the basics](https://www.architect.io/blog/2023-03-30/yaml-guide/){.menu-item\_\_a}
+- [Manage networking with Docker Compose](https://www.architect.io/blog/2023-03-23/manage-networking-with-docker-compose/){.menu-item\_\_a}
+- [Simplify your deployments with CI/CD and Kubernetes](https://www.architect.io/blog/2023-03-22/deploy-cicd-kubernetes-tutorial/){.menu-item\_\_a}
+- [How does microservice communication work?](https://www.architect.io/blog/2023-03-21/microservices-communication/){.menu-item\_\_a}
+- [Advantages of microservices: Why you should drop your monolith (or not!)](https://www.architect.io/blog/2023-03-16/microservices-advantages-and-disadvantages/){.menu-item\_\_a}
+  ::: ::: ::: :::
+
+::: o-footer\_\_section--social
+[![](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTYiIHZpZXdib3g9IjAgMCAxOCAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xNS45MDk0IDUuMzY4NTRDMTUuODk0NiA3LjE1NDM4IDE1LjU4OSA4LjY5NTU1IDE1LjExMDcgMTAuMDE4MUMxMi45NjEzIDE1Ljk2MTIgMy43MjIwNiAxNy41NjMgMCAxMi40NTU0TDE1LjkwOTQgNS4zNjg1NFpNMCAxMi40NTU0QzAuMDI4NDc5OCAxMi40NTA1IDIuNjUxNTcgMTEuNTY5NiAyLjY1MTU3IDExLjU2OTZDLTAuMzAwNTEyIDguNTc4MzEgLTAuNTI0NDIyIDQuMTQ4MDIgMS43Njc3MSAwLjkzOTIzMkMyLjg1NDg2IDIuOTY1ODkgNC44ODQ3OCA0LjgzNjA0IDcuMDcwODYgNS4zNjg1NEM3LjE1NTMxIDIuODA5MzggOC44ODY2OSAwLjkzOTIzMiAxMS40OTAxIDAuOTM5MjMyQzEzLjI2MjggMC45MzkyMzIgMTQuMzA1NyAxLjYxNjQyIDE1LjAyNTYgMi43MTA5NUgxNy44NDI1TDE1LjkwOTQgNS4zNjg1NCIgZmlsbD0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjYwKSI+PC9wYXRoPgo8L3N2Zz4=)](https://twitter.com/architect_team)
+[![](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjEiIGhlaWdodD0iMjAiIHZpZXdib3g9IjAgMCAyMSAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xNy45MTM1IDE3LjA3MTJDMjEuODE4NiAxMy4xNjYxIDIxLjgxODYgNi44MzM5MiAxNy45MTM1IDIuOTI4ODJDMTQuMDA4NCAtMC45NzYyNzQgNy42NzYyMSAtMC45NzYyNzQgMy43NzExMSAyLjkyODgyQy0wLjEzMzk4OSA2LjgzMzkyIC0wLjEzMzk4OSAxMy4xNjYxIDMuNzcxMTEgMTcuMDcxMkM3LjY3NjIxIDIwLjk3NjMgMTQuMDA4NCAyMC45NzYzIDE3LjkxMzUgMTcuMDcxMlpNNy40ODQzNCA0LjIwMDAxQzYuODA4MTggNC4yMDAwMSA2LjI1NzY3IDQuNzUwNTIgNi4yNjM2NSA1LjQyNjY5QzYuMjYzNjUgNi4xMDI4NSA2LjgxNDE2IDYuNjUzMzYgNy40OTAzMiA2LjY1MzM2QzguMTY2NDkgNi42NTMzNiA4LjcxNjk5IDYuMTAyODUgOC43MTY5OSA1LjQyNjY5QzguNzExMDEgNC43NDQ1NCA4LjE2MDUxIDQuMjAwMDEgNy40ODQzNCA0LjIwMDAxWk04LjQ5MTI3IDguNTc0MDFDOC40OTEyNyA4LjAyMTcyIDguMDQzNTYgNy41NzQwMSA3LjQ5MTI3IDcuNTc0MDFDNi45Mzg5OSA3LjU3NDAxIDYuNDkxMjcgOC4wMjE3MiA2LjQ5MTI3IDguNTc0MDFWMTMuNDgzQzYuNDkxMjcgMTQuMDM1MyA2LjkzODk5IDE0LjQ4MyA3LjQ5MTI3IDE0LjQ4M0M4LjA0MzU2IDE0LjQ4MyA4LjQ5MTI3IDE0LjAzNTMgOC40OTEyNyAxMy40ODNWOC41NzQwMVpNMTIuMTQyMyAxMC42MTlDMTIuMTQyMyAxMC4wNDEzIDEyLjYwOTYgOS41NzQwMiAxMy4xODczIDkuNTc0MDJDMTMuNzY1IDkuNTc0MDIgMTQuMjMyMyAxMC4wNDEzIDE0LjIzMjMgMTAuNjE5VjEzLjQ4M0MxNC4yMzIzIDE0LjAzNTMgMTQuNjggMTQuNDgzIDE1LjIzMjMgMTQuNDgzQzE1Ljc4NDYgMTQuNDgzIDE2LjIzMjMgMTQuMDM1MyAxNi4yMzIzIDEzLjQ4M1YxMC42MTlDMTYuMjMyMyA4LjkzNjczIDE0Ljg2OTYgNy41NzQwMiAxMy4xODczIDcuNTc0MDJDMTEuNTA1IDcuNTc0MDIgMTAuMTQyMyA4LjkzNjczIDEwLjE0MjMgMTAuNjE5VjEzLjQ4M0MxMC4xNDIzIDE0LjAzNTMgMTAuNTkgMTQuNDgzIDExLjE0MjMgMTQuNDgzQzExLjY5NDYgMTQuNDgzIDEyLjE0MjMgMTQuMDM1MyAxMi4xNDIzIDEzLjQ4M1YxMC42MTlaIiBmaWxsPSJyZ2JhKDI1NSwgMjU1LCAyNTUsIDAuNjApIj48L3BhdGg+Cjwvc3ZnPg==)](https://www.linkedin.com/company/architect-io/)
+[](https://github.com/architect-team)
+
+![](data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdib3g9IjAgMCA0OC42NSA0Ny40MyI+PHBhdGggZD0iTTE2LjI3LDM4LjE5YzAsLjItLjIzLC4zNS0uNTEsLjM1LS4zMiwuMDMtLjU1LS4xMy0uNTUtLjM1LDAtLjIsLjIzLS4zNSwuNTEtLjM1LC4yOS0uMDMsLjU1LC4xMywuNTUsLjM1Wm0tMy4wNS0uNDRjLS4wNywuMiwuMTMsLjQyLC40MiwuNDgsLjI2LC4xLC41NSwwLC42MS0uMnMtLjEzLS40Mi0uNDItLjUxYy0uMjYtLjA3LS41NCwuMDMtLjYxLC4yM2gwWm00LjM0LS4xN2MtLjI4LC4wNy0uNDgsLjI2LS40NSwuNDgsLjAzLC4yLC4yOCwuMzIsLjU4LC4yNiwuMjgtLjA3LC40OC0uMjYsLjQ1LS40NS0uMDMtLjE5LS4yOS0uMzEtLjU4LS4yOFpNMjQuMDEsMEMxMC40MSwwLDAsMTAuMzMsMCwyMy45M2MwLDEwLjg4LDYuODUsMjAuMTksMTYuNjIsMjMuNDYsMS4yNiwuMjMsMS43LS41NSwxLjctMS4xOXMtLjAzLTMuOTYtLjAzLTYuMDJjMCwwLTYuODcsMS40Ny04LjMxLTIuOTIsMCwwLTEuMTItMi44NS0yLjczLTMuNTksMCwwLTIuMjUtMS41NCwuMTYtMS41MSwwLDAsMi40NCwuMiwzLjc5LDIuNTMsMi4xNSwzLjc5LDUuNzUsMi43LDcuMTUsMi4wNSwuMjMtMS41NywuODYtMi42NiwxLjU3LTMuMzEtNS40OC0uNjEtMTEuMDEtMS40LTExLjAxLTEwLjg0LDAtMi43LC43NS00LjA1LDIuMzEtNS43OC0uMjYtLjY0LTEuMDktMy4yNywuMjYtNi42NiwyLjA1LS42NCw2Ljc3LDIuNjUsNi43NywyLjY1LDEuOTYtLjU1LDQuMDctLjgzLDYuMTYtLjgzczQuMiwuMjgsNi4xNiwuODNjMCwwLDQuNzItMy4zLDYuNzctMi42NSwxLjM0LDMuNCwuNTEsNi4wMiwuMjYsNi42NiwxLjU3LDEuNzQsMi41MywzLjA5LDIuNTMsNS43OCwwLDkuNDYtNS43OCwxMC4yMi0xMS4yNiwxMC44NCwuOSwuNzcsMS42NywyLjI1LDEuNjcsNC41NSwwLDMuMzEtLjAzLDcuNC0uMDMsOC4yLDAsLjY0LC40NSwxLjQxLDEuNywxLjE5LDkuODEtMy4yNiwxNi40Ni0xMi41NiwxNi40Ni0yMy40NEM0OC42NSwxMC4zMywzNy42MSwwLDI0LjAxLDBaTTkuNTMsMzMuODNjLS4xMywuMS0uMSwuMzIsLjA3LC41MSwuMTYsLjE2LC4zOCwuMjMsLjUxLC4xLC4xMy0uMSwuMS0uMzItLjA3LS41MS0uMTYtLjE2LS4zOC0uMjMtLjUxLS4xWm0tMS4wNi0uNzljLS4wNywuMTMsLjAzLC4yOCwuMjMsLjM4LC4xNiwuMSwuMzUsLjA3LC40Mi0uMDcsLjA3LS4xMy0uMDMtLjI4LS4yMy0uMzgtLjItLjA2LS4zNS0uMDMtLjQyLC4wN1ptMy4xOCwzLjQ5Yy0uMTYsLjEzLS4xLC40MiwuMTMsLjYxLC4yMywuMjMsLjUxLC4yNiwuNjQsLjEsLjEzLS4xMywuMDctLjQyLS4xMy0uNjEtLjIyLS4yMy0uNTEtLjI2LS42NC0uMVptLTEuMTItMS40NGMtLjE2LC4xLS4xNiwuMzUsMCwuNThzLjQyLC4zMiwuNTUsLjIzYy4xNi0uMTMsLjE2LS4zOCwwLS42MS0uMTQtLjIzLS4zOS0uMzItLjU1LS4yaDBaIiBzdHlsZT0iZmlsbDpyZ2JhKDI1NSwgMjU1LCAyNTUsIDAuNjApOyIgPCBhPgo8L2Rpdj4KICAgIDwvZGl2Pgo8L2Zvb3Rlcj4KICAgICAgICA8IS0tIFN0YXJ0IG9mIEFzeW5jIEh1YlNwb3QgQW5hbHl0aWNzIENvZGUgLS0+CjxzY3JpcHQgdHlwZT0idGV4dC9qYXZhc2NyaXB0Ij4KKGZ1bmN0aW9uKGQscyxpLHIpIHsKaWYgKGQuZ2V0RWxlbWVudEJ5SWQoaSkpe3JldHVybjt9CnZhciBuPWQuY3JlYXRlRWxlbWVudChzKSxlPWQuZ2V0RWxlbWVudHNCeVRhZ05hbWUocylbMF07Cm4uaWQ9aTtuLnNyYz0nLy9qcy5ocy1hbmFseXRpY3MubmV0L2FuYWx5dGljcy8nKyhNYXRoLmNlaWwobmV3IERhdGUoKS9yKSpyKSsnLzQ5MzMzNDcuanMnOwplLnBhcmVudE5vZGUuaW5zZXJ0QmVmb3JlKG4sIGUpOwp9KShkb2N1bWVudCwic2NyaXB0IiwiaHMtYW5hbHl0aWNzIiwzMDAwMDApOwo8L3NjcmlwdD4KPCEtLSBFbmQgb2YgQXN5bmMgSHViU3BvdCBBbmFseXRpY3MgQ29kZSAtLT4KPHNjcmlwdCB0eXBlPSJ0ZXh0L2phdmFzY3JpcHQiIGlkPSJkaXNxdXNfY291bnQtanMtZXh0cmEiPgovKiA8IVtDREFUQVsgKi8KdmFyIGNvdW50VmFycyA9IHsiZGlzcXVzU2hvcnRuYW1lIjoiYXJjaGl0ZWN0LTYifTsKLyogXV0+ICovCjwvc2NyaXB0Pgo8c2NyaXB0IHR5cGU9InRleHQvamF2YXNjcmlwdCIgc3JjPSJodHRwczovL3d3dy5hcmNoaXRlY3QuaW8vd3AtY29udGVudC9wbHVnaW5zL2Rpc3F1cy1jb21tZW50LXN5c3RlbS9wdWJsaWMvanMvY29tbWVudF9jb3VudC5qcz92ZXI9My4wLjIzIiBpZD0iZGlzcXVzX2NvdW50LWpzIj48L3NjcmlwdD4KPHNjcmlwdCB0eXBlPSJ0ZXh0L2phdmFzY3JpcHQiIGlkPSJkaXNxdXNfZW1iZWQtanMtZXh0cmEiPgovKiA8IVtDREFUQVsgKi8KdmFyIGVtYmVkVmFycyA9IHsiZGlzcXVzQ29uZmlnIjp7ImludGVncmF0aW9uIjoid29yZHByZXNzIDMuMC4yMyJ9LCJkaXNxdXNJZGVudGlmaWVyIjoiNzA0IGh0dHBzOlwvXC93d3cuYXJjaGl0ZWN0LmlvXC8/cD03MDQiLCJkaXNxdXNTaG9ydG5hbWUiOiJhcmNoaXRlY3QtNiIsImRpc3F1c1RpdGxlIjoiR2V0IHN0YXJ0ZWQgd2l0aCBLYWZrYSBhbmQgRG9ja2VyIGluIDIwIG1pbnV0ZXMiLCJkaXNxdXNVcmwiOiJodHRwczpcL1wvd3d3LmFyY2hpdGVjdC5pb1wvYmxvZ1wvMjAyMS0wMS0yNlwva2Fma2EtZG9ja2VyLXR1dG9yaWFsXC8iLCJwb3N0SWQiOiI3MDQifTsKLyogXV0+ICovCjwvc2NyaXB0Pgo8c2NyaXB0IHR5cGU9InRleHQvamF2YXNjcmlwdCIgc3JjPSJodHRwczovL3d3dy5hcmNoaXRlY3QuaW8vd3AtY29udGVudC9wbHVnaW5zL2Rpc3F1cy1jb21tZW50LXN5c3RlbS9wdWJsaWMvanMvY29tbWVudF9lbWJlZC5qcz92ZXI9My4wLjIzIiBpZD0iZGlzcXVzX2VtYmVkLWpzIj48L3NjcmlwdD4KPHNjcmlwdCB0eXBlPSJ0ZXh0L2phdmFzY3JpcHQiIHNyYz0iaHR0cHM6Ly93d3cuYXJjaGl0ZWN0LmlvL3dwLWNvbnRlbnQvcGx1Z2lucy9lbmxpZ2h0ZXIvY2FjaGUvZW5saWdodGVyanMubWluLmpzP3Zlcj1DcHJONDFSeFl3WUp3dGwiIGlkPSJlbmxpZ2h0ZXJqcy1qcyI+PC9zY3JpcHQ+CjxzY3JpcHQgdHlwZT0idGV4dC9qYXZhc2NyaXB0IiBpZD0iZW5saWdodGVyanMtanMtYWZ0ZXIiPgohZnVuY3Rpb24oZSxuKXtpZigidW5kZWZpbmVkIiE9dHlwZW9mIEVubGlnaHRlckpTKXt2YXIgbz17InNlbGVjdG9ycyI6eyJibG9jayI6InByZS5FbmxpZ2h0ZXJKU1JBVyIsImlubGluZSI6ImNvZGUuRW5saWdodGVySlNSQVcifSwib3B0aW9ucyI6eyJpbmRlbnQiOjIsImFtcGVyc2FuZENsZWFudXAiOnRydWUsImxpbmVob3ZlciI6ZmFsc2UsInJhd2NvZGVEYmNsaWNrIjpmYWxzZSwidGV4dE92ZXJmbG93Ijoic2Nyb2xsIiwibGluZW51bWJlcnMiOnRydWUsInRoZW1lIjoiZHJhY3VsYSIsImxhbmd1YWdlIjoiZ2VuZXJpYyIsInJldGFpbkNzc0NsYXNzZXMiOmZhbHNlLCJjb2xsYXBzZSI6ZmFsc2UsInRvb2xiYXJPdXRlciI6IiIsInRvb2xiYXJUb3AiOiJ7QlROX1JBV317QlROX0NPUFl9e0JUTl9XSU5ET1d9e0JUTl9XRUJTSVRFfSIsInRvb2xiYXJCb3R0b20iOiIifX07KGUuRW5saWdodGVySlNJTklUPWZ1bmN0aW9uKCl7RW5saWdodGVySlMuaW5pdChvLnNlbGVjdG9ycy5ibG9jayxvLnNlbGVjdG9ycy5pbmxpbmUsby5vcHRpb25zKX0pKCl9ZWxzZXsobiYmKG4uZXJyb3J8fG4ubG9nKXx8ZnVuY3Rpb24oKXt9KSgiRXJyb3I6IEVubGlnaHRlckpTIHJlc291cmNlcyBub3QgbG9hZGVkIHlldCEiKX19KHdpbmRvdyxjb25zb2xlKTsKPC9zY3JpcHQ+CjxzY3JpcHQgdHlwZT0idGV4dC9qYXZhc2NyaXB0IiBzcmM9Imh0dHBzOi8vczcuYWRkdGhpcy5jb20vanMvMzAwL2FkZHRoaXNfd2lkZ2V0LmpzP3Zlcj02LjIuMiNwdWJpZD1yYS02MzQ1YTIwNzZkYjdmMzBiIiBpZD0iYWRkdGhpcy1qcyI+PC9zY3JpcHQ+CjxzY3JpcHQgdHlwZT0idGV4dC9qYXZhc2NyaXB0IiBzcmM9Imh0dHBzOi8vd3d3LmFyY2hpdGVjdC5pby93cC1jb250ZW50L3RoZW1lcy9hcmNoaXRlY3QtbGotYmxvY2stZWRpdG9yL2Rpc3Qvc2NyaXB0cy90aGVtZS5qcz9pZD04MTZlMDgyMGY4ZTJiNDY5MDdkZiZhbXA7dmVyPTYuMi4yIiBkZWZlciBpZD0ibHVtYmVyamFjay90aGVtZS5qcy1qcyI+PC9zY3JpcHQ+CjxzY3JpcHQgdHlwZT0idGV4dC9qYXZhc2NyaXB0IiBzcmM9Imh0dHBzOi8va2l0LmZvbnRhd2Vzb21lLmNvbS8wYWEwZWFjNWFmLmpzP3Zlcj02LjIuMiIgY3Jvc3NvcmlnaW49ImFub255bW91cyIgaWQ9ImZvbnQtYXdlc29tZS1qcyI+PC9zY3JpcHQ+CgogICAgICAgIDwvZGl2PgogICAgPC9ib2R5Pgo8L2h0bWw+Cgo8L3N2Zz4=){#Layer_1}
+::: ::: :::

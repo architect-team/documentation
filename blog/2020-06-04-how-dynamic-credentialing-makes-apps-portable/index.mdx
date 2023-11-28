@@ -1,22 +1,20 @@
 ---
 title: How dynamic credentialing makes apps portable
-description:
-  In my last post we talked about how to leverage secret managers to safely store and cycle
-  application credentials in production. In this post we’re going to…
+image: ./portability-square-768x768.png
 authors:
   - david.thor
 ---
 
 In my last post we talked about
-[how to leverage secret managers to safely store and cycle application credentials](/blog/using-hashicorp-vault-to-enable-credential-cycling)
-in production. In this post we’re going to take the concept of credential cycling a step further to
+[how to leverage secret managers to safely store and cycle application credentials](/blog/2020/05/28/using-hashicorp-vault-to-enable-credential-cycling)
+in production. In this post we're going to take the concept of credential cycling a step further to
 streamline the ability for an app or service to be deployed to parallel environments through dynamic
 credentialing.
 
 {/* truncate */}
 
 Allowing apps to be deployed without manual credential generation is critical to making it portable
-and deployable by anyone – an important principal that enables peer developers to run and integrate
-with your application in their own private sandboxing or integration tests. In this tutorial, we’ll
-describe what dynamic credentialing is and apply it to a practical use-case – integration with a
+and deployable by anyone - an important principal that enables peer developers to run and integrate
+with your application in their own private sandboxing or integration tests. In this tutorial, we'll
+describe what dynamic credentialing is and apply it to a practical use-case - integration with a
 hosted service, Auth0.
