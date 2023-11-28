@@ -1,0 +1,289 @@
+---
+title: Deploy your Django app with Docker
+authors:
+  - tj.higgins
+---
+
+Django is an excellent Python Web framework, but it can be tricky to deploy to the cloud. If you're
+building in Python, you want the confidence that what you develop and deploy locally will translate
+to production. This quick-start guide demonstrates how to set up and run a simple Django/PostgreSQL
+app locally for development and production-ready in the cloud.
+
+{/* truncate */}
+
+## Prerequisites
+
+There are many tools out there that provide support for local development OR remote deployment.
+Architect was built to do both. This tutorial will show how, with one simple `architect.yml` file,
+any developer can run their application locally and in the cloud without having to learn/write
+docker-compose and infrastructure as code templates.
+
+Before you begin, make sure the following are installed on your system:
+
+_Architect CLI_: The best way to install the CLI is via NPM:
+
+```sh
+$ npm install -g @architect-io/cli
+```
+
+Alternatively, you can download the binary for your system architecture from Github. Just download
+the appropriate bundle, extract it, and link the included bin folder to your user home directory.
+
+_Docker_: This is a software platform for building applications based on containers. Install it
+according to [the docs on their site](https://www.docker.com/get-started).
+
+## Django, Docker, and more
+
+For this project, you need to create a Dockerfile, a Python dependencies file, and an
+`architect.yml` file.
+
+Create an empty project directory. You can name the directory something easy for you to remember.
+This directory is the context for your application image. The directory should only contain
+resources to build that image.
+
+You'll next need to create a new file called `Dockerfile` in your project directory. The Dockerfile
+defines an application's image content via one or more build commands that configure that image.
+Once built, you can run the image in a container.
+
+Add the following content to the `Dockerfile`:
+
+```dockerfile
+FROM python:3
+ENV PYTHONUNBUFFERED=1
+WORKDIR /code
+COPY requirements.txt /code/
+RUN pip install -r requirements.txt
+COPY . /code/
+```
+
+Create a `requirements.txt` in your project directory. This file is used by the
+`RUN pip install -r requirements.txt` command in your `Dockerfile`. Pip is a package-management
+system similar to npm except for Python. Each line in the file represents an external dependency and
+the required version of that software.
+
+Add the required software in the file.
+
+```
+Django>=3.0,<4.0
+psycopg2-binary>=2.8
+uwsgi>=2.0
+```
+
+Create a file called `architect.yml` in your project directory. The `architect.yml` file describes
+the services that make your app. In this example, those services are a web server and database. Add
+the following configuration to the file:
+
+```yml
+name: django
+secrets:
+  django_secret_key:
+    default: warning-override-for-production
+  postgres_password:
+    default: warning-override-for-production
+services:
+  db:
+    image: postgres
+    interfaces:
+      main: 5432
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${{ secrets.postgres_password }}
+  web:
+    build:
+      context: .
+    command: |
+      sh -c '
+        python manage.py collectstatic --noinput
+        python manage.py migrate --noinput
+        uwsgi --http "0.0.0.0:8000" --module architectexample.wsgi:application --master --processes 4 --threads 2 --static-map /static=/code/static
+      '
+    interfaces:
+      main:
+        port: 8000
+        ingress:
+          subdomain: django
+    environment:
+      DEBUG: 'False'
+      ALLOWED_HOST: .${{ services.web.interfaces.main.ingress.host }}
+      SECRET_KEY: ${{ secrets.django_secret_key }}
+      POSTGRES_DB: ${{ services.db.environment.POSTGRES_DB }}
+      POSTGRES_USER: ${{ services.db.environment.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ services.db.environment.POSTGRES_PASSWORD }}
+      POSTGRES_HOST: ${{ services.db.interfaces.main.host }}
+      POSTGRES_PORT: ${{ services.db.interfaces.main.port }}
+    debug:
+      command: |
+        sh -c '
+          python manage.py migrate --noinput
+          python manage.py runserver 0.0.0.0:${{ services.web.interfaces.main.port }}
+        '
+      environment:
+        ALLOWED_HOST: '*'
+        DEBUG: 'True'
+      volumes:
+        code:
+          mount_path: /code
+          host_path: .
+```
+
+This manifest file does the following three things:
+
+- Outlines parameter values which allow you to configure the services per deployment
+- Defines the services to be deployed. In this case db is the postgres database and web is the
+  django application. Each service block defines the interfaces (ports) that are exposed. Along with
+  the environment variables required for the service to run.
+- Defines development specific configuration in service debug blocks. This is powerful because it
+  lets us define different start commands for development and production.
+
+You can check out the [architect.yml](/docs/components/reference/v1/) reference for more information
+on how this file works.
+
+## Create your Django project
+
+Next, you'll create a Django starter project by building the image from the build context defined in
+the previous procedure.
+
+Switch to the root of your project directory. Create the Django project by running the command as
+follows.
+
+```sh
+$ docker run --rm -it -v ${PWD}:/code $(docker build -q .) django-admin startproject architectexample .
+```
+
+After the command completes, list the contents of your project.
+
+```sh
+$ ls -l
+drwxr-xr-x 2 root   root   architectexample
+-rw-rw-r-- 1 user   user   architect.yml
+-rw-rw-r-- 1 user   user   Dockerfile
+-rwxr-xr-x 1 root   root   manage.py
+-rw-rw-r-- 1 user   user   requirements.txt
+```
+
+## Configure Django
+
+Now it's time to set up the database connection for Django along with a few other settings.
+
+In your project directory, edit the `architectexample/settings.py` file. Replace or add the the
+following:
+
+```python
+# settings.py
+import os
+STATIC_ROOT =  os.path.join(BASE_DIR, 'static/')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'warning-override-for-production')
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+ALLOWED_HOSTS = [os.environ.get('ALLOWED_HOST', '')]
+DATABASES = {
+  'default': {
+      'ENGINE': 'django.db.backends.postgresql',
+      'NAME': os.environ.get('POSTGRES_DB', 'postgres'),
+      'USER': os.environ.get('POSTGRES_USER', 'postgres'),
+      'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
+      'HOST': os.environ.get('POSTGRES_HOST', '0.0.0.0'),
+      'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+  }
+}
+```
+
+## Deploy your Django app locally
+
+Run the `architect dev` command from the top level directory for your project.
+
+```sh
+$ architect dev architect.yml
+http://django.localhost:80/ => examples--django--web--latest--cvkrs58l
+http://localhost:50000/ => examples--django--db--latest--cbyiekkg
+http://localhost:50001/ => examples--django--web--latest--cvkrs58l
+http://localhost:80/ => gateway
+. . .
+web_1  | July 30, 2020 - 18:35:38
+web_1  | Django version 3.0.8, using settings 'architectexample.settings'
+web_1  | Starting development server at http://0.0.0.0:8000/
+web_1  | Quit the server with CONTROL-C.
+```
+
+Go to `http://django.localhost` on a web browser to see the Django welcome page.
+
+![](./django-it-worked.png)
+
+If you want to shut down the services, simply stop the application by typing `Ctrl-C` in the same
+shell where you started it.
+
+## Deploy your Django app remotely
+
+You now know how to run our stack of services locally in a repeatable way, but what about deploying
+to production-grade environments? How do you deploy all our services to AWS ECS or Kubernetes? How
+do we deal with the networking and configuration of our services? Fortunately, Architect has this
+handled too! Since we already described our services as Architect Components, they are primed and
+ready to be deployed to production-grade container platforms without any additional work.
+
+Before you can deploy components to remote environments, you must
+[create an account with Architect](https://cloud.architect.io).
+
+Once you've successfully created your account, go ahead and click the button below to deploy it to a
+sample Kubernetes cluster powered by Architect Cloud.
+
+If you're already familiar with Architect you can use the CLI instead. Once you've successfully
+created your account, go ahead and login using Architect's CLI:
+
+```sh
+$ architect login
+```
+
+Finally, we're ready to deploy our component! Let's go ahead and try out Architect's community cloud
+(example-environment) so that we don't need to create a cluster right away (be sure to replace
+`<account>` with your account name). Just like deploying locally, deploying remotely is as simple as
+running `architect deploy`:
+
+```sh
+$ architect deploy architect.yml --account="<account>" --environment="example-environment"
+Creating deployment... done
+Deployment ready for review: https://cloud.architect.io/<account>/environments/example-environment/deployments/<deployment-id>
+? Would you like to apply? Yes
+Deploying... done
+Deployed
+```
+
+Congratulations! That's all it takes to take a locally runnable component and deploy it to a remote
+cluster with Architect. Once the deployment completes, you'll be able to test it out live via a URL.
+
+_Note: Deploying to production disables DEBUG, and the base URL will 404. Confirm it's working by
+loading `/admin`. An empty app is no fun so take a look at the next steps._
+
+## Next steps with Django and Docker
+
+Now you're ready to build your application with the confidence that if you can run it locally, it
+will also run in the cloud. Django has an excellent
+[polls tutorial](https://docs.djangoproject.com/en/3.1/intro/tutorial01/#creating-the-polls-app),
+which you should try if this is your first time. The only difference is the command to create the
+example polls app.
+
+```sh
+$ docker run --rm -it -v ${PWD}:/code $(docker build -q .) python manage.py startapp polls
+```
+
+## Learn more about how to deploy faster and more securely
+
+Congratulations! That's all it takes to take a locally runnable component and deploy it to a remote
+cluster with Architect.
+
+Note: You can register your own Kubernetes or ECS cluster on the platforms tab of your account. Then
+create an environment for that platform and try deploying again!
+
+Note: We skipped the component registration step in this tutorial because we've already published
+this example component to the registry. If you want to try publishing yourself, simply change the
+component name to include your account name as the prefix instead of `examples` and then run
+`architect register architect.yml` in the project directory. [Docs](/docs/components/overview/)
+
+If you'd like to read more about how Architect enables safe, fast deployments, we've got you
+covered:
+
+- [Why Distributed Apps Need Dependency Management](/blog/2020/09/16/why-distributed-apps-need-dependency-management/)
+- [Creating Microservices: Nest.js](/blog/2020/09/08/creating-microservices-nestjs/)
+- [Cycling Credentials Without Cycling Containers](/blog/2020/07/30/cycling-credentials-without-cycling-containers/)
+
+And as always, we'd love to have you follow along as we release new content and features. Check us
+out on Twitter [@architect_team](https://twitter.com/architect_team)!

@@ -1,7 +1,7 @@
 ---
 title: Streamline your Spring Boot microservice deployment
 description:
-  If you’re looking for an easy-to-use backend framework for your microservices, Spring Boot is an
+  If you're looking for an easy-to-use backend framework for your microservices, Spring Boot is an
   excellent choice. Learn how to deploy microservices with Spring Boot, including building a to-do
   web application with two services.
 authors:
@@ -20,7 +20,7 @@ Apache Tomcat by default as a Java web application server to process HTTP reques
 In this article, basic concepts of deploying Microservices with Spring Boot will be covered. The
 application that will be built is a to-do web application. There are 2 services to be constructed:
 `Todo` and `Person`. The `Todo` service stores to do tasks belonging to a person. The Person service
-stores information about a person and communicates with the `Todo` service to retrieve the person’s
+stores information about a person and communicates with the `Todo` service to retrieve the person's
 list of to-dos. Two ways of deployment will be shown to deploy these services. The first way of
 deployment uses the popular Eureka as a service registry and the second uses
 [Architect.io](https://www.architect.io/) to perform service mesh for the microservices to
@@ -630,7 +630,7 @@ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 spring.datasource.platform=postgres
 ```
 
-Notice (1) in the Person’s `TodoService`, `restTemplate` is used to make a request to the todo
+Notice (1) in the Person's `TodoService`, `restTemplate` is used to make a request to the todo
 service for a list of todos. By calling the `restTemplate` function `getForEntity()`, the person
 service can communicate with the todo service once both the person and the todo services are
 registered to the discovery server. (2) To make it simple, only the name field is used to identify a
@@ -924,7 +924,7 @@ person:
 
 Architect.io will interpolate the value of \$\{\{ services.todo.interfaces.main.url \}\} to the url
 of the Todo service. In the Person service, read that value in application.properties. Then, use
-TODO_URL in the Person’s TodoService class to make the request for the list of todos. Since the
+TODO_URL in the Person's TodoService class to make the request for the list of todos. Since the
 TODO_URL is used to access the Todo service, there is no need to specify the TODO_PROTOCOL
 environment variable.
 
@@ -1028,5 +1028,5 @@ Learn More about building and deploying microservices by checking out similar po
 - [Five tips for successfully managing dependencies](https://www.architect.io/blog/2023-03-06/five-tips-for-successfully-managing-dependencies/)
 - [Create and manage an AWS ECS cluster with Terraform](https://www.architect.io/blog/2021-03-30/create-and-manage-an-aws-ecs-cluster-with-terraform/)
 
-Feel free to leave comments and questions below, and don’t forget to
+Feel free to leave comments and questions below, and don't forget to
 [follow us on Twitter](https://twitter.com/architect_team)!
